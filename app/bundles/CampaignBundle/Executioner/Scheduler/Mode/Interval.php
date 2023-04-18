@@ -14,7 +14,7 @@ use Psr\Log\LoggerInterface;
 
 class Interval implements ScheduleModeInterface
 {
-    public const LOG_DATE_FORMAT = 'Y-m-d H:i:s T';
+    const LOG_DATE_FORMAT = 'Y-m-d H:i:s T';
 
     /**
      * @var LoggerInterface
@@ -58,7 +58,7 @@ class Interval implements ScheduleModeInterface
         } catch (\Exception $exception) {
             $this->logger->error('CAMPAIGN: Determining interval scheduled failed with "'.$exception->getMessage().'"');
 
-            throw new NotSchedulableException($exception->getMessage());
+            throw new NotSchedulableException();
         }
 
         if ($comparedToDateTime > $compareFromDateTime) {
@@ -154,28 +154,24 @@ class Interval implements ScheduleModeInterface
      */
     public function isContactSpecificExecutionDateRequired(Event $event)
     {
-        if (!$this->isTriggerModeInterval($event) || $this->isRestrictedToDailyScheduling($event) || $this->hasTimeRelatedRestrictions($event)) {
+        if (Event::TRIGGER_MODE_INTERVAL !== $event->getTriggerMode()) {
+            return false;
+        }
+
+        // Restrict just for daily scheduling
+        if (!in_array($event->getTriggerIntervalUnit(), ['d', 'm', 'y'])) {
+            return false;
+        }
+
+        if (
+            null === $event->getTriggerHour() &&
+            (null === $event->getTriggerRestrictedStartHour() || null === $event->getTriggerRestrictedStopHour()) &&
+            empty($event->getTriggerRestrictedDaysOfWeek())
+        ) {
             return false;
         }
 
         return true;
-    }
-
-    private function isTriggerModeInterval(Event $event): bool
-    {
-        return Event::TRIGGER_MODE_INTERVAL === $event->getTriggerMode();
-    }
-
-    private function isRestrictedToDailyScheduling(Event $event): bool
-    {
-        return !in_array($event->getTriggerIntervalUnit(), ['d', 'm', 'y']);
-    }
-
-    private function hasTimeRelatedRestrictions(Event $event): bool
-    {
-        return null === $event->getTriggerHour() &&
-            (null === $event->getTriggerRestrictedStartHour() || null === $event->getTriggerRestrictedStopHour()) &&
-            empty($event->getTriggerRestrictedDaysOfWeek());
     }
 
     /**

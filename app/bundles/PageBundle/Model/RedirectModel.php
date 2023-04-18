@@ -5,12 +5,11 @@ namespace Mautic\PageBundle\Model;
 use Mautic\CoreBundle\Helper\UrlHelper;
 use Mautic\CoreBundle\Model\FormModel;
 use Mautic\PageBundle\Entity\Redirect;
-use Mautic\PageBundle\Entity\RedirectRepository;
 use Mautic\PageBundle\Event\RedirectGenerationEvent;
 use Mautic\PageBundle\PageEvents;
 
 /**
- * @extends FormModel<Redirect>
+ * Class RedirectModel.
  */
 class RedirectModel extends FormModel
 {
@@ -27,12 +26,14 @@ class RedirectModel extends FormModel
         $this->urlHelper = $urlHelper;
     }
 
-    public function getRepository(): RedirectRepository
+    /**
+     * {@inheritdoc}
+     *
+     * @return \Mautic\PageBundle\Entity\RedirectRepository
+     */
+    public function getRepository()
     {
-        $result = $this->em->getRepository(Redirect::class);
-        \assert($result instanceof RedirectRepository);
-
-        return $result;
+        return $this->em->getRepository('MauticPageBundle:Redirect');
     }
 
     /**
@@ -58,7 +59,7 @@ class RedirectModel extends FormModel
     {
         if ($this->dispatcher->hasListeners(PageEvents::ON_REDIRECT_GENERATE)) {
             $event = new RedirectGenerationEvent($redirect, $clickthrough);
-            $this->dispatcher->dispatch($event, PageEvents::ON_REDIRECT_GENERATE);
+            $this->dispatcher->dispatch(PageEvents::ON_REDIRECT_GENERATE, $event);
 
             $clickthrough = $event->getClickthrough();
         }
@@ -67,7 +68,8 @@ class RedirectModel extends FormModel
             'mautic_url_redirect',
             ['redirectId' => $redirect->getRedirectId()],
             true,
-            $clickthrough
+            $clickthrough,
+            $shortenUrl
         );
 
         if (!empty($utmTags)) {
@@ -103,7 +105,7 @@ class RedirectModel extends FormModel
      *
      * Use Mautic\PageBundle\Model\TrackableModel::getTrackableByUrl() if associated with a channel
      *
-     * @param $url
+     * @param  $url
      *
      * @return Redirect|null
      */

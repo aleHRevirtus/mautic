@@ -134,7 +134,7 @@ class DoctrineStep implements StepInterface
      */
     public function getTemplate()
     {
-        return '@MauticInstall/Install/doctrine.html.twig';
+        return 'MauticInstallBundle:Install:doctrine.html.php';
     }
 
     /**

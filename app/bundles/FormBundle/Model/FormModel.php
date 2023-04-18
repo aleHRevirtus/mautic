@@ -6,32 +6,28 @@ use DOMDocument;
 use Mautic\CoreBundle\Doctrine\Helper\ColumnSchemaHelper;
 use Mautic\CoreBundle\Doctrine\Helper\TableSchemaHelper;
 use Mautic\CoreBundle\Helper\Chart\ChartQuery;
+use Mautic\CoreBundle\Helper\TemplatingHelper;
 use Mautic\CoreBundle\Helper\ThemeHelperInterface;
 use Mautic\CoreBundle\Model\FormModel as CommonFormModel;
-use Mautic\FormBundle\Collector\MappedObjectCollectorInterface;
 use Mautic\FormBundle\Entity\Action;
 use Mautic\FormBundle\Entity\Field;
 use Mautic\FormBundle\Entity\Form;
-use Mautic\FormBundle\Entity\FormRepository;
 use Mautic\FormBundle\Event\FormBuilderEvent;
 use Mautic\FormBundle\Event\FormEvent;
 use Mautic\FormBundle\Form\Type\FormType;
 use Mautic\FormBundle\FormEvents;
 use Mautic\FormBundle\Helper\FormFieldHelper;
 use Mautic\FormBundle\Helper\FormUploader;
-use Mautic\FormBundle\ProgressiveProfiling\DisplayManager;
 use Mautic\LeadBundle\Entity\Lead;
 use Mautic\LeadBundle\Helper\FormFieldHelper as ContactFieldHelper;
 use Mautic\LeadBundle\Model\FieldModel as LeadFieldModel;
 use Mautic\LeadBundle\Tracker\ContactTracker;
-use Symfony\Component\Form\FormFactoryInterface;
+use Symfony\Component\EventDispatcher\Event;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
-use Symfony\Contracts\EventDispatcher\Event;
-use Twig\Environment;
 
 /**
- * @extends CommonFormModel<Form>
+ * Class FormModel.
  */
 class FormModel extends CommonFormModel
 {
@@ -41,9 +37,9 @@ class FormModel extends CommonFormModel
     protected $requestStack;
 
     /**
-     * @var Environment
+     * @var TemplatingHelper
      */
-    protected $twig;
+    protected $templatingHelper;
 
     /**
      * @var ThemeHelperInterface
@@ -91,13 +87,11 @@ class FormModel extends CommonFormModel
     private $tableSchemaHelper;
 
     /**
-     * @var MappedObjectCollectorInterface
+     * FormModel constructor.
      */
-    private $mappedObjectCollector;
-
     public function __construct(
         RequestStack $requestStack,
-        Environment $twig,
+        TemplatingHelper $templatingHelper,
         ThemeHelperInterface $themeHelper,
         ActionModel $formActionModel,
         FieldModel $formFieldModel,
@@ -106,27 +100,25 @@ class FormModel extends CommonFormModel
         FormUploader $formUploader,
         ContactTracker $contactTracker,
         ColumnSchemaHelper $columnSchemaHelper,
-        TableSchemaHelper $tableSchemaHelper,
-        MappedObjectCollectorInterface $mappedObjectCollector
+        TableSchemaHelper $tableSchemaHelper
     ) {
-        $this->requestStack          = $requestStack;
-        $this->twig                  = $twig;
-        $this->themeHelper           = $themeHelper;
-        $this->formActionModel       = $formActionModel;
-        $this->formFieldModel        = $formFieldModel;
-        $this->fieldHelper           = $fieldHelper;
-        $this->leadFieldModel        = $leadFieldModel;
-        $this->formUploader          = $formUploader;
-        $this->contactTracker        = $contactTracker;
-        $this->columnSchemaHelper    = $columnSchemaHelper;
-        $this->tableSchemaHelper     = $tableSchemaHelper;
-        $this->mappedObjectCollector = $mappedObjectCollector;
+        $this->requestStack           = $requestStack;
+        $this->templatingHelper       = $templatingHelper;
+        $this->themeHelper            = $themeHelper;
+        $this->formActionModel        = $formActionModel;
+        $this->formFieldModel         = $formFieldModel;
+        $this->fieldHelper            = $fieldHelper;
+        $this->leadFieldModel         = $leadFieldModel;
+        $this->formUploader           = $formUploader;
+        $this->contactTracker         = $contactTracker;
+        $this->columnSchemaHelper     = $columnSchemaHelper;
+        $this->tableSchemaHelper      = $tableSchemaHelper;
     }
 
     /**
      * {@inheritdoc}
      *
-     * @return FormRepository
+     * @return \Mautic\FormBundle\Entity\FormRepository
      */
     public function getRepository()
     {
@@ -152,7 +144,7 @@ class FormModel extends CommonFormModel
     /**
      * {@inheritdoc}
      */
-    public function createForm($entity, FormFactoryInterface $formFactory, $action = null, $options = [])
+    public function createForm($entity, $formFactory, $action = null, $options = [])
     {
         if (!$entity instanceof Form) {
             throw new MethodNotAllowedHttpException(['Form']);
@@ -166,9 +158,9 @@ class FormModel extends CommonFormModel
     }
 
     /**
-     * @param string|int|null $id
+     * @param null $id
      *
-     * @return Form|object|null
+     * @return Form
      */
     public function getEntity($id = null)
     {
@@ -180,7 +172,7 @@ class FormModel extends CommonFormModel
 
         if ($entity && $entity->getFields()) {
             foreach ($entity->getFields() as $field) {
-                $this->addMappedFieldOptions($field);
+                $this->addLeadFieldOptions($field);
             }
         }
 
@@ -190,7 +182,7 @@ class FormModel extends CommonFormModel
     /**
      * {@inheritdoc}
      *
-     * @return bool|FormEvent|Event|void|null
+     * @return bool|FormEvent|void
      *
      * @throws \Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException
      */
@@ -223,7 +215,7 @@ class FormModel extends CommonFormModel
                 $event->setEntityManager($this->em);
             }
 
-            $this->dispatcher->dispatch($event, $name);
+            $this->dispatcher->dispatch($name, $event);
 
             return $event;
         } else {
@@ -412,8 +404,6 @@ class FormModel extends CommonFormModel
             $entity->setAlias($alias);
         }
 
-        $this->backfillReplacedPropertiesForBc($entity);
-
         //save the form so that the ID is available for the form html
         parent::saveEntity($entity, $unlock);
 
@@ -498,20 +488,14 @@ class FormModel extends CommonFormModel
      */
     public function generateHtml(Form $entity, $persist = true)
     {
-        $theme         = $entity->getTemplate();
-        $submissions   = null;
-        $lead          = ($this->requestStack->getCurrentRequest()) ? $this->contactTracker->getContact() : null;
-        $style         = '';
-        $styleToRender = '@MauticForm/Builder/_style.html.twig';
-        $formToRender  = '@MauticForm/Builder/form.html.twig';
+        //generate cached HTML
+        $theme       = $entity->getTemplate();
+        $submissions = null;
+        $lead        = ($this->requestStack->getCurrentRequest()) ? $this->contactTracker->getContact() : null;
+        $style       = '';
 
         if (!empty($theme)) {
-            if ($this->twig->getLoader()->exists('@themes/'.$theme.'/html/MauticFormBundle/Builder/_style.html.twig')) {
-                $styleToRender = '@themes/'.$theme.'/html/MauticFormBundle/Builder/_style.html.twig';
-            }
-            if ($this->twig->getLoader()->exists('@themes/'.$theme.'/html/MauticFormBundle/Builder/form.html.twig')) {
-                $formToRender = '@themes/'.$theme.'/html/MauticFormBundle/Builder/form.html.twig';
-            }
+            $theme .= '|';
         }
 
         if ($lead instanceof Lead && $lead->getId() && $entity->usesProgressiveProfiling()) {
@@ -519,8 +503,9 @@ class FormModel extends CommonFormModel
         }
 
         if ($entity->getRenderStyle()) {
-            $styleTheme = $styleToRender;
-            $style      = $this->twig->render($this->themeHelper->checkForTwigTemplate($styleTheme));
+            $templating = $this->templatingHelper->getTemplating();
+            $styleTheme = $theme.'MauticFormBundle:Builder:style.html.php';
+            $style      = $templating->render($this->themeHelper->checkForTwigTemplate($styleTheme));
         }
 
         // Determine pages
@@ -535,25 +520,23 @@ class FormModel extends CommonFormModel
             return ($a->getOrder() < $b->getOrder()) ? -1 : 1;
         });
 
-        $viewOnlyFields     = $this->getCustomComponents()['viewOnlyFields'];
-        $displayManager     = new DisplayManager($entity, !empty($viewOnlyFields) ? $viewOnlyFields : []);
         [$pages, $lastPage] = $this->getPages($fields);
-        $html               = $this->twig->render(
-            $formToRender,
+        $html               = $this->templatingHelper->getTemplating()->render(
+            $theme.'MauticFormBundle:Builder:form.html.php',
             [
                 'fieldSettings'  => $this->getCustomComponents()['fields'],
-                'viewOnlyFields' => $viewOnlyFields,
+                'viewOnlyFields' => $this->getCustomComponents()['viewOnlyFields'],
                 'fields'         => $fields,
-                'mappedFields'   => $this->mappedObjectCollector->buildCollection(...$entity->getMappedFieldObjects()),
+                'contactFields'  => $this->leadFieldModel->getFieldListWithProperties(),
+                'companyFields'  => $this->leadFieldModel->getFieldListWithProperties('company'),
                 'form'           => $entity,
-                'theme'          => '@themes/'.$entity->getTemplate().'/Field/',
+                'theme'          => $theme,
                 'submissions'    => $submissions,
                 'lead'           => $lead,
                 'formPages'      => $pages,
                 'lastFormPage'   => $lastPage,
                 'style'          => $style,
                 'inBuilder'      => false,
-                'displayManager' => $displayManager,
             ]
         );
 
@@ -574,6 +557,7 @@ class FormModel extends CommonFormModel
         $pages = ['open' => [], 'close' => []];
 
         $openFieldId  =
+        $closeFieldId =
         $previousId   =
         $lastPage     = false;
         $pageCount    = 1;
@@ -600,11 +584,13 @@ class FormModel extends CommonFormModel
             $previousId = $fieldId;
         }
 
-        if ($openFieldId) {
-            $pages['open'][$openFieldId] = $pageCount;
-        }
-        if ($previousId !== $lastPage) {
-            $pages['close'][$previousId] = $pageCount;
+        if (!empty($pages)) {
+            if ($openFieldId) {
+                $pages['open'][$openFieldId] = $pageCount;
+            }
+            if ($previousId !== $lastPage) {
+                $pages['close'][$previousId] = $pageCount;
+            }
         }
 
         return [$pages, $lastPage];
@@ -728,7 +714,7 @@ class FormModel extends CommonFormModel
         if (empty($customComponents)) {
             //build them
             $event = new FormBuilderEvent($this->translator);
-            $this->dispatcher->dispatch($event, FormEvents::FORM_ON_BUILD);
+            $this->dispatcher->dispatch(FormEvents::FORM_ON_BUILD, $event);
             $customComponents['fields']     = $event->getFormFields();
             $customComponents['actions']    = $event->getSubmitActions();
             $customComponents['choices']    = $event->getSubmitActionGroups();
@@ -768,7 +754,7 @@ class FormModel extends CommonFormModel
         $script = '
             var scr  = document.currentScript;
             var html = "'.$html.'";
-
+            
             if (scr !== undefined) {
                 scr.insertAdjacentHTML("afterend", html);
                 '.$newFormScript.'
@@ -785,17 +771,14 @@ class FormModel extends CommonFormModel
      */
     public function getFormScript(Form $form)
     {
-        $theme          = $form->getTemplate();
-        $scriptToRender = '@MauticForm/Builder/_script.html.twig';
+        $theme = $form->getTemplate();
 
         if (!empty($theme)) {
-            if ($this->twig->getLoader()->exists('@themes/'.$theme.'/MauticForm/Builder/_script.html.twig')) {
-                $scriptToRender = '@themes/'.$theme.'/MauticForm/Builder/_script.html.twig';
-            }
+            $theme .= '|';
         }
 
-        $script = $this->twig->render(
-            $scriptToRender,
+        $script = $this->templatingHelper->getTemplating()->render(
+            $theme.'MauticFormBundle:Builder:script.html.php',
             [
                 'form'  => $form,
                 'theme' => $theme,
@@ -828,7 +811,7 @@ class FormModel extends CommonFormModel
         foreach ($fields as $f) {
             $alias = $f->getAlias();
             if ($request->query->has($alias)) {
-                $value = urlencode($request->query->get($alias));
+                $value = $request->query->get($alias);
 
                 $this->fieldHelper->populateField($f, $value, $formName, $formHtml);
             }
@@ -836,7 +819,7 @@ class FormModel extends CommonFormModel
     }
 
     /**
-     * @param string $formHtml
+     * @param $formHtml
      */
     public function populateValuesWithLead(Form $form, &$formHtml)
     {
@@ -850,7 +833,7 @@ class FormModel extends CommonFormModel
             $isAutoFill = $field->getIsAutoFill();
 
             // we want work just with matched autofill fields
-            if ($field->getMappedField() && 'contact' === $field->getMappedObject() && $field->getIsAutoFill()) {
+            if (isset($leadField) && $isAutoFill) {
                 $autoFillFields[$key] = $field;
             }
         }
@@ -866,7 +849,7 @@ class FormModel extends CommonFormModel
         }
 
         foreach ($autoFillFields as $field) {
-            $value = $lead->getFieldValue($field->getMappedField());
+            $value = $lead->getFieldValue($field->getLeadField());
             // just skip string empty field
             if ('' !== $value) {
                 $this->fieldHelper->populateField($field, $value, $formName, $formHtml);
@@ -1096,16 +1079,16 @@ class FormModel extends CommonFormModel
     /**
      * Finds out whether the.
      */
-    private function addMappedFieldOptions(Field $formField): void
+    private function addLeadFieldOptions(Field $formField)
     {
-        $formFieldProps   = $formField->getProperties();
-        $mappedFieldAlias = $formField->getMappedField();
+        $formFieldProps    = $formField->getProperties();
+        $contactFieldAlias = $formField->getLeadField();
 
-        if (empty($formFieldProps['syncList']) || empty($mappedFieldAlias) || 'contact' !== $formField->getMappedObject()) {
+        if (empty($formFieldProps['syncList']) || empty($contactFieldAlias)) {
             return;
         }
 
-        $list = $this->getContactFieldPropertiesList($mappedFieldAlias);
+        $list = $this->getContactFieldPropertiesList($contactFieldAlias);
 
         if (!empty($list)) {
             $formFieldProps['list'] = ['list' => $list];
@@ -1121,7 +1104,7 @@ class FormModel extends CommonFormModel
      */
     public function getContactFieldPropertiesList(string $contactFieldAlias): ?array
     {
-        $contactField = $this->leadFieldModel->getEntityByAlias($contactFieldAlias); // @todo this must use all objects as well. Not just contact.
+        $contactField = $this->leadFieldModel->getEntityByAlias($contactFieldAlias);
 
         if (empty($contactField) || !in_array($contactField->getType(), ContactFieldHelper::getListTypes())) {
             return null;
@@ -1171,20 +1154,5 @@ class FormModel extends CommonFormModel
         }
 
         return null;
-    }
-
-    private function backfillReplacedPropertiesForBc(Form $entity): void
-    {
-        /** @var Field $field */
-        foreach ($entity->getFields() as $field) {
-            if (!$field->getLeadField() && $field->getMappedField()) {
-                $field->setLeadField($field->getMappedField());
-            } elseif ($field->getLeadField() && !$field->getMappedField()) {
-                $field->setMappedField($field->getLeadField());
-                $field->setMappedObject(
-                    'company' === substr($field->getLeadField(), 0, 7) && 'company' !== $field->getLeadField() ? 'company' : 'contact'
-                );
-            }
-        }
     }
 }

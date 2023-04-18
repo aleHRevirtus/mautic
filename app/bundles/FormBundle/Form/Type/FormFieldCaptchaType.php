@@ -57,7 +57,7 @@ class FormFieldCaptchaType extends AbstractType
     /**
      * {@inheritdoc}
      */
-    public function getBlockPrefix()
+    public function getName()
     {
         return 'formfield_captcha';
     }

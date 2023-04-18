@@ -10,7 +10,6 @@ use Mautic\CoreBundle\Helper\CoreParametersHelper;
 use Mautic\CoreBundle\Helper\IpLookupHelper;
 use Mautic\EmailBundle\Entity\Email;
 use Mautic\EmailBundle\Entity\Stat;
-use Mautic\LeadBundle\Deduplicate\ContactMerger;
 use Mautic\LeadBundle\Entity\Lead;
 use Mautic\LeadBundle\Event\ContactIdentificationEvent;
 use Mautic\LeadBundle\Helper\ContactRequestHelper;
@@ -63,11 +62,6 @@ class ContactRequestHelperTest extends \PHPUnit\Framework\TestCase
      */
     private $trackedContact;
 
-    /**
-     * @var MockObject|ContactMerger
-     */
-    private $contactMerger;
-
     protected function setUp(): void
     {
         parent::setUp();
@@ -80,7 +74,6 @@ class ContactRequestHelperTest extends \PHPUnit\Framework\TestCase
         $this->logger               = $this->createMock(Logger::class);
         $this->dispatcher           = $this->createMock(EventDispatcher::class);
         $this->trackedContact       = $this->createMock(Lead::class);
-        $this->contactMerger        = $this->createMock(ContactMerger::class);
 
         $this->trackedContact->method('getId')
             ->willReturn(1);
@@ -114,8 +107,8 @@ class ContactRequestHelperTest extends \PHPUnit\Framework\TestCase
         $stat = new Stat();
         $stat->setEmail($email);
 
-        $this->contactMerger->expects($this->never())
-            ->method('merge');
+        $this->leadModel->expects($this->never())
+            ->method('mergeLeads');
 
         $this->leadModel->expects($this->once())
             ->method('checkForDuplicateContact')
@@ -141,11 +134,13 @@ class ContactRequestHelperTest extends \PHPUnit\Framework\TestCase
 
         $this->dispatcher->method('dispatch')
             ->willReturnCallback(
-                fn (ContactIdentificationEvent $event) => $event->setIdentifiedContact($contact, 'email')
+                function ($eventName, ContactIdentificationEvent $event) use ($contact) {
+                    $event->setIdentifiedContact($contact, 'email');
+                }
             );
 
-        $this->contactMerger->expects($this->never())
-            ->method('merge');
+        $this->leadModel->expects($this->never())
+            ->method('mergeLeads');
 
         $helper       = $this->getContactRequestHelper();
         $foundContact = $helper->getContactFromQuery($query);
@@ -189,7 +184,7 @@ class ContactRequestHelperTest extends \PHPUnit\Framework\TestCase
 
         $this->leadModel->expects($this->once())
             ->method('checkForDuplicateContact')
-            ->with($queryWithEmail, true, true)
+            ->with($queryWithEmail, null, true, true)
             ->willReturn([$lead, ['email' => 'test@test.com']]);
 
         $helper = $this->getContactRequestHelper();
@@ -221,7 +216,7 @@ class ContactRequestHelperTest extends \PHPUnit\Framework\TestCase
 
         $this->leadModel->expects($this->once())
             ->method('checkForDuplicateContact')
-            ->with($query, true, true)
+            ->with($query, null, true, true)
             ->willReturn([$this->trackedContact, []]);
 
         $helper = $this->getContactRequestHelper();
@@ -237,8 +232,7 @@ class ContactRequestHelperTest extends \PHPUnit\Framework\TestCase
             $this->ipLookupHelper,
             $this->requestStack,
             $this->logger,
-            $this->dispatcher,
-            $this->contactMerger
+            $this->dispatcher
         );
     }
 }

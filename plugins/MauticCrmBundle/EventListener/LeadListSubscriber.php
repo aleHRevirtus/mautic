@@ -10,7 +10,7 @@ use Mautic\LeadBundle\Model\ListModel;
 use Mautic\PluginBundle\Helper\IntegrationHelper;
 use MauticPlugin\MauticCrmBundle\Integration\CrmAbstractIntegration;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class LeadListSubscriber implements EventSubscriberInterface
 {

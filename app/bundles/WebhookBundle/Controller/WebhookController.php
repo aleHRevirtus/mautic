@@ -3,18 +3,13 @@
 namespace Mautic\WebhookBundle\Controller;
 
 use Mautic\CoreBundle\Controller\FormController;
-use Mautic\CoreBundle\Helper\UserHelper;
-use Mautic\CoreBundle\Security\Permissions\CorePermissions;
-use Mautic\FormBundle\Helper\FormFieldHelper;
-use Symfony\Component\Form\FormFactoryInterface;
-use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Class WebhookController.
  */
 class WebhookController extends FormController
 {
-    public function __construct(CorePermissions $security, UserHelper $userHelper, FormFactoryInterface $formFactory, FormFieldHelper $fieldHelper)
+    public function __construct()
     {
         $this->setStandardParameters(
             'webhook.webhook', // model name
@@ -22,12 +17,10 @@ class WebhookController extends FormController
             'mautic_webhook', // route base
             'mautic_webhook', // session base
             'mautic.webhook', // lang string base
-            '@MauticWebhook/Webhook', // template base
+            'MauticWebhookBundle:Webhook', // template base
             'mautic_webhook', // activeLink
             'mauticWebhook' // mauticContent
         );
-
-        parent::__construct($security, $userHelper, $formFactory, $fieldHelper);
     }
 
     /**
@@ -35,9 +28,9 @@ class WebhookController extends FormController
      *
      * @return \Symfony\Component\HttpFoundation\JsonResponse|\Symfony\Component\HttpFoundation\RedirectResponse
      */
-    public function indexAction(Request $request, $page = 1)
+    public function indexAction($page = 1)
     {
-        return parent::indexStandard($request, $page);
+        return parent::indexStandard($page);
     }
 
     /**
@@ -45,9 +38,9 @@ class WebhookController extends FormController
      *
      * @return \Symfony\Component\HttpFoundation\JsonResponse
      */
-    public function newAction(Request $request)
+    public function newAction()
     {
-        return parent::newStandard($request);
+        return parent::newStandard();
     }
 
     /**
@@ -58,9 +51,9 @@ class WebhookController extends FormController
      *
      * @return \Symfony\Component\HttpFoundation\JsonResponse
      */
-    public function editAction(Request $request, $objectId, $ignorePost = false)
+    public function editAction($objectId, $ignorePost = false)
     {
-        return parent::editStandard($request, $objectId, $ignorePost);
+        return parent::editStandard($objectId, $ignorePost);
     }
 
     /**
@@ -70,9 +63,9 @@ class WebhookController extends FormController
      *
      * @return array|\Symfony\Component\HttpFoundation\JsonResponse|\Symfony\Component\HttpFoundation\RedirectResponse
      */
-    public function viewAction(Request $request, $objectId)
+    public function viewAction($objectId)
     {
-        return $this->viewStandard($request, $objectId, 'webhook', 'webhook', null, 'item');
+        return parent::viewStandard($objectId, 'webhook', 'webhook');
     }
 
     /**
@@ -82,9 +75,9 @@ class WebhookController extends FormController
      *
      * @return \Symfony\Component\HttpFoundation\JsonResponse|\Symfony\Component\HttpFoundation\RedirectResponse
      */
-    public function cloneAction(Request $request, $objectId)
+    public function cloneAction($objectId)
     {
-        return parent::cloneStandard($request, $objectId);
+        return parent::cloneStandard($objectId);
     }
 
     /**
@@ -94,9 +87,9 @@ class WebhookController extends FormController
      *
      * @return \Symfony\Component\HttpFoundation\JsonResponse|\Symfony\Component\HttpFoundation\RedirectResponse
      */
-    public function deleteAction(Request $request, $objectId)
+    public function deleteAction($objectId)
     {
-        return parent::deleteStandard($request, $objectId);
+        return parent::deleteStandard($objectId);
     }
 
     /**
@@ -104,8 +97,8 @@ class WebhookController extends FormController
      *
      * @return \Symfony\Component\HttpFoundation\JsonResponse|\Symfony\Component\HttpFoundation\RedirectResponse
      */
-    public function batchDeleteAction(Request $request)
+    public function batchDeleteAction()
     {
-        return parent::batchDeleteStandard($request);
+        return parent::batchDeleteStandard();
     }
 }

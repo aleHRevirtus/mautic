@@ -4,31 +4,21 @@ namespace Mautic\CoreBundle\Command;
 
 use Mautic\CoreBundle\CoreEvents;
 use Mautic\CoreBundle\Event\MaintenanceEvent;
-use Mautic\CoreBundle\Helper\PathsHelper;
+use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\ConfirmationQuestion;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * CLI Command to purge old data per settings.
  */
-class CleanupMaintenanceCommand extends ModeratedCommand
+class CleanupMaintenanceCommand extends ContainerAwareCommand
 {
-    private TranslatorInterface $translator;
-    private EventDispatcherInterface $dispatcher;
-
-    public function __construct(TranslatorInterface $translator, EventDispatcherInterface $dispatcher, PathsHelper $pathsHelper)
-    {
-        parent::__construct($pathsHelper);
-
-        $this->translator = $translator;
-        $this->dispatcher = $dispatcher;
-    }
-
+    /**
+     * {@inheritdoc}
+     */
     protected function configure()
     {
         $this->setName('mautic:maintenance:cleanup')
@@ -61,14 +51,16 @@ You can also optionally specify a dry run without deleting any records:
 <info>php %command.full_name% --days-old=365 --dry-run</info>
 EOT
             );
-        parent::configure();
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    /**
+     * {@inheritdoc}
+     */
+    protected function execute(InputInterface $input, OutputInterface $output)
     {
-        if (!$this->checkRunStatus($input, $output)) {
-            return 0;
-        }
+        /** @var \Symfony\Bundle\FrameworkBundle\Translation\Translator $translator */
+        $translator = $this->getContainer()->get('translator');
+        $translator->setLocale($this->getContainer()->getParameter('mautic.locale', 'en_US'));
 
         $daysOld       = $input->getOption('days-old');
         $dryRun        = $input->getOption('dry-run');
@@ -88,18 +80,17 @@ EOT
             /** @var \Symfony\Component\Console\Helper\SymfonyQuestionHelper $helper */
             $helper   = $this->getHelperSet()->get('question');
             $question = new ConfirmationQuestion(
-                '<info>'.$this->translator->trans('mautic.maintenance.confirm_data_purge', ['%days%' => $daysOld]).'</info> ', false
+                '<info>'.$translator->trans('mautic.maintenance.confirm_data_purge', ['%days%' => $daysOld]).'</info> ', false
             );
 
             if (!$helper->ask($input, $output, $question)) {
-                $this->completeRun();
-
                 return 0;
             }
         }
 
-        $event = new MaintenanceEvent($daysOld, !empty($dryRun), !empty($gdpr));
-        $this->dispatcher->dispatch($event, CoreEvents::MAINTENANCE_CLEANUP_DATA);
+        $dispatcher = $this->getContainer()->get('event_dispatcher');
+
+        $event = $dispatcher->dispatch(CoreEvents::MAINTENANCE_CLEANUP_DATA, new MaintenanceEvent($daysOld, !empty($dryRun), !empty($gdpr)));
         $stats = $event->getStats();
 
         $rows = [];
@@ -109,7 +100,7 @@ EOT
 
         $table = new Table($output);
         $table
-            ->setHeaders([$this->translator->trans('mautic.maintenance.header.key'), $this->translator->trans('mautic.maintenance.header.records_affected')])
+            ->setHeaders([$translator->trans('mautic.maintenance.header.key'), $translator->trans('mautic.maintenance.header.records_affected')])
             ->setRows($rows);
         $table->render();
 
@@ -122,8 +113,6 @@ EOT
                 $output->writeln($query);
             }
         }
-
-        $this->completeRun();
 
         return 0;
     }

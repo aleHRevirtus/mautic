@@ -2,16 +2,9 @@
 
 namespace Mautic\LeadBundle\Tests\Controller\Api;
 
-use Mautic\ApiBundle\Helper\EntityResultHelper;
 use Mautic\CampaignBundle\Tests\CampaignTestAbstract;
-use Mautic\CoreBundle\Helper\AppVersion;
-use Mautic\CoreBundle\Security\Permissions\CorePermissions;
-use Mautic\CoreBundle\Translation\Translator;
 use Mautic\LeadBundle\Controller\Api\FieldApiController;
-use Symfony\Bundle\FrameworkBundle\Routing\Router;
-use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\RequestStack;
 
 class FieldApiControllerTest extends CampaignTestAbstract
 {
@@ -29,7 +22,7 @@ class FieldApiControllerTest extends CampaignTestAbstract
             ->disableOriginalConstructor()
             ->getMock();
 
-        $result = $this->getResultFromProtectedMethod('getWhereFromRequest', [$request], $request);
+        $result = $this->getResultFromProtectedMethod('getWhereFromRequest', [], $request);
 
         $this->assertEquals($this->defaultWhere, $result);
     }
@@ -52,27 +45,17 @@ class FieldApiControllerTest extends CampaignTestAbstract
         $request->method('get')
             ->willReturn($where);
 
-        $result = $this->getResultFromProtectedMethod('getWhereFromRequest', [$request], $request);
+        $result = $this->getResultFromProtectedMethod('getWhereFromRequest', [], $request);
 
         $this->assertEquals(array_merge($where, $this->defaultWhere), $result);
     }
 
     protected function getResultFromProtectedMethod($method, array $args, Request $request = null)
     {
-        $requestStack = $this->createMock(RequestStack::class);
-        $controller   = new FieldApiController(
-            $this->createMock(CorePermissions::class),
-            $this->createMock(Translator::class),
-            $this->createMock(EntityResultHelper::class),
-            $this->createMock(Router::class),
-            $this->createMock(FormFactoryInterface::class),
-            $this->createMock(AppVersion::class),
-            $requestStack,
-        );
+        $controller = new FieldApiController();
 
         if ($request) {
-            $requestStack->method('getCurrentRequest')
-                ->willReturn($request);
+            $controller->setRequest($request);
         }
 
         $controllerReflection = new \ReflectionClass(FieldApiController::class);

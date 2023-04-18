@@ -24,7 +24,7 @@ class FormSubscriber implements EventSubscriberInterface
         $action = [
             'label'          => 'mautic.plugin.actions.socialLogin',
             'formType'       => SocialLoginType::class,
-            'template'       => '@MauticSocial/Integration/login.html.twig',
+            'template'       => 'MauticSocialBundle:Integration:login.html.php',
             'builderOptions' => [
                 'addLeadFieldList' => false,
                 'addIsRequired'    => false,

@@ -15,6 +15,9 @@ class FakeModeratedCommand extends ModeratedCommand
         parent::configure();
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $this->checkRunStatus($input, $output);

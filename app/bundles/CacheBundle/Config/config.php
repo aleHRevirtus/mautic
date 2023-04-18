@@ -20,6 +20,9 @@ return [
                 ],
             ],
         ],
+        'forms'     => [],
+        'helpers'   => [],
+        'menus'     => [],
         'other'     => [
             'mautic.cache.provider'           => [
                 'class'     => \Mautic\CacheBundle\Cache\CacheProvider::class,
@@ -52,7 +55,6 @@ return [
                     '%mautic.cache_adapter_redis%',
                     '%mautic.cache_prefix%',
                     '%mautic.cache_lifetime%',
-                    '%mautic.redis_primary_only%',
                 ],
                 'tag'       => 'mautic.cache.adapter',
             ],

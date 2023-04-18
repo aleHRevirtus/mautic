@@ -5,23 +5,23 @@ return [
         'main' => [
             'mautic_message_index' => [
                 'path'       => '/messages/{page}',
-                'controller' => 'Mautic\ChannelBundle\Controller\MessageController::indexAction',
+                'controller' => 'MauticChannelBundle:Message:index',
             ],
             'mautic_message_contacts' => [
                 'path'       => '/messages/contacts/{objectId}/{channel}/{page}',
-                'controller' => 'Mautic\ChannelBundle\Controller\MessageController::contactsAction',
+                'controller' => 'MauticChannelBundle:Message:contacts',
             ],
             'mautic_message_action' => [
                 'path'       => '/messages/{objectAction}/{objectId}',
-                'controller' => 'Mautic\ChannelBundle\Controller\MessageController::executeAction',
+                'controller' => 'MauticChannelBundle:Message:execute',
             ],
             'mautic_channel_batch_contact_set' => [
                 'path'       => '/channels/batch/contact/set',
-                'controller' => 'Mautic\ChannelBundle\Controller\BatchContactController::setAction',
+                'controller' => 'MauticChannelBundle:BatchContact:set',
             ],
             'mautic_channel_batch_contact_view' => [
                 'path'       => '/channels/batch/contact/view',
-                'controller' => 'Mautic\ChannelBundle\Controller\BatchContactController::indexAction',
+                'controller' => 'MauticChannelBundle:BatchContact:index',
             ],
         ],
         'api' => [
@@ -29,7 +29,7 @@ return [
                 'standard_entity' => true,
                 'name'            => 'messages',
                 'path'            => '/messages',
-                'controller'      => 'Mautic\ChannelBundle\Controller\Api\MessageApiController',
+                'controller'      => 'MauticChannelBundle:Api\MessageApi',
             ],
         ],
         'public' => [
@@ -58,6 +58,64 @@ return [
     ],
 
     'services' => [
+        'events' => [
+            'mautic.channel.campaignbundle.subscriber' => [
+                'class'     => Mautic\ChannelBundle\EventListener\CampaignSubscriber::class,
+                'arguments' => [
+                    'mautic.channel.model.message',
+                    'mautic.campaign.dispatcher.action',
+                    'mautic.campaign.event_collector',
+                    'monolog.logger.mautic',
+                    'translator',
+                ],
+            ],
+            'mautic.channel.channelbundle.subscriber' => [
+                'class'     => \Mautic\ChannelBundle\EventListener\MessageSubscriber::class,
+                'arguments' => [
+                    'mautic.core.model.auditlog',
+                ],
+            ],
+            'mautic.channel.channelbundle.lead.subscriber' => [
+                'class'     => Mautic\ChannelBundle\EventListener\LeadSubscriber::class,
+                'arguments' => [
+                    'translator',
+                    'router',
+                    'mautic.channel.repository.message_queue',
+                ],
+            ],
+            'mautic.channel.reportbundle.subscriber' => [
+                'class'     => Mautic\ChannelBundle\EventListener\ReportSubscriber::class,
+                'arguments' => [
+                    'mautic.lead.model.company_report_data',
+                    'router',
+                ],
+            ],
+            'mautic.channel.button.subscriber' => [
+                'class'     => \Mautic\ChannelBundle\EventListener\ButtonSubscriber::class,
+                'arguments' => [
+                    'router',
+                    'translator',
+                ],
+            ],
+        ],
+        'forms' => [
+            \Mautic\ChannelBundle\Form\Type\MessageType::class => [
+                'class'       => \Mautic\ChannelBundle\Form\Type\MessageType::class,
+                'methodCalls' => [
+                    'setSecurity' => ['mautic.security'],
+                ],
+                'arguments' => [
+                    'mautic.channel.model.message',
+                ],
+            ],
+            'mautic.form.type.message_list' => [
+                'class' => \Mautic\ChannelBundle\Form\Type\MessageListType::class,
+            ],
+            'mautic.form.type.message_send' => [
+                'class'     => \Mautic\ChannelBundle\Form\Type\MessageSendType::class,
+                'arguments' => ['router', 'mautic.channel.model.message'],
+            ],
+        ],
         'helpers' => [
             'mautic.channel.helper.channel_list' => [
                 'class'     => \Mautic\ChannelBundle\Helper\ChannelListHelper::class,

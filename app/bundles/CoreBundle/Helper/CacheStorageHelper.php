@@ -13,9 +13,9 @@ use Symfony\Component\Cache\Adapter\PdoAdapter;
  */
 class CacheStorageHelper
 {
-    public const ADAPTOR_DATABASE = 'db';
+    const ADAPTOR_DATABASE = 'db';
 
-    public const ADAPTOR_FILESYSTEM = 'fs';
+    const ADAPTOR_FILESYSTEM = 'fs';
 
     /**
      * @var array

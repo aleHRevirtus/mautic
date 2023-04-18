@@ -39,7 +39,7 @@ class Collector
 
         $event = new AggregateStatRequestEvent($statName, $fromDateTime, $toDateTime, $fetchOptions);
 
-        $this->eventDispatcher->dispatch($event, StatEvents::AGGREGATE_STAT_REQUEST);
+        $this->eventDispatcher->dispatch(StatEvents::AGGREGATE_STAT_REQUEST, $event);
 
         return $event->getStatCollection();
     }

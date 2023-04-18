@@ -4,7 +4,7 @@ namespace Mautic\EmailBundle\Tests\Swiftmailer\Momentum\Service;
 
 use Mautic\EmailBundle\Swiftmailer\Message\MauticMessage;
 use Mautic\EmailBundle\Swiftmailer\Momentum\Service\SwiftMessageService;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class SwiftMessageServiceTest extends \PHPUnit\Framework\TestCase
 {

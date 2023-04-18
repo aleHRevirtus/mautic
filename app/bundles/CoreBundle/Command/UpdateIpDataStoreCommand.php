@@ -3,30 +3,18 @@
 namespace Mautic\CoreBundle\Command;
 
 use Mautic\CoreBundle\IpLookup\AbstractLocalDataLookup;
-use Mautic\CoreBundle\IpLookup\AbstractLookup;
-use Symfony\Component\Console\Command\Command;
+use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * CLI Command to fetch updated Maxmind database.
  */
-class UpdateIpDataStoreCommand extends Command
+class UpdateIpDataStoreCommand extends ContainerAwareCommand
 {
-    private TranslatorInterface $translator;
-    private AbstractLookup $ipService;
-
-    public function __construct(
-        TranslatorInterface $translator,
-        AbstractLookup $ipService
-    ) {
-        $this->translator = $translator;
-        $this->ipService  = $ipService;
-
-        parent::__construct();
-    }
-
+    /**
+     * {@inheritdoc}
+     */
     protected function configure()
     {
         $this->setName('mautic:iplookup:download')
@@ -40,17 +28,24 @@ EOT
             );
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    /**
+     * {@inheritdoc}
+     */
+    protected function execute(InputInterface $input, OutputInterface $output)
     {
-        if ($this->ipService instanceof AbstractLocalDataLookup) {
-            if ($this->ipService->downloadRemoteDataStore()) {
-                $output->writeln('<info>'.$this->translator->trans('mautic.core.success').'</info>');
+        $ipService  = $this->getContainer()->get('mautic.ip_lookup');
+        $factory    = $this->getContainer()->get('mautic.factory');
+        $translator = $factory->getTranslator();
+
+        if ($ipService instanceof AbstractLocalDataLookup) {
+            if ($ipService->downloadRemoteDataStore()) {
+                $output->writeln('<info>'.$translator->trans('mautic.core.success').'</info>');
             } else {
-                $remoteUrl = $this->ipService->getRemoteDateStoreDownloadUrl();
-                $localPath = $this->ipService->getLocalDataStoreFilepath();
+                $remoteUrl = $ipService->getRemoteDateStoreDownloadUrl();
+                $localPath = $ipService->getLocalDataStoreFilepath();
 
                 if ($remoteUrl && $localPath) {
-                    $output->writeln('<error>'.$this->translator->trans(
+                    $output->writeln('<error>'.$translator->trans(
                         'mautic.core.ip_lookup.remote_fetch_error',
                         [
                             '%remoteUrl%' => $remoteUrl,
@@ -58,7 +53,7 @@ EOT
                         ]
                     ).'</error>');
                 } else {
-                    $output->writeln('<error>'.$this->translator->trans(
+                    $output->writeln('<error>'.$translator->trans(
                         'mautic.core.ip_lookup.remote_fetch_error_generic'
                     ).'</error>');
                 }

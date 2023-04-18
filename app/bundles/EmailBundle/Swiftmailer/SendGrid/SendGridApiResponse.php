@@ -32,7 +32,7 @@ class SendGridApiResponse
             return;
         }
 
-        $this->logger->error(
+        $this->logger->addError(
             'SendGrid response: '.$statusCode,
             ['response' => $response]
         );

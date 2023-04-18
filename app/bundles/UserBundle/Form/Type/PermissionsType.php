@@ -36,6 +36,14 @@ class PermissionsType extends AbstractType
     /**
      * {@inheritdoc}
      */
+    public function getBlockPrefix()
+    {
+        return 'permissions';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function configureOptions(OptionsResolver $resolver)
     {
         $resolver->setDefaults([

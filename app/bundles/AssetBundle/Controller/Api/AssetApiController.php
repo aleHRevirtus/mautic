@@ -3,46 +3,18 @@
 namespace Mautic\AssetBundle\Controller\Api;
 
 use Mautic\ApiBundle\Controller\CommonApiController;
-use Mautic\ApiBundle\Helper\EntityResultHelper;
-use Mautic\AssetBundle\Entity\Asset;
-use Mautic\AssetBundle\Model\AssetModel;
-use Mautic\CoreBundle\Helper\AppVersion;
-use Mautic\CoreBundle\Helper\CoreParametersHelper;
-use Mautic\CoreBundle\Security\Permissions\CorePermissions;
-use Mautic\CoreBundle\Translation\Translator;
-use Symfony\Component\Form\FormFactoryInterface;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Event\ControllerEvent;
-use Symfony\Component\Routing\RouterInterface;
+use Symfony\Component\HttpKernel\Event\FilterControllerEvent;
 
 /**
- * @extends CommonApiController<Asset>
+ * Class AssetApiController.
  */
 class AssetApiController extends CommonApiController
 {
-    private CoreParametersHelper $parametersHelper;
-
-    public function __construct(CorePermissions $security, Translator $translator, EntityResultHelper $entityResultHelper, RouterInterface $router, FormFactoryInterface $formFactory, AppVersion $appVersion, RequestStack $requestStack, CoreParametersHelper $parametersHelper)
+    public function initialize(FilterControllerEvent $event)
     {
-        $this->parametersHelper = $parametersHelper;
-
-        parent::__construct($security, $translator, $entityResultHelper, $router, $formFactory, $appVersion, $requestStack);
-    }
-
-    /**
-     * @var AssetModel|null
-     */
-    protected $model = null;
-
-    public function initialize(ControllerEvent $event)
-    {
-        $assetModel = $this->getModel('asset');
-        \assert($assetModel instanceof AssetModel);
-
-        $this->model            = $assetModel;
-        $this->entityClass      = Asset::class;
+        $this->model            = $this->getModel('asset');
+        $this->entityClass      = 'Mautic\AssetBundle\Entity\Asset';
         $this->entityNameOne    = 'asset';
         $this->entityNameMulti  = 'assets';
         $this->serializerGroups = ['assetDetails', 'categoryList', 'publishDetails'];
@@ -52,8 +24,12 @@ class AssetApiController extends CommonApiController
 
     /**
      * Gives child controllers opportunity to analyze and do whatever to an entity before going through serializer.
+     *
+     * @param string $action
+     *
+     * @return mixed
      */
-    protected function preSerializeEntity(object $entity, string $action = 'view'): void
+    protected function preSerializeEntity(&$entity, $action = 'view')
     {
         $entity->setDownloadUrl(
             $this->model->generateUrl($entity, true)
@@ -69,9 +45,9 @@ class AssetApiController extends CommonApiController
      *
      * @return mixed
      */
-    protected function prepareParametersForBinding(Request $request, $parameters, $entity, $action)
+    protected function prepareParametersForBinding($parameters, $entity, $action)
     {
-        $assetDir = $this->parametersHelper->get('upload_dir');
+        $assetDir = $this->get('mautic.helper.core_parameters')->get('upload_dir');
         $entity->setUploadDir($assetDir);
 
         if (isset($parameters['file'])) {

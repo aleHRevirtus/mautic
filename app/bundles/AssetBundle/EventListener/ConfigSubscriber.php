@@ -25,7 +25,7 @@ class ConfigSubscriber implements EventSubscriberInterface
             'bundle'     => 'AssetBundle',
             'formAlias'  => 'assetconfig',
             'formType'   => ConfigType::class,
-            'formTheme'  => '@MauticAsset/FormTheme/Config/_config_assetconfig_widget.html.twig',
+            'formTheme'  => 'MauticAssetBundle:FormTheme\Config',
             'parameters' => $event->getParametersFromConfig('MauticAssetBundle'),
         ]);
     }

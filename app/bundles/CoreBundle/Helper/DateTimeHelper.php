@@ -2,14 +2,8 @@
 
 namespace Mautic\CoreBundle\Helper;
 
-use Mautic\CoreBundle\Loader\ParameterLoader;
-
 class DateTimeHelper
 {
-    public const FORMAT_DB = 'Y-m-d H:i:s';
-
-    private static ?string $defaultLocalTimezone = null;
-
     /**
      * @var string
      */
@@ -45,30 +39,32 @@ class DateTimeHelper
      * @param string                    $fromFormat Format the string is in
      * @param string                    $timezone   Timezone the string is in
      */
-    public function __construct($string = '', $fromFormat = self::FORMAT_DB, $timezone = 'UTC')
+    public function __construct($string = '', $fromFormat = 'Y-m-d H:i:s', $timezone = 'UTC')
     {
-        $this->setDefaultTimezone();
         $this->setDateTime($string, $fromFormat, $timezone);
     }
 
     /**
+     * Sets date/time.
+     *
      * @param \DateTimeInterface|string $datetime
      * @param string                    $fromFormat
      * @param string                    $timezone
      */
-    public function setDateTime($datetime = '', $fromFormat = self::FORMAT_DB, $timezone = 'local')
+    public function setDateTime($datetime = '', $fromFormat = 'Y-m-d H:i:s', $timezone = 'local')
     {
+        $localTimezone = date_default_timezone_get();
         if ('local' == $timezone) {
-            $timezone = self::$defaultLocalTimezone;
+            $timezone = $localTimezone;
         } elseif (empty($timezone)) {
             $timezone = 'UTC';
         }
 
-        $this->format   = (empty($fromFormat)) ? self::FORMAT_DB : $fromFormat;
+        $this->format   = (empty($fromFormat)) ? 'Y-m-d H:i:s' : $fromFormat;
         $this->timezone = $timezone;
 
         $this->utc   = new \DateTimeZone('UTC');
-        $this->local = new \DateTimeZone(self::$defaultLocalTimezone);
+        $this->local = new \DateTimeZone($localTimezone);
 
         if ($datetime instanceof \DateTimeInterface) {
             $this->datetime = $datetime;
@@ -156,7 +152,7 @@ class DateTimeHelper
     }
 
     /**
-     * @param string|null $format
+     * @param null $format
      *
      * @return string
      */
@@ -397,19 +393,6 @@ class DateTimeHelper
         if (!in_array($unit, $possibleUnits, true)) {
             $possibleUnitsString = implode(', ', $possibleUnits);
             throw new \InvalidArgumentException("Unit '$unit' is not supported. Use one of these: $possibleUnitsString");
-        }
-    }
-
-    public function getLocalTimezoneOffset(): string
-    {
-        return $this->getLocalDateTime()->format('P');
-    }
-
-    protected function setDefaultTimezone(): void
-    {
-        if (null === self::$defaultLocalTimezone) {
-            $parameterLoader            = new ParameterLoader();
-            self::$defaultLocalTimezone = $parameterLoader->getParameterBag()->get('default_timezone') ?? date_default_timezone_get();
         }
     }
 }

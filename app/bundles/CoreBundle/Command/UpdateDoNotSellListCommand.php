@@ -6,7 +6,7 @@ use Mautic\CoreBundle\Helper\MaxMindDoNotSellDownloadHelper;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class UpdateDoNotSellListCommand extends Command
 {
@@ -46,7 +46,7 @@ EOT
     /**
      * {@inheritdoc}
      */
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    protected function execute(InputInterface $input, OutputInterface $output)
     {
         if ($this->maxMindDoNotSellDownloadHelper->downloadRemoteDataStore()) {
             $output->writeln('<info>'.$this->translator->trans('mautic.core.success').'</info>');

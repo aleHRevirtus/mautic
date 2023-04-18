@@ -4,10 +4,10 @@ namespace Mautic\StageBundle\EventListener;
 
 use Mautic\CoreBundle\CoreEvents;
 use Mautic\CoreBundle\Event as MauticEvents;
+use Mautic\CoreBundle\Helper\TemplatingHelper;
 use Mautic\CoreBundle\Security\Permissions\CorePermissions;
 use Mautic\StageBundle\Model\StageModel;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-use Twig\Environment;
 
 class SearchSubscriber implements EventSubscriberInterface
 {
@@ -22,18 +22,18 @@ class SearchSubscriber implements EventSubscriberInterface
     private $security;
 
     /**
-     * @var Environment
+     * @var TemplatingHelper
      */
-    private $twig;
+    private $templating;
 
     public function __construct(
         StageModel $stageModel,
         CorePermissions $security,
-        Environment $twig
+        TemplatingHelper $templating
     ) {
         $this->stageModel = $stageModel;
         $this->security   = $security;
-        $this->twig       = $twig;
+        $this->templating = $templating;
     }
 
     /**
@@ -65,23 +65,23 @@ class SearchSubscriber implements EventSubscriberInterface
                 $stagesResults = [];
                 $canEdit       = $this->security->isGranted('stage:stages:edit');
                 foreach ($items as $item) {
-                    $stagesResults[] = $this->twig->render(
-                        '@MauticStage/SubscribedEvents\Search/global.html.twig',
+                    $stagesResults[] = $this->templating->getTemplating()->renderResponse(
+                        'MauticStageBundle:SubscribedEvents\Search:global.html.php',
                         [
                             'item'    => $item,
                             'canEdit' => $canEdit,
                         ]
-                    );
+                    )->getContent();
                 }
                 if ($stageCount > 5) {
-                    $stagesResults[] = $this->twig->render(
-                        '@MauticStage/SubscribedEvents\Search/global.html.twig',
+                    $stagesResults[] = $this->templating->getTemplating()->renderResponse(
+                        'MauticStageBundle:SubscribedEvents\Search:global.html.php',
                         [
                             'showMore'     => true,
                             'searchString' => $str,
                             'remaining'    => ($stageCount - 5),
                         ]
-                    );
+                    )->getContent();
                 }
                 $stagesResults['count'] = $stageCount;
                 $event->addResults('mautic.stage.actions.header.index', $stagesResults);

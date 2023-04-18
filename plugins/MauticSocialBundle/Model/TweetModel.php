@@ -6,19 +6,16 @@ use Mautic\CoreBundle\Model\AjaxLookupModelInterface;
 use Mautic\CoreBundle\Model\FormModel;
 use Mautic\LeadBundle\Entity\Lead;
 use MauticPlugin\MauticSocialBundle\Entity\Tweet;
-use MauticPlugin\MauticSocialBundle\Entity\TweetRepository;
 use MauticPlugin\MauticSocialBundle\Entity\TweetStat;
-use MauticPlugin\MauticSocialBundle\Entity\TweetStatRepository;
 use MauticPlugin\MauticSocialBundle\Event as Events;
 use MauticPlugin\MauticSocialBundle\Form\Type\TweetType;
 use MauticPlugin\MauticSocialBundle\SocialEvents;
-use Symfony\Component\Form\FormFactoryInterface;
+use Symfony\Component\EventDispatcher\Event;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
-use Symfony\Contracts\EventDispatcher\Event;
 
 /**
- * @extends FormModel<Tweet>
- * @implements AjaxLookupModelInterface<Tweet>
+ * Class TweetModel
+ * {@inheritdoc}
  */
 class TweetModel extends FormModel implements AjaxLookupModelInterface
 {
@@ -127,25 +124,25 @@ class TweetModel extends FormModel implements AjaxLookupModelInterface
     /**
      * {@inheritdoc}
      *
-     * @param Tweet        $entity
-     * @param null         $action
-     * @param array<mixed> $options
+     * @param Tweet $entity
+     * @param       $formFactory
+     * @param null  $action
      *
      * @return mixed
      *
      * @throws \Symfony\Component\HttpKernel\Exception\NotFoundHttpException
      */
-    public function createForm($entity, FormFactoryInterface $formFactory, $action = null, $options = [])
+    public function createForm($entity, $formFactory, $action = null, $params = [])
     {
         if (!$entity instanceof Tweet) {
             throw new MethodNotAllowedHttpException(['Tweet']);
         }
 
         if (!empty($action)) {
-            $options['action'] = $action;
+            $params['action'] = $action;
         }
 
-        return $formFactory->create(TweetType::class, $entity, $options);
+        return $formFactory->create(TweetType::class, $entity, $params);
     }
 
     /**
@@ -204,7 +201,7 @@ class TweetModel extends FormModel implements AjaxLookupModelInterface
                 $event = new Events\SocialEvent($entity, $isNew);
             }
 
-            $this->dispatcher->dispatch($event, $name);
+            $this->dispatcher->dispatch($name, $event);
 
             return $event;
         } else {
@@ -212,20 +209,20 @@ class TweetModel extends FormModel implements AjaxLookupModelInterface
         }
     }
 
-    public function getRepository(): TweetRepository
+    /**
+     * {@inheritdoc}
+     */
+    public function getRepository()
     {
-        $result = $this->em->getRepository(Tweet::class);
-        \assert($result instanceof TweetRepository);
-
-        return $result;
+        return $this->em->getRepository('MauticSocialBundle:Tweet');
     }
 
-    public function getStatRepository(): TweetStatRepository
+    /**
+     * @return TweetStatRepository
+     */
+    public function getStatRepository()
     {
-        $result = $this->em->getRepository(TweetStat::class);
-        \assert($result instanceof TweetStatRepository);
-
-        return $result;
+        return $this->em->getRepository('MauticSocialBundle:TweetStat');
     }
 
     /**

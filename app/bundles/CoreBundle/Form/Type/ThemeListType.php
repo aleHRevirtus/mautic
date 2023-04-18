@@ -50,6 +50,14 @@ class ThemeListType extends AbstractType
         );
     }
 
+    /**
+     * @return string
+     */
+    public function getBlockPrefix()
+    {
+        return 'theme_list';
+    }
+
     public function getParent()
     {
         return ChoiceType::class;

@@ -6,7 +6,7 @@ use Mautic\PluginBundle\Integration\AbstractIntegration;
 
 class TagManagerIntegration extends AbstractIntegration
 {
-    public const PLUGIN_NAME = 'TagManager';
+    const PLUGIN_NAME = 'TagManager';
 
     public function getName()
     {

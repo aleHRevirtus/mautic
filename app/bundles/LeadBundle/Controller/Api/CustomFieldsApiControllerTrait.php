@@ -6,15 +6,10 @@ use Mautic\LeadBundle\Entity\Company;
 use Mautic\LeadBundle\Entity\CustomFieldEntityInterface;
 use Mautic\LeadBundle\Entity\Lead;
 use Mautic\LeadBundle\Model\FieldModel;
-use Mautic\LeadBundle\Model\LeadModel;
 use Symfony\Component\Form\Form;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\RequestStack;
 
 trait CustomFieldsApiControllerTrait
 {
-    private ?RequestStack $requestStack = null;
-
     /**
      * Remove IpAddress and lastActive as it'll be handled outside the form.
      *
@@ -24,7 +19,7 @@ trait CustomFieldsApiControllerTrait
      *
      * @return mixed|void
      */
-    protected function prepareParametersForBinding(Request $request, $parameters, $entity, $action)
+    protected function prepareParametersForBinding($parameters, $entity, $action)
     {
         if ('company' === $this->entityNameOne) {
             $object = 'company';
@@ -33,7 +28,7 @@ trait CustomFieldsApiControllerTrait
             unset($parameters['lastActive'], $parameters['tags'], $parameters['ipAddress']);
         }
 
-        if (in_array($request->getMethod(), ['POST', 'PUT'])) {
+        if (in_array($this->request->getMethod(), ['POST', 'PUT'])) {
             // If a new contact or PUT update (complete representation of the objectd), set empty fields to field defaults if the parameter
             // is not defined in the request
 
@@ -55,8 +50,10 @@ trait CustomFieldsApiControllerTrait
 
     /**
      * Flatten fields into an 'all' key for dev convenience.
+     *
+     * @param string $action
      */
-    protected function preSerializeEntity(object $entity, string $action = 'view'): void
+    protected function preSerializeEntity(&$entity, $action = 'view')
     {
         if ($entity instanceof CustomFieldEntityInterface) {
             $fields        = $entity->getFields();
@@ -111,9 +108,9 @@ trait CustomFieldsApiControllerTrait
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array
      */
-    protected function getEntityFormOptions(): array
+    protected function getEntityFormOptions()
     {
         $object = ('company' === $this->entityNameOne) ? 'company' : 'lead';
         $fields = $this->getModel('lead.field')->getEntities(
@@ -187,21 +184,11 @@ trait CustomFieldsApiControllerTrait
      */
     protected function setCleaningRules($object = 'lead')
     {
-        $leadFieldModel = $this->getModel('lead.field');
-        \assert($leadFieldModel instanceof FieldModel);
-        $fields = $leadFieldModel->getFieldListWithProperties($object);
+        $fields = $this->getModel('lead.field')->getFieldListWithProperties($object);
         foreach ($fields as $field) {
             if (!empty($field['properties']['allowHtml'])) {
                 $this->dataInputMasks[$field['alias']]  = 'html';
             }
         }
-    }
-
-    /**
-     * @required
-     */
-    public function setRequestStack(RequestStack $requestStack): void
-    {
-        $this->requestStack = $requestStack;
     }
 }

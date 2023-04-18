@@ -8,7 +8,7 @@ use Mautic\CoreBundle\Helper\DateTimeHelper;
 use Mautic\LeadBundle\Entity\TimelineTrait;
 
 /**
- * @extends CommonRepository<Download>
+ * Class DownloadRepository.
  */
 class DownloadRepository extends CommonRepository
 {

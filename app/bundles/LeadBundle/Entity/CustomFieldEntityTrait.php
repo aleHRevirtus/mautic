@@ -175,8 +175,10 @@ trait CustomFieldEntityTrait
     }
 
     /**
-     * @param string      $field
-     * @param string|null $group
+     * Get field value.
+     *
+     * @param string $field
+     * @param string $group
      *
      * @return mixed
      */

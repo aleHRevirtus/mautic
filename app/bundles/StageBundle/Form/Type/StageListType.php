@@ -52,6 +52,14 @@ class StageListType extends AbstractType
         ]);
     }
 
+    /**
+     * @return string
+     */
+    public function getBlockPrefix()
+    {
+        return 'stage_list';
+    }
+
     public function getParent()
     {
         return ChoiceType::class;

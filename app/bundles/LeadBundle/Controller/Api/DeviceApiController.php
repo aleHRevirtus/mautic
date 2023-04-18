@@ -5,23 +5,19 @@ namespace Mautic\LeadBundle\Controller\Api;
 use Mautic\ApiBundle\Controller\CommonApiController;
 use Mautic\LeadBundle\Controller\LeadAccessTrait;
 use Mautic\LeadBundle\Entity\LeadDevice;
-use Mautic\LeadBundle\Model\DeviceModel;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Event\ControllerEvent;
+use Symfony\Component\HttpKernel\Event\FilterControllerEvent;
 
 /**
- * @extends CommonApiController<LeadDevice>
+ * Class DeviceApiController.
  */
 class DeviceApiController extends CommonApiController
 {
     use LeadAccessTrait;
 
-    public function initialize(ControllerEvent $event)
+    public function initialize(FilterControllerEvent $event)
     {
-        $leadDeviceModel = $this->getModel('lead.device');
-        \assert($leadDeviceModel instanceof DeviceModel);
-
-        $this->model           = $leadDeviceModel;
+        $this->model           = $this->getModel('lead.device');
         $this->entityClass     = LeadDevice::class;
         $this->entityNameOne   = 'device';
         $this->entityNameMulti = 'devices';
@@ -32,10 +28,10 @@ class DeviceApiController extends CommonApiController
     /**
      * {@inheritdoc}
      *
-     * @param LeadDevice &$entity
-     * @param            $parameters
-     * @param            $form
-     * @param string     $action
+     * @param \Mautic\LeadBundle\Entity\LeadDevice &$entity
+     * @param                                      $parameters
+     * @param                                      $form
+     * @param string                               $action
      */
     protected function preSaveEntity(&$entity, $form, $parameters, $action = 'edit')
     {

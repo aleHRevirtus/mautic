@@ -28,4 +28,12 @@ class BooleanType extends AbstractType
     {
         return YesNoButtonGroupType::class;
     }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getBlockPrefix()
+    {
+        return 'boolean';
+    }
 }

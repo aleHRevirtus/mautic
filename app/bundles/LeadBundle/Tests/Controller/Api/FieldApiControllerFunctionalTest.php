@@ -6,7 +6,10 @@ namespace Mautic\LeadBundle\Tests\Controller\Api;
 
 use Doctrine\Common\Annotations\Annotation\IgnoreAnnotation;
 use Mautic\CoreBundle\Test\MauticMysqlTestCase;
+use Mautic\LeadBundle\Field\Command\CreateCustomFieldCommand;
 use PHPUnit\Framework\Assert;
+use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Output\BufferedOutput;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -73,10 +76,8 @@ final class FieldApiControllerFunctionalTest extends MauticMysqlTestCase
         $payload = $this->getCreatePayload($alias);
         $id      = $this->assertCreateResponse($payload, Response::HTTP_ACCEPTED);
 
-        // Test that the command will create the field
-        $commandTester = $this->testSymfonyCommand('mautic:custom-field:create-column', ['--id' => $id]);
-
-        $this->assertEquals(0, $commandTester->getStatusCode());
+        // Exeucte the command to create the field
+        $this->executeCommand($id);
 
         // Test fetching
         $this->assertGetResponse($payload, $id);
@@ -218,6 +219,18 @@ final class FieldApiControllerFunctionalTest extends MauticMysqlTestCase
                     $this->assertEquals($value, $response['field'][$key]);
             }
         }
+    }
+
+    private function executeCommand(int $id): void
+    {
+        // Test that the command will create the field
+        $input  = new ArrayInput(['--id' => $id]);
+        $output = new BufferedOutput();
+
+        /** @var CreateCustomFieldCommand $command */
+        $command    = $this->client->getKernel()->getContainer()->get('mautic.lead.command.create_custom_field');
+        $returnCode = $command->run($input, $output);
+        $this->assertEquals(0, $returnCode);
     }
 
     private function getCreatePayload(string $alias): array

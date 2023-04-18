@@ -12,7 +12,7 @@ use Mautic\IntegrationsBundle\Sync\Notification\Writer;
 use Mautic\IntegrationsBundle\Sync\SyncDataExchange\Internal\Object\Contact;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class UserSummaryNotificationHelperTest extends TestCase
 {

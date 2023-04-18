@@ -6,7 +6,7 @@ use Mautic\CoreBundle\Entity\CommonRepository;
 use Mautic\CoreBundle\Helper\DateTimeHelper;
 
 /**
- * @extends CommonRepository<Stat>
+ * Class StatRepository.
  */
 class StatRepository extends CommonRepository
 {

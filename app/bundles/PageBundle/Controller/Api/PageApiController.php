@@ -4,26 +4,19 @@ namespace Mautic\PageBundle\Controller\Api;
 
 use Mautic\ApiBundle\Controller\CommonApiController;
 use Mautic\PageBundle\Entity\Page;
-use Mautic\PageBundle\Model\PageModel;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpKernel\Event\ControllerEvent;
+use Symfony\Component\HttpKernel\Event\FilterControllerEvent;
 
 /**
- * @extends CommonApiController<Page>
+ * Class PageApiController.
  */
 class PageApiController extends CommonApiController
 {
     /**
-     * @var PageModel|null
+     * {@inheritdoc}
      */
-    protected $model = null;
-
-    public function initialize(ControllerEvent $event)
+    public function initialize(FilterControllerEvent $event)
     {
-        $pageModel = $this->getModel('page');
-        \assert($pageModel instanceof PageModel);
-
-        $this->model            = $pageModel;
+        $this->model            = $this->getModel('page');
         $this->entityClass      = Page::class;
         $this->entityNameOne    = 'page';
         $this->entityNameMulti  = 'pages';
@@ -38,7 +31,7 @@ class PageApiController extends CommonApiController
      *
      * @return \Symfony\Component\HttpFoundation\Response
      */
-    public function getEntitiesAction(Request $request)
+    public function getEntitiesAction()
     {
         //get parent level only
         $this->listFilters[] = [
@@ -51,6 +44,14 @@ class PageApiController extends CommonApiController
             'expr'   => 'isNull',
         ];
 
-        return parent::getEntitiesAction($request);
+        return parent::getEntitiesAction();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function preSerializeEntity(&$entity, $action = 'view')
+    {
+        $entity->url = $this->model->generateUrl($entity);
     }
 }

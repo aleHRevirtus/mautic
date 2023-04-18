@@ -60,7 +60,7 @@ EOT
         );
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    protected function execute(InputInterface $input, OutputInterface $output)
     {
         $bundleFilter = $input->getOption('bundle');
         $files        = $this->languageHelper->getLanguageFiles([$bundleFilter]);

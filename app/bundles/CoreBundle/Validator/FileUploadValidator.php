@@ -4,7 +4,7 @@ namespace Mautic\CoreBundle\Validator;
 
 use Mautic\CoreBundle\Exception\FileInvalidException;
 use Mautic\CoreBundle\Helper\FileHelper;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class FileUploadValidator
 {

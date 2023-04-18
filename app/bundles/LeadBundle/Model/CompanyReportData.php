@@ -4,7 +4,7 @@ namespace Mautic\LeadBundle\Model;
 
 use Mautic\FormBundle\Entity\Field;
 use Mautic\ReportBundle\Event\ReportGeneratorEvent;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class CompanyReportData
 {

@@ -7,13 +7,12 @@ namespace Mautic\IntegrationsBundle\Tests\Unit\Sync\Notification\Helper;
 use Mautic\IntegrationsBundle\Sync\Notification\Helper\OwnerProvider;
 use Mautic\IntegrationsBundle\Sync\Notification\Helper\RouteHelper;
 use Mautic\IntegrationsBundle\Sync\Notification\Helper\UserHelper;
-use Mautic\IntegrationsBundle\Sync\Notification\Helper\UserNotificationBuilder;
 use Mautic\IntegrationsBundle\Sync\Notification\Helper\UserNotificationHelper;
 use Mautic\IntegrationsBundle\Sync\Notification\Writer;
 use Mautic\IntegrationsBundle\Sync\SyncDataExchange\Internal\Object\Contact;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class UserNotificationHelperTest extends TestCase
 {
@@ -54,13 +53,13 @@ class UserNotificationHelperTest extends TestCase
         $this->ownerProvider = $this->createMock(OwnerProvider::class);
         $this->routeHelper   = $this->createMock(RouteHelper::class);
         $this->translator    = $this->createMock(TranslatorInterface::class);
-
-        $userNotificationBuilder = new UserNotificationBuilder($this->userHelper,
+        $this->helper        = new UserNotificationHelper(
+            $this->writer,
+            $this->userHelper,
             $this->ownerProvider,
             $this->routeHelper,
             $this->translator
         );
-        $this->helper = new UserNotificationHelper($this->writer, $userNotificationBuilder);
     }
 
     public function testNotificationSentToOwner(): void

@@ -63,10 +63,7 @@ class HubspotIntegrationTest extends AbstractIntegrationTestCase
             ->willReturn(['other' => 'data']);
         $this->dispatcher->expects(self::once())
             ->method('dispatch')
-            ->with(
-                new PluginIntegrationKeyEvent($this->integration, [HubspotIntegration::ACCESS_KEY]),
-                PluginEvents::PLUGIN_ON_INTEGRATION_KEYS_ENCRYPT
-            )
+            ->with(PluginEvents::PLUGIN_ON_INTEGRATION_KEYS_ENCRYPT)
             ->willReturn($event);
 
         $this->integration->encryptAndSetApiKeys([HubspotIntegration::ACCESS_KEY], $this->createMock(Integration::class));
@@ -83,10 +80,7 @@ class HubspotIntegrationTest extends AbstractIntegrationTestCase
             ->willReturn(['other' => 'data', HubspotIntegration::ACCESS_KEY => $token]);
         $this->dispatcher->expects(self::once())
             ->method('dispatch')
-            ->with(
-                new PluginIntegrationKeyEvent($this->integration, [HubspotIntegration::ACCESS_KEY]),
-                PluginEvents::PLUGIN_ON_INTEGRATION_KEYS_ENCRYPT
-            )
+            ->with(PluginEvents::PLUGIN_ON_INTEGRATION_KEYS_ENCRYPT)
             ->willReturn($event);
 
         $this->integration->encryptAndSetApiKeys([HubspotIntegration::ACCESS_KEY], $this->createMock(Integration::class));
@@ -112,10 +106,7 @@ class HubspotIntegrationTest extends AbstractIntegrationTestCase
             ->willReturn(['other' => 'data']);
         $this->dispatcher->expects(self::once())
             ->method('dispatch')
-            ->with(
-                new PluginIntegrationKeyEvent($this->integration, [HubspotIntegration::ACCESS_KEY]),
-                PluginEvents::PLUGIN_ON_INTEGRATION_KEYS_ENCRYPT
-            )
+            ->with(PluginEvents::PLUGIN_ON_INTEGRATION_KEYS_ENCRYPT)
             ->willReturn($event);
 
         $this->integration->encryptAndSetApiKeys([HubspotIntegration::ACCESS_KEY], $this->createMock(Integration::class));
@@ -130,10 +121,7 @@ class HubspotIntegrationTest extends AbstractIntegrationTestCase
             ->willReturn(['other' => 'data', HubspotIntegration::ACCESS_KEY => 'token']);
         $this->dispatcher->expects(self::once())
             ->method('dispatch')
-            ->with(
-                new PluginIntegrationKeyEvent($this->integration, [HubspotIntegration::ACCESS_KEY]),
-                PluginEvents::PLUGIN_ON_INTEGRATION_KEYS_ENCRYPT
-            )
+            ->with(PluginEvents::PLUGIN_ON_INTEGRATION_KEYS_ENCRYPT)
             ->willReturn($event);
 
         $this->integration->encryptAndSetApiKeys([HubspotIntegration::ACCESS_KEY], $this->createMock(Integration::class));
@@ -148,10 +136,7 @@ class HubspotIntegrationTest extends AbstractIntegrationTestCase
             ->willReturn(['other' => 'data']);
         $this->dispatcher->expects(self::once())
             ->method('dispatch')
-            ->with(
-                new PluginIntegrationKeyEvent($this->integration, [HubspotIntegration::ACCESS_KEY]),
-                PluginEvents::PLUGIN_ON_INTEGRATION_KEYS_ENCRYPT
-            )
+            ->with(PluginEvents::PLUGIN_ON_INTEGRATION_KEYS_ENCRYPT)
             ->willReturn($event);
 
         $this->integration->encryptAndSetApiKeys([HubspotIntegration::ACCESS_KEY], $this->createMock(Integration::class));
@@ -166,10 +151,7 @@ class HubspotIntegrationTest extends AbstractIntegrationTestCase
             ->willReturn(['other' => 'data', HubspotIntegration::ACCESS_KEY => 'token']);
         $this->dispatcher->expects(self::once())
             ->method('dispatch')
-            ->with(
-                new PluginIntegrationKeyEvent($this->integration, [HubspotIntegration::ACCESS_KEY]),
-                PluginEvents::PLUGIN_ON_INTEGRATION_KEYS_ENCRYPT
-            )
+            ->with(PluginEvents::PLUGIN_ON_INTEGRATION_KEYS_ENCRYPT)
             ->willReturn($event);
 
         $this->integration->encryptAndSetApiKeys([HubspotIntegration::ACCESS_KEY], $this->createMock(Integration::class));

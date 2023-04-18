@@ -3,31 +3,15 @@
 namespace Mautic\CoreBundle\Controller;
 
 use Mautic\CoreBundle\Form\Type\DateRangeType;
-use Mautic\CoreBundle\Helper\UserHelper;
 use Mautic\CoreBundle\Model\AbstractCommonModel;
 use Mautic\CoreBundle\Model\FormModel;
 use Mautic\CoreBundle\Security\Permissions\CorePermissions;
-use Mautic\FormBundle\Helper\FormFieldHelper;
 use Symfony\Component\Form\Form;
-use Symfony\Component\Form\FormFactoryInterface;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 abstract class AbstractStandardFormController extends AbstractFormController
 {
     use FormErrorMessagesTrait;
-
-    protected FormFactoryInterface $formFactory;
-
-    protected FormFieldHelper $fieldHelper;
-
-    public function __construct(CorePermissions $security, UserHelper $userHelper, FormFactoryInterface $formFactory, FormFieldHelper $fieldHelper)
-    {
-        $this->formFactory = $formFactory;
-        $this->fieldHelper = $fieldHelper;
-
-        parent::__construct($security, $userHelper);
-    }
 
     /**
      * Get this controller's model name.
@@ -89,24 +73,24 @@ abstract class AbstractStandardFormController extends AbstractFormController
      *
      * @return \Symfony\Component\HttpFoundation\JsonResponse|\Symfony\Component\HttpFoundation\RedirectResponse
      */
-    protected function batchDeleteStandard(Request $request)
+    protected function batchDeleteStandard()
     {
-        $page      = $request->getSession()->get('mautic.'.$this->getSessionBase().'.page', 1);
+        $page      = $this->get('session')->get('mautic.'.$this->getSessionBase().'.page', 1);
         $returnUrl = $this->generateUrl($this->getIndexRoute(), ['page' => $page]);
         $flashes   = [];
 
         $postActionVars = [
             'returnUrl'       => $returnUrl,
             'viewParameters'  => ['page' => $page],
-            'contentTemplate' => $this->getControllerBase().'::'.$this->getPostActionControllerAction('batchDelete').'Action',
+            'contentTemplate' => $this->getControllerBase().':'.$this->getPostActionControllerAction('batchDelete'),
             'passthroughVars' => [
                 'mauticContent' => $this->getJsLoadMethodPrefix(),
             ],
         ];
 
-        if ('POST' == $request->getMethod()) {
+        if ('POST' == $this->request->getMethod()) {
             $model     = $this->getModel($this->getModelName());
-            $ids       = json_decode($request->query->get('ids', ''));
+            $ids       = json_decode($this->request->query->get('ids', ''));
             $deleteIds = [];
 
             // Loop over the IDs to perform access checks pre-delete
@@ -193,6 +177,9 @@ abstract class AbstractStandardFormController extends AbstractFormController
      */
     protected function checkActionPermission($action, $entity = null, $objectId = null)
     {
+        /** @var CorePermissions $security */
+        $security = $this->get('mautic.security');
+
         $permissionUser = 0;
 
         if ($entity) {
@@ -202,31 +189,31 @@ abstract class AbstractStandardFormController extends AbstractFormController
         if ($entity) {
             switch ($action) {
                 case 'new':
-                    return $this->security->isGranted($this->getPermissionBase().':create');
+                    return $security->isGranted($this->getPermissionBase().':create');
                 case 'view':
                 case 'index':
-                    return ($entity) ? $this->security->hasEntityAccess(
+                    return ($entity) ? $security->hasEntityAccess(
                         $this->getPermissionBase().':viewown',
                         $this->getPermissionBase().':viewother',
                         $permissionUser
-                    ) : $this->security->isGranted($this->getPermissionBase().':view');
+                    ) : $security->isGranted($this->getPermissionBase().':view');
                 case 'clone':
                     return
-                        $this->security->isGranted($this->getPermissionBase().':create')
-                        && $this->security->hasEntityAccess(
+                        $security->isGranted($this->getPermissionBase().':create')
+                        && $this->get('mautic.security')->hasEntityAccess(
                             $this->getPermissionBase().':viewown',
                             $this->getPermissionBase().':viewother',
                             $permissionUser
                         );
                 case 'delete':
                 case 'batchDelete':
-                    return $this->security->hasEntityAccess(
+                    return $this->get('mautic.security')->hasEntityAccess(
                         $this->getPermissionBase().':deleteown',
                         $this->getPermissionBase().':deleteother',
                         $permissionUser
                     );
                 default:
-                    return $this->security->hasEntityAccess(
+                    return $this->get('mautic.security')->hasEntityAccess(
                         $this->getPermissionBase().':'.$action.'own',
                         $this->getPermissionBase().':'.$action.'other',
                         $permissionUser
@@ -235,19 +222,19 @@ abstract class AbstractStandardFormController extends AbstractFormController
         } else {
             switch ($action) {
                 case 'new':
-                    return $this->security->isGranted($this->getPermissionBase().':create');
+                    return $security->isGranted($this->getPermissionBase().':create');
                 case 'view':
                 case 'index':
-                    return $this->security->isGranted($this->getPermissionBase().':view');
+                    return $security->isGranted($this->getPermissionBase().':view');
                 case 'clone':
                     return
-                        $this->security->isGranted($this->getPermissionBase().':create')
-                        && $this->security->isGranted($this->getPermissionBase().':view');
+                        $security->isGranted($this->getPermissionBase().':create')
+                        && $security->isGranted($this->getPermissionBase().':view');
                 case 'delete':
                 case 'batchDelete':
-                    return $this->security->isGranted($this->getPermissionBase().':delete');
+                    return $security->isGranted($this->getPermissionBase().':delete');
                 default:
-                    return $this->security->isGranted($this->getPermissionBase().':'.$action);
+                    return $security->isGranted($this->getPermissionBase().':'.$action);
             }
         }
 
@@ -261,7 +248,7 @@ abstract class AbstractStandardFormController extends AbstractFormController
      *
      * @return array|\Symfony\Component\HttpFoundation\JsonResponse|\Symfony\Component\HttpFoundation\RedirectResponse
      */
-    protected function cloneStandard(Request $request, $objectId)
+    protected function cloneStandard($objectId)
     {
         $model  = $this->getModel($this->getModelName());
         $entity = $model->getEntity($objectId);
@@ -276,7 +263,7 @@ abstract class AbstractStandardFormController extends AbstractFormController
             if ($arguments = $this->afterEntityClone($newEntity, $entity)) {
                 return call_user_func_array([$this, 'editAction'], $arguments);
             } else {
-                return $this->editAction($request, $newEntity, true);
+                return $this->editAction($newEntity, true);
             }
         }
 
@@ -290,9 +277,9 @@ abstract class AbstractStandardFormController extends AbstractFormController
      *
      * @return \Symfony\Component\HttpFoundation\JsonResponse|\Symfony\Component\HttpFoundation\RedirectResponse
      */
-    protected function deleteStandard(Request $request, $objectId)
+    protected function deleteStandard($objectId)
     {
-        $page      = $request->getSession()->get('mautic.'.$this->getSessionBase().'.page', 1);
+        $page      = $this->get('session')->get('mautic.'.$this->getSessionBase().'.page', 1);
         $returnUrl = $this->generateUrl($this->getIndexRoute(), ['page' => $page]);
         $flashes   = [];
         $model     = $this->getModel($this->getModelName());
@@ -301,14 +288,14 @@ abstract class AbstractStandardFormController extends AbstractFormController
         $postActionVars = [
             'returnUrl'       => $returnUrl,
             'viewParameters'  => ['page' => $page],
-            'contentTemplate' => $this->getControllerBase().'::'.$this->getPostActionControllerAction('delete').'Action',
+            'contentTemplate' => $this->getControllerBase().':'.$this->getPostActionControllerAction('delete'),
             'passthroughVars' => [
                 'mauticContent' => $this->getJsLoadMethodPrefix(),
             ],
             'entity' => $entity,
         ];
 
-        if ('POST' == $request->getMethod()) {
+        if ('POST' == $this->request->getMethod()) {
             if (null === $entity) {
                 $flashes[] = [
                     'type'    => 'error',
@@ -323,7 +310,7 @@ abstract class AbstractStandardFormController extends AbstractFormController
 
             $model->deleteEntity($entity);
 
-            $identifier = $this->translator->trans($entity->getName());
+            $identifier = $this->get('translator')->trans($entity->getName());
             $flashes[]  = [
                 'type'    => 'notice',
                 'msg'     => 'mautic.core.notice.deleted',
@@ -355,7 +342,7 @@ abstract class AbstractStandardFormController extends AbstractFormController
      *
      * @throws \Exception
      */
-    protected function editStandard(Request $request, $objectId, $ignorePost = false)
+    protected function editStandard($objectId, $ignorePost = false)
     {
         $isClone = false;
         $model   = $this->getModel($this->getModelName());
@@ -367,10 +354,10 @@ abstract class AbstractStandardFormController extends AbstractFormController
 
         //set the return URL
         $returnUrl      = $this->generateUrl($this->getIndexRoute());
-        $page           = $request->getSession()->get('mautic.'.$this->getSessionBase().'.page', 1);
+        $page           = $this->get('session')->get('mautic.'.$this->getSessionBase().'.page', 1);
         $viewParameters = ['page' => $page];
 
-        $template = $this->getControllerBase().'::'.$this->getPostActionControllerAction('edit').'Action';
+        $template = $this->getControllerBase().':'.$this->getPostActionControllerAction('edit');
 
         $postActionVars = [
             'returnUrl'       => $returnUrl,
@@ -411,9 +398,9 @@ abstract class AbstractStandardFormController extends AbstractFormController
 
         $options = $this->getEntityFormOptions();
         $action  = $this->generateUrl($this->getActionRoute(), ['objectAction' => 'edit', 'objectId' => $objectId]);
-        $form    = $model->createForm($entity, $this->formFactory, $action, $options);
+        $form    = $model->createForm($entity, $this->get('form.factory'), $action, $options);
 
-        $isPost = !$ignorePost && 'POST' == $request->getMethod();
+        $isPost = !$ignorePost && 'POST' == $this->request->getMethod();
         $this->beforeFormProcessed($entity, $form, 'edit', $isPost, $objectId, $isClone);
 
         ///Check for a submitted form and process it
@@ -422,11 +409,11 @@ abstract class AbstractStandardFormController extends AbstractFormController
             if (!$cancelled = $this->isFormCancelled($form)) {
                 if ($valid = $this->isFormValid($form)) {
                     if ($valid = $this->beforeEntitySave($entity, $form, 'edit', $objectId, $isClone)) {
-                        $model->saveEntity($entity, $this->getFormButton($form, ['buttons', 'save'])->isClicked());
+                        $model->saveEntity($entity, $form->get('buttons')->get('save')->isClicked());
 
                         $this->afterEntitySave($entity, $form, 'edit', $valid);
 
-                        $this->addFlashMessage(
+                        $this->addFlash(
                             'mautic.core.notice.updated',
                             [
                                 '%name%'      => $entity->getName(),
@@ -449,7 +436,7 @@ abstract class AbstractStandardFormController extends AbstractFormController
                         if (!$this->isFormApplied($form) && method_exists($this, 'viewAction')) {
                             $viewParameters                    = ['objectId' => $objectId, 'objectAction' => 'view'];
                             $returnUrl                         = $this->generateUrl($this->getActionRoute(), $viewParameters);
-                            $postActionVars['contentTemplate'] = $this->getControllerBase().'::viewAction';
+                            $postActionVars['contentTemplate'] = $this->getControllerBase().':view';
                         }
                     }
 
@@ -480,7 +467,7 @@ abstract class AbstractStandardFormController extends AbstractFormController
             } elseif ($valid) {
                 // Rebuild the form with new action so that apply doesn't keep creating a clone
                 $action = $this->generateUrl($this->getActionRoute(), ['objectAction' => 'edit', 'objectId' => $entity->getId()]);
-                $form   = $model->createForm($entity, $this->formFactory, $action);
+                $form   = $model->createForm($entity, $this->get('form.factory'), $action);
                 $this->beforeFormProcessed($entity, $form, 'edit', false, $isClone);
             }
         } elseif (!$isClone) {
@@ -496,11 +483,11 @@ abstract class AbstractStandardFormController extends AbstractFormController
                 'tablePrefix'     => $model->getRepository()->getTableAlias(),
                 'modelName'       => $this->getModelName(),
                 'translationBase' => $this->getTranslationBase(),
-                'tmpl'            => $request->isXmlHttpRequest() ? $request->get('tmpl', 'index') : 'index',
+                'tmpl'            => $this->request->isXmlHttpRequest() ? $this->request->get('tmpl', 'index') : 'index',
                 'entity'          => $entity,
                 'form'            => $this->getFormView($form, 'edit'),
             ],
-            'contentTemplate' => $this->getTemplateName('form.html.twig'),
+            'contentTemplate' => $this->getTemplateName('form.html.php'),
             'passthroughVars' => [
                 'mauticContent' => $this->getJsLoadMethodPrefix(),
                 'route'         => $this->generateUrl(
@@ -538,7 +525,7 @@ abstract class AbstractStandardFormController extends AbstractFormController
      */
     protected function getControllerBase()
     {
-        return static::class;
+        return 'MauticCoreBundle:Standard';
     }
 
     /**
@@ -713,6 +700,16 @@ abstract class AbstractStandardFormController extends AbstractFormController
     }
 
     /**
+     * Get template base different than MauticCoreBundle:Standard.
+     *
+     * @return string
+     */
+    protected function getTemplateBase()
+    {
+        return 'MauticCoreBundle:Standard';
+    }
+
+    /**
      * Get the template file.
      *
      * @param $file
@@ -721,28 +718,13 @@ abstract class AbstractStandardFormController extends AbstractFormController
      */
     protected function getTemplateName($file)
     {
-        $namespaces = [
-            $this->getTemplateBase(),
-            '@MauticCore/Standard',
-        ];
-
-        foreach ($namespaces as $namespace) {
-            if ($this->get('twig')->getLoader()->exists($namespace.'/'.$file)) {
-                return $namespace.'/'.$file;
-            }
+        if ($this->get('templating')->exists($this->getControllerBase().':'.$file)) {
+            return $this->getControllerBase().':'.$file;
+        } elseif ($this->get('templating')->exists($this->getTemplateBase().':'.$file)) {
+            return $this->getTemplateBase().':'.$file;
+        } else {
+            return 'MauticCoreBundle:Standard:'.$file;
         }
-
-        throw new \Exception("Template {$file} not found in any of the following places: ".implode(', ', $namespaces).'.');
-    }
-
-    /**
-     * Get template base different than @MauticCore/Standard.
-     *
-     * @return string
-     */
-    protected function getTemplateBase()
-    {
-        return '@MauticCore/Standard';
     }
 
     /**
@@ -754,7 +736,7 @@ abstract class AbstractStandardFormController extends AbstractFormController
      */
     protected function getTranslatedString($string)
     {
-        return $this->translator->hasId($this->getTranslationBase().'.'.$string) ? $this->getTranslationBase()
+        return $this->get('translator')->hasId($this->getTranslationBase().'.'.$string) ? $this->getTranslationBase()
             .'.'.$string : 'mautic.core.'.$string;
     }
 
@@ -823,14 +805,14 @@ abstract class AbstractStandardFormController extends AbstractFormController
      *
      * @return array
      */
-    protected function getViewDateRange(Request $request, $objectId, $returnUrl, $timezone = 'local', &$dateRangeForm = null)
+    protected function getViewDateRange($objectId, $returnUrl, $timezone = 'local', &$dateRangeForm = null)
     {
         $name            = $this->getSessionBase($objectId).'.view.daterange';
-        $method          = ('POST' === $request->getMethod()) ? 'request' : 'query';
-        $dateRangeValues = $request->$method->get('daterange', $request->getSession()->get($name, []));
-        $request->getSession()->set($name, $dateRangeValues);
+        $method          = ('POST' === $this->request->getMethod()) ? 'request' : 'query';
+        $dateRangeValues = $this->request->$method->get('daterange', $this->get('session')->get($name, []));
+        $this->get('session')->set($name, $dateRangeValues);
 
-        $dateRangeForm = $this->formFactory->create(DateRangeType::class, $dateRangeValues, ['action' => $returnUrl]);
+        $dateRangeForm = $this->get('form.factory')->create(DateRangeType::class, $dateRangeValues, ['action' => $returnUrl]);
         $dateFrom      = new \DateTime($dateRangeForm['date_from']->getData());
         $dateFrom->setTime(0, 0, 0);
         $dateTo = new \DateTime($dateRangeForm['date_to']->getData());
@@ -851,10 +833,10 @@ abstract class AbstractStandardFormController extends AbstractFormController
      *
      * @return \Symfony\Component\HttpFoundation\JsonResponse|\Symfony\Component\HttpFoundation\RedirectResponse|\Symfony\Component\HttpFoundation\Response
      */
-    protected function indexStandard(Request $request, $page = null)
+    protected function indexStandard($page = null)
     {
         //set some permissions
-        $permissions = $this->security->isGranted(
+        $permissions = $this->get('mautic.security')->isGranted(
             [
                 $this->getPermissionBase().':view',
                 $this->getPermissionBase().':viewown',
@@ -881,7 +863,7 @@ abstract class AbstractStandardFormController extends AbstractFormController
 
         $this->setListFilters();
 
-        $session = $request->getSession();
+        $session = $this->get('session');
         if (empty($page)) {
             $page = $session->get('mautic.'.$this->getSessionBase().'.page', 1);
         }
@@ -893,7 +875,7 @@ abstract class AbstractStandardFormController extends AbstractFormController
             $start = 0;
         }
 
-        $search = $request->get('search', $session->get('mautic.'.$this->getSessionBase().'.filter', ''));
+        $search = $this->request->get('search', $session->get('mautic.'.$this->getSessionBase().'.filter', ''));
         $session->set('mautic.'.$this->getSessionBase().'.filter', $search);
 
         $filter = ['string' => $search, 'force' => []];
@@ -922,7 +904,7 @@ abstract class AbstractStandardFormController extends AbstractFormController
                     [
                         'returnUrl'       => $returnUrl,
                         'viewParameters'  => ['page' => $lastPage],
-                        'contentTemplate' => $this->getControllerBase().'::'.$this->getPostActionControllerAction('index').'Action',
+                        'contentTemplate' => $this->getControllerBase().':'.$this->getPostActionControllerAction('index'),
                         'passthroughVars' => [
                             'mauticContent' => $this->getJsLoadMethodPrefix(),
                         ],
@@ -950,14 +932,14 @@ abstract class AbstractStandardFormController extends AbstractFormController
             'page'            => $page,
             'limit'           => $limit,
             'permissions'     => $permissions,
-            'tmpl'            => $request->get('tmpl', 'index'),
+            'tmpl'            => $this->request->get('tmpl', 'index'),
         ];
 
         return $this->delegateView(
             $this->getViewArguments(
                 [
                     'viewParameters'  => $viewParameters,
-                    'contentTemplate' => $this->getTemplateName('list.html.twig'),
+                    'contentTemplate' => $this->getTemplateName('list.html.php'),
                     'passthroughVars' => [
                         'mauticContent' => $this->getJsLoadMethodPrefix(),
                         'route'         => $this->generateUrl($this->getIndexRoute(), ['page' => $page]),
@@ -973,7 +955,7 @@ abstract class AbstractStandardFormController extends AbstractFormController
      *
      * @throws \Exception
      */
-    protected function newStandard(Request $request)
+    protected function newStandard()
     {
         $entity = $this->getFormEntity('new');
 
@@ -987,14 +969,14 @@ abstract class AbstractStandardFormController extends AbstractFormController
         }
 
         //set the page we came from
-        $page = $request->getSession()->get('mautic.'.$this->getSessionBase().'.page', 1);
+        $page = $this->get('session')->get('mautic.'.$this->getSessionBase().'.page', 1);
 
         $options = $this->getEntityFormOptions();
         $action  = $this->generateUrl($this->getActionRoute(), ['objectAction' => 'new']);
-        $form    = $model->createForm($entity, $this->formFactory, $action, $options);
+        $form    = $model->createForm($entity, $this->get('form.factory'), $action, $options);
 
         ///Check for a submitted form and process it
-        $isPost = 'POST' === $request->getMethod();
+        $isPost = 'POST' === $this->request->getMethod();
         $this->beforeFormProcessed($entity, $form, 'new', $isPost);
 
         if ($isPost) {
@@ -1008,11 +990,11 @@ abstract class AbstractStandardFormController extends AbstractFormController
                         if (method_exists($this, 'viewAction')) {
                             $viewParameters = ['objectId' => $entity->getId(), 'objectAction' => 'view'];
                             $returnUrl      = $this->generateUrl($this->getActionRoute(), $viewParameters);
-                            $template       = $this->getControllerBase().'::viewAction';
+                            $template       = $this->getControllerBase().':view';
                         } else {
                             $viewParameters = ['page' => $page];
                             $returnUrl      = $this->generateUrl($this->getIndexRoute(), $viewParameters);
-                            $template       = $this->getControllerBase().'::'.$this->getPostActionControllerAction('new').'Action';
+                            $template       = $this->getControllerBase().':'.$this->getPostActionControllerAction('new');
                         }
                     }
                 }
@@ -1021,7 +1003,7 @@ abstract class AbstractStandardFormController extends AbstractFormController
             } else {
                 $viewParameters = ['page' => $page];
                 $returnUrl      = $this->generateUrl($this->getIndexRoute(), $viewParameters);
-                $template       = $this->getControllerBase().'::'.$this->getPostActionControllerAction('new').'Action';
+                $template       = $this->getControllerBase().':'.$this->getPostActionControllerAction('new');
             }
 
             $passthrough = [
@@ -1067,11 +1049,11 @@ abstract class AbstractStandardFormController extends AbstractFormController
                 'tablePrefix'     => $model->getRepository()->getTableAlias(),
                 'modelName'       => $this->getModelName(),
                 'translationBase' => $this->getTranslationBase(),
-                'tmpl'            => $request->isXmlHttpRequest() ? $request->get('tmpl', 'index') : 'index',
+                'tmpl'            => $this->request->isXmlHttpRequest() ? $this->request->get('tmpl', 'index') : 'index',
                 'entity'          => $entity,
                 'form'            => $this->getFormView($form, 'new'),
             ],
-            'contentTemplate' => $this->getTemplateName('form.html.twig'),
+            'contentTemplate' => $this->getTemplateName('form.html.php'),
             'passthroughVars' => [
                 'mauticContent' => $this->getJsLoadMethodPrefix(),
                 'route'         => $this->generateUrl(
@@ -1093,7 +1075,7 @@ abstract class AbstractStandardFormController extends AbstractFormController
     }
 
     /**
-     * @param string|null $name
+     * @param null $name
      */
     protected function setListFilters($name = null)
     {
@@ -1101,28 +1083,29 @@ abstract class AbstractStandardFormController extends AbstractFormController
     }
 
     /**
-     * @param $objectId
-     * @param string|null $logObject
-     * @param string|null $logBundle
-     * @param string|null $listPage
-     * @param string      $itemName
+     * @param        $objectId
+     * @param null   $logObject
+     * @param null   $logBundle
+     * @param null   $listPage
+     * @param string $itemName
      *
      * @return array|\Symfony\Component\HttpFoundation\JsonResponse|\Symfony\Component\HttpFoundation\RedirectResponse|\Symfony\Component\HttpFoundation\Response
      */
-    protected function viewStandard(Request $request, $objectId, $logObject = null, $logBundle = null, $listPage = null, $itemName = 'item')
+    protected function viewStandard($objectId, $logObject = null, $logBundle = null, $listPage = null, $itemName = 'item')
     {
         $model    = $this->getModel($this->getModelName());
         $entity   = $model->getEntity($objectId);
+        $security = $this->get('mautic.security');
 
         if (null === $entity) {
-            $page = $request->getSession()->get('mautic.'.$this->getSessionBase().'.page', 1);
+            $page = $this->get('session')->get('mautic.'.$this->getSessionBase().'.page', 1);
 
             return $this->postActionRedirect(
                 $this->getPostActionRedirectArguments(
                     [
                         'returnUrl'       => $this->generateUrl($this->getIndexRoute(), ['page' => $page]),
                         'viewParameters'  => ['page' => $page],
-                        'contentTemplate' => $this->getControllerBase().'::'.$this->getPostActionControllerAction('view').'Action',
+                        'contentTemplate' => $this->getControllerBase().':'.$this->getPostActionControllerAction('view'),
                         'passthroughVars' => [
                             'mauticContent' => $this->getJsLoadMethodPrefix(),
                         ],
@@ -1160,8 +1143,8 @@ abstract class AbstractStandardFormController extends AbstractFormController
             'viewParameters' => [
                 $itemName     => $entity,
                 'logs'        => $logs,
-                'tmpl'        => $request->isXmlHttpRequest() ? $request->get('tmpl', 'index') : 'index',
-                'permissions' => $this->security->isGranted(
+                'tmpl'        => $this->request->isXmlHttpRequest() ? $this->request->get('tmpl', 'index') : 'index',
+                'permissions' => $security->isGranted(
                     [
                         $this->getPermissionBase().':view',
                         $this->getPermissionBase().':viewown',
@@ -1182,7 +1165,7 @@ abstract class AbstractStandardFormController extends AbstractFormController
                     true
                 ),
             ],
-            'contentTemplate' => $this->getTemplateName('details.html.twig'),
+            'contentTemplate' => $this->getTemplateName('details.html.php'),
             'passthroughVars' => [
                 'mauticContent' => $this->getJsLoadMethodPrefix(),
                 'route'         => $route,
@@ -1196,8 +1179,8 @@ abstract class AbstractStandardFormController extends AbstractFormController
         );
     }
 
-    protected function getDataForExport(AbstractCommonModel $model, array $args, callable $resultsCallback = null, ?int $start = 0)
+    protected function getDataForExport(AbstractCommonModel $model, array $args, callable $resultsCallback = null, $start = 0)
     {
-        return parent::getDataForExport($model, $args, $resultsCallback, $start);
+        return parent::getDataForExport($model, $args, $resultsCallback, $start); // TODO: Change the autogenerated stub
     }
 }

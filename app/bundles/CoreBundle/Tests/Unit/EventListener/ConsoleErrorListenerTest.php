@@ -52,7 +52,7 @@ class ConsoleErrorListenerTest extends \PHPUnit\Framework\TestCase
         );
 
         $this->logger->expects($this->once())
-            ->method('error');
+            ->method('notice');
 
         $this->listener->onConsoleError($event);
     }

@@ -8,12 +8,9 @@ use Mautic\CoreBundle\Helper\Chart\LineChart;
 use Mautic\CoreBundle\Model\AuditLogModel;
 use Mautic\LeadBundle\Entity\Lead;
 use Mautic\LeadBundle\Model\LeadModel;
-use Symfony\Component\HttpFoundation\RequestStack;
 
 trait LeadDetailsTrait
 {
-    private ?RequestStack $requestStack = null;
-
     /**
      * @param int $page
      *
@@ -21,7 +18,7 @@ trait LeadDetailsTrait
      */
     protected function getAllEngagements(array $leads, array $filters = null, array $orderBy = null, $page = 1, $limit = 25)
     {
-        $session = $this->requestStack->getCurrentRequest()->getSession();
+        $session = $this->get('session');
 
         if (null == $filters) {
             $filters = $session->get(
@@ -146,7 +143,7 @@ trait LeadDetailsTrait
     {
         // Get Places from IP addresses
         $places = [];
-        if ($lead->getIpAddresses()->count() > 0) {
+        if ($lead->getIpAddresses()) {
             foreach ($lead->getIpAddresses() as $ip) {
                 if ($details = $ip->getIpDetails()) {
                     if (!empty($details['latitude']) && !empty($details['longitude'])) {
@@ -174,7 +171,7 @@ trait LeadDetailsTrait
      */
     protected function getEngagementData(Lead $lead, \DateTime $fromDate = null, \DateTime $toDate = null)
     {
-        $translator = $this->translator;
+        $translator = $this->get('translator');
 
         if (null == $fromDate) {
             $fromDate = new \DateTime('first day of this month 00:00:00');
@@ -206,7 +203,7 @@ trait LeadDetailsTrait
      */
     protected function getAuditlogs(Lead $lead, array $filters = null, array $orderBy = null, $page = 1, $limit = 25)
     {
-        $session = $this->requestStack->getCurrentRequest()->getSession();
+        $session = $this->get('session');
 
         if (null == $filters) {
             $filters = $session->get(
@@ -245,7 +242,7 @@ trait LeadDetailsTrait
                 'eventLabel'      => $l['userName'],
                 'timestamp'       => $l['dateAdded'],
                 'details'         => $l['details'],
-                'contentTemplate' => '@MauticLead/Auditlog/details.html.twig',
+                'contentTemplate' => 'MauticLeadBundle:Auditlog:details.html.php',
             ];
         }, $logs);
 
@@ -278,7 +275,7 @@ trait LeadDetailsTrait
      */
     protected function getEngagements(Lead $lead, array $filters = null, array $orderBy = null, $page = 1, $limit = 25)
     {
-        $session = $this->requestStack->getCurrentRequest()->getSession();
+        $session = $this->get('session');
 
         if (null == $filters) {
             $filters = $session->get(
@@ -387,7 +384,7 @@ trait LeadDetailsTrait
     protected function getCompanyEngagementsForGraph($contacts)
     {
         $graphData  = $this->getCompanyEngagementData($contacts);
-        $translator = $this->translator;
+        $translator = $this->get('translator');
 
         $fromDate = new \DateTime('first day of this month 00:00:00');
         $fromDate->modify('-6 months');
@@ -418,13 +415,5 @@ trait LeadDetailsTrait
                 'eventType' => ['action', 'condition'],
             ]
         );
-    }
-
-    /**
-     * @required
-     */
-    public function setRequestStackLeadDetailsTrait(?RequestStack $requestStack): void
-    {
-        $this->requestStack = $requestStack;
     }
 }

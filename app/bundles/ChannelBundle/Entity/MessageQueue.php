@@ -12,13 +12,13 @@ use Mautic\LeadBundle\Entity\Lead;
  */
 class MessageQueue
 {
-    public const STATUS_RESCHEDULED = 'rescheduled';
-    public const STATUS_PENDING     = 'pending';
-    public const STATUS_SENT        = 'sent';
-    public const STATUS_CANCELLED   = 'cancelled';
+    const STATUS_RESCHEDULED = 'rescheduled';
+    const STATUS_PENDING     = 'pending';
+    const STATUS_SENT        = 'sent';
+    const STATUS_CANCELLED   = 'cancelled';
 
-    public const PRIORITY_NORMAL = 2;
-    public const PRIORITY_HIGH   = 1;
+    const PRIORITY_NORMAL = 2;
+    const PRIORITY_HIGH   = 1;
 
     /**
      * @var int

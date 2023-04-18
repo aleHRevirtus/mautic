@@ -113,6 +113,7 @@ final class TypeOperatorProviderTest extends \PHPUnit\Framework\TestCase
         $this->dispatcher->expects($this->once())
             ->method('dispatch')
             ->with(
+                LeadEvents::COLLECT_OPERATORS_FOR_FIELD_TYPE,
                 $this->callback(function (TypeOperatorsEvent $event) {
                     // Emulate a subscriber.
                     $event->setOperatorsForFieldType('text', [
@@ -123,8 +124,7 @@ final class TypeOperatorProviderTest extends \PHPUnit\Framework\TestCase
                     ]);
 
                     return true;
-                }),
-                LeadEvents::COLLECT_OPERATORS_FOR_FIELD_TYPE
+                })
             );
 
         $this->assertSame(
@@ -162,6 +162,7 @@ final class TypeOperatorProviderTest extends \PHPUnit\Framework\TestCase
             ->method('dispatch')
             ->withConsecutive(
                 [
+                    LeadEvents::COLLECT_OPERATORS_FOR_FIELD_TYPE,
                     $this->callback(function (TypeOperatorsEvent $event) {
                         // Emulate a subscriber.
                         $event->setOperatorsForFieldType('text', [
@@ -173,9 +174,9 @@ final class TypeOperatorProviderTest extends \PHPUnit\Framework\TestCase
 
                         return true;
                     }),
-                    LeadEvents::COLLECT_OPERATORS_FOR_FIELD_TYPE,
                 ],
                 [
+                    LeadEvents::COLLECT_OPERATORS_FOR_FIELD,
                     $this->callback(function (FieldOperatorsEvent $event) {
                         // Emulate a subscriber.
                         $this->assertSame('text', $event->getType());
@@ -186,7 +187,6 @@ final class TypeOperatorProviderTest extends \PHPUnit\Framework\TestCase
 
                         return true;
                     }),
-                    LeadEvents::COLLECT_OPERATORS_FOR_FIELD,
                 ]
             );
 

@@ -5,7 +5,7 @@ namespace MauticPlugin\MauticSocialBundle\Entity;
 use Mautic\CoreBundle\Entity\CommonRepository;
 
 /**
- * @extends CommonRepository<Lead>
+ * LeadRepository.
  */
 class LeadRepository extends CommonRepository
 {

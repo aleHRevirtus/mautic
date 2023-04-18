@@ -5,17 +5,16 @@ namespace Mautic\LeadBundle\Model;
 use Mautic\CoreBundle\Model\FormModel;
 use Mautic\LeadBundle\Entity\Lead;
 use Mautic\LeadBundle\Entity\LeadNote;
-use Mautic\LeadBundle\Entity\LeadNoteRepository;
 use Mautic\LeadBundle\Event\LeadNoteEvent;
 use Mautic\LeadBundle\Form\Type\NoteType;
 use Mautic\LeadBundle\LeadEvents;
-use Symfony\Component\Form\FormFactoryInterface;
+use Symfony\Component\EventDispatcher\Event;
 use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
-use Symfony\Contracts\EventDispatcher\Event;
 
 /**
- * @extends FormModel<LeadNote>
+ * Class NoteModel
+ * {@inheritdoc}
  */
 class NoteModel extends FormModel
 {
@@ -29,12 +28,14 @@ class NoteModel extends FormModel
         $this->session = $session;
     }
 
-    public function getRepository(): LeadNoteRepository
+    /**
+     * {@inheritdoc}
+     *
+     * @return string
+     */
+    public function getRepository()
     {
-        $result = $this->em->getRepository(LeadNote::class);
-        \assert($result instanceof LeadNoteRepository);
-
-        return $result;
+        return $this->em->getRepository('MauticLeadBundle:LeadNote');
     }
 
     /**
@@ -66,15 +67,16 @@ class NoteModel extends FormModel
     /**
      * {@inheritdoc}
      *
-     * @param             $entity
-     * @param string|null $action
-     * @param array       $options
+     * @param       $entity
+     * @param       $formFactory
+     * @param null  $action
+     * @param array $options
      *
      * @return mixed
      *
      * @throws \Symfony\Component\HttpKernel\Exception\NotFoundHttpException
      */
-    public function createForm($entity, FormFactoryInterface $formFactory, $action = null, $options = [])
+    public function createForm($entity, $formFactory, $action = null, $options = [])
     {
         if (!$entity instanceof LeadNote) {
             throw new MethodNotAllowedHttpException(['LeadNote']);
@@ -126,7 +128,7 @@ class NoteModel extends FormModel
                 $event->setEntityManager($this->em);
             }
 
-            $this->dispatcher->dispatch($event, $name);
+            $this->dispatcher->dispatch($name, $event);
 
             return $event;
         } else {

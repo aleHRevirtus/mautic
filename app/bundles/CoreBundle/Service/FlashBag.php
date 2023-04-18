@@ -5,16 +5,16 @@ namespace Mautic\CoreBundle\Service;
 use Mautic\CoreBundle\Model\NotificationModel;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Session\Session;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 /**
  * Provides translated flash messages.
  */
 class FlashBag
 {
-    public const LEVEL_ERROR     = 'error';
-    public const LEVEL_WARNING   = 'warning';
-    public const LEVEL_NOTICE    = 'notice';
+    const LEVEL_ERROR     = 'error';
+    const LEVEL_WARNING   = 'warning';
+    const LEVEL_NOTICE    = 'notice';
 
     /**
      * @var Session

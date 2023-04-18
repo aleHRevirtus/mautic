@@ -184,7 +184,7 @@ class CampaignSubscriberTest extends \PHPUnit\Framework\TestCase
                                     'formType'         => SmsSendType::class,
                                     'formTypeOptions'  => ['update_select' => 'campaignevent_properties_sms'],
                                     'formTheme'        => 'MauticSmsBundle:FormTheme\SmsSendList',
-                                    'timelineTemplate' => '@MauticSms/SubscribedEvents\Timeline/index.html.twig',
+                                    'timelineTemplate' => 'MauticSmsBundle:SubscribedEvents\Timeline:index.html.php',
                                     'channel'          => 'sms',
                                     'channelIdField'   => 'sms',
                                 ]
@@ -232,7 +232,7 @@ class CampaignSubscriberTest extends \PHPUnit\Framework\TestCase
                         ],
                     ],
                 ],
-                'timelineTemplate'       => '@MauticChannel/SubscribedEvents\Timeline/index.html.twig',
+                'timelineTemplate'       => 'MauticChannelBundle:SubscribedEvents\Timeline:index.html.php',
                 'timelineTemplateVars'   => [
                     'messageSettings' => [],
                 ],
@@ -242,7 +242,7 @@ class CampaignSubscriberTest extends \PHPUnit\Framework\TestCase
 
         $pendingEvent = new PendingEvent($config, $event, $logs);
 
-        $this->dispatcher->dispatch($pendingEvent, ChannelEvents::ON_CAMPAIGN_BATCH_ACTION);
+        $this->dispatcher->dispatch(ChannelEvents::ON_CAMPAIGN_BATCH_ACTION, $pendingEvent);
 
         $this->assertCount(0, $pendingEvent->getFailures());
 

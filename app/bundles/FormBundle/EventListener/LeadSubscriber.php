@@ -10,7 +10,7 @@ use Mautic\LeadBundle\LeadEvents;
 use Mautic\PageBundle\Model\PageModel;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\Routing\RouterInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class LeadSubscriber implements EventSubscriberInterface
 {
@@ -106,7 +106,7 @@ class LeadSubscriber implements EventSubscriberInterface
                             'form'       => $form,
                             'page'       => $this->pageModel->getEntity($row['page_id']),
                         ],
-                        'contentTemplate' => '@MauticForm/SubscribedEvents\Timeline/index.html.twig',
+                        'contentTemplate' => 'MauticFormBundle:SubscribedEvents\Timeline:index.html.php',
                         'icon'            => 'fa-pencil-square-o',
                         'contactId'       => $row['lead_id'],
                     ]

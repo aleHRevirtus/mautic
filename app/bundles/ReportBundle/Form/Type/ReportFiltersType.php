@@ -21,6 +21,14 @@ class ReportFiltersType extends AbstractType
     }
 
     /**
+     * {@inheritdoc}
+     */
+    public function getBlockPrefix()
+    {
+        return 'report_filters';
+    }
+
+    /**
      * @return string
      */
     public function getParent()

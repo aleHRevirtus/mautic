@@ -7,7 +7,7 @@ use Mautic\ChannelBundle\ChannelEvents;
 use Mautic\ChannelBundle\Event\ChannelBroadcastEvent;
 use Mautic\EmailBundle\Model\EmailModel;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class BroadcastSubscriber implements EventSubscriberInterface
 {

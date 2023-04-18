@@ -7,13 +7,12 @@ use Mautic\CoreBundle\Model\FormModel;
 use Mautic\LeadBundle\Entity\Lead;
 use Mautic\LeadBundle\Tracker\ContactTracker;
 use Mautic\PageBundle\Entity\VideoHit;
-use Mautic\PageBundle\Entity\VideoHitRepository;
 use Mautic\PageBundle\Event\VideoHitEvent;
 use Mautic\PageBundle\PageEvents;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
- * @extends FormModel<VideoHit>
+ * Class PageModel.
  */
 class VideoModel extends FormModel
 {
@@ -38,12 +37,12 @@ class VideoModel extends FormModel
         $this->contactTracker = $contactTracker;
     }
 
-    public function getHitRepository(): VideoHitRepository
+    /**
+     * @return \Mautic\PageBundle\Entity\VideoHitRepository
+     */
+    public function getHitRepository()
     {
-        $result = $this->em->getRepository(VideoHit::class);
-        \assert($result instanceof VideoHitRepository);
-
-        return $result;
+        return $this->em->getRepository('MauticPageBundle:VideoHit');
     }
 
     /**
@@ -149,7 +148,7 @@ class VideoModel extends FormModel
             if (MAUTIC_ENV === 'dev') {
                 throw $exception;
             } else {
-                $this->logger->error(
+                $this->logger->addError(
                     $exception->getMessage(),
                     ['exception' => $exception]
                 );
@@ -158,7 +157,7 @@ class VideoModel extends FormModel
 
         if ($this->dispatcher->hasListeners(PageEvents::VIDEO_ON_HIT)) {
             $event = new VideoHitEvent($hit, $request, $code);
-            $this->dispatcher->dispatch($event, PageEvents::VIDEO_ON_HIT);
+            $this->dispatcher->dispatch(PageEvents::VIDEO_ON_HIT, $event);
         }
     }
 }

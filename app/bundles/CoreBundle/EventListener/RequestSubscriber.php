@@ -2,16 +2,15 @@
 
 namespace Mautic\CoreBundle\EventListener;
 
+use Mautic\CoreBundle\Helper\TemplatingHelper;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Event\RequestEvent;
+use Symfony\Component\HttpKernel\Event\GetResponseEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
-use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
-use Twig\Environment;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class RequestSubscriber implements EventSubscriberInterface
 {
@@ -26,18 +25,18 @@ class RequestSubscriber implements EventSubscriberInterface
     private $translator;
 
     /**
-     * @var Environment
+     * @var TemplatingHelper
      */
-    private $twig;
+    private $templating;
 
     public function __construct(
         CsrfTokenManagerInterface $tokenManager,
         TranslatorInterface $translator,
-        Environment $twig
+        TemplatingHelper $templating
     ) {
         $this->tokenManager = $tokenManager;
         $this->translator   = $translator;
-        $this->twig         = $twig;
+        $this->templating   = $templating;
     }
 
     /**
@@ -50,14 +49,14 @@ class RequestSubscriber implements EventSubscriberInterface
         ];
     }
 
-    public function validateCsrfTokenForAjaxPost(RequestEvent $event)
+    public function validateCsrfTokenForAjaxPost(GetResponseEvent $event)
     {
         $request = $event->getRequest();
 
         if ($this->isAjaxPost($request) && $this->isSecurePath($request) && !$this->isCsrfTokenFromRequestHeaderValid($request)) {
             $message  = $this->translator->trans('mautic.core.error.csrf', [], 'flashes');
             $data     = ['flashes' => ['error' => $message]];
-            $content  = $this->twig->render('@MauticCore/Notification/flash_messages.html.twig', $data);
+            $content  = $this->templating->getTemplating()->render('MauticCoreBundle:Notification:flash_messages.html.php', $data);
             $response = new JsonResponse(['flashes' => $content], Response::HTTP_OK);
             $event->setResponse($response);
             $event->stopPropagation();
@@ -86,7 +85,8 @@ class RequestSubscriber implements EventSubscriberInterface
     private function isCsrfTokenFromRequestHeaderValid(Request $request)
     {
         $csrfRequestToken = $request->headers->get('X-CSRF-Token');
+        $csrfSessionToken = $this->tokenManager->getToken('mautic_ajax_post')->getValue();
 
-        return $this->tokenManager->isTokenValid(new CsrfToken('mautic_ajax_post', $csrfRequestToken));
+        return $csrfSessionToken === $csrfRequestToken;
     }
 }

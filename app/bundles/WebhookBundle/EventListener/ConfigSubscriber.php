@@ -25,7 +25,7 @@ class ConfigSubscriber implements EventSubscriberInterface
             'bundle'     => 'WebhookBundle',
             'formAlias'  => 'webhookconfig',
             'formType'   => ConfigType::class,
-            'formTheme'  => '@MauticWebhook/FormTheme/Config/_config_webhookconfig_widget.html.twig',
+            'formTheme'  => 'MauticWebhookBundle:FormTheme\Config',
             'parameters' => $event->getParametersFromConfig('MauticWebhookBundle'),
         ]);
     }

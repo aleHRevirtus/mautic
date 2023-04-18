@@ -4,12 +4,10 @@ declare(strict_types=1);
 
 namespace Mautic\IntegrationsBundle\Tests\Unit\Sync\Helper;
 
-use Mautic\IntegrationsBundle\Entity\ObjectMapping;
 use Mautic\IntegrationsBundle\Entity\ObjectMappingRepository;
 use Mautic\IntegrationsBundle\Event\InternalObjectFindEvent;
 use Mautic\IntegrationsBundle\IntegrationEvents;
 use Mautic\IntegrationsBundle\Sync\DAO\Mapping\MappingManualDAO;
-use Mautic\IntegrationsBundle\Sync\DAO\Mapping\UpdatedObjectMappingDAO;
 use Mautic\IntegrationsBundle\Sync\DAO\Sync\Report\FieldDAO;
 use Mautic\IntegrationsBundle\Sync\DAO\Sync\Report\ObjectDAO;
 use Mautic\IntegrationsBundle\Sync\DAO\Value\NormalizedValueDAO;
@@ -19,7 +17,6 @@ use Mautic\IntegrationsBundle\Sync\SyncDataExchange\Internal\Object\Company;
 use Mautic\IntegrationsBundle\Sync\SyncDataExchange\Internal\Object\Contact;
 use Mautic\IntegrationsBundle\Sync\SyncDataExchange\Internal\ObjectProvider;
 use Mautic\LeadBundle\Model\FieldModel;
-use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
@@ -64,7 +61,7 @@ class MappingHelperTest extends TestCase
         );
     }
 
-    public function testObjectReturnedIfKnownMappingExists(): void
+    public function testObjectReturnedIfKnwonMappingExists(): void
     {
         $mappingManual        = new MappingManualDAO('test');
         $integrationObjectDAO = new ObjectDAO('Object', 1);
@@ -82,9 +79,9 @@ class MappingHelperTest extends TestCase
         $internalObjectName  = 'Contact';
         $foundInternalObject = $this->mappingHelper->findMauticObject($mappingManual, $internalObjectName, $integrationObjectDAO);
 
-        Assert::assertEquals($internalObjectName, $foundInternalObject->getObject());
-        Assert::assertEquals($internalObjectDAO['internal_object_id'], $foundInternalObject->getObjectId());
-        Assert::assertEquals($internalObjectDAO['last_sync_date'], $foundInternalObject->getChangeDateTime()->format('Y-m-d H:i:s'));
+        $this->assertEquals($internalObjectName, $foundInternalObject->getObject());
+        $this->assertEquals($internalObjectDAO['internal_object_id'], $foundInternalObject->getObjectId());
+        $this->assertEquals($internalObjectDAO['last_sync_date'], $foundInternalObject->getChangeDateTime()->format('Y-m-d H:i:s'));
     }
 
     public function testMauticObjectSearchedAndEmptyObjectReturnedIfNoIdentifierFieldsAreMapped(): void
@@ -99,8 +96,8 @@ class MappingHelperTest extends TestCase
 
         $foundInternalObject = $this->mappingHelper->findMauticObject($mappingManual, $internalObjectName, $integrationObjectDAO);
 
-        Assert::assertEquals($internalObjectName, $foundInternalObject->getObject());
-        Assert::assertEquals(null, $foundInternalObject->getObjectId());
+        $this->assertEquals($internalObjectName, $foundInternalObject->getObject());
+        $this->assertEquals(null, $foundInternalObject->getObjectId());
     }
 
     public function testEmptyObjectIsReturnedWhenMauticContactIsNotFound(): void
@@ -132,21 +129,19 @@ class MappingHelperTest extends TestCase
         $this->dispatcher->expects($this->once())
             ->method('dispatch')
             ->with(
-                $this->callback(
-                    function (InternalObjectFindEvent $event) use ($internalObject) {
-                        Assert::assertSame($internalObject, $event->getObject());
-                        Assert::assertSame(['email' => 'test@test.com'], $event->getFieldValues());
+                IntegrationEvents::INTEGRATION_FIND_INTERNAL_RECORDS,
+                $this->callback(function (InternalObjectFindEvent $event) use ($internalObject) {
+                    $this->assertSame($internalObject, $event->getObject());
+                    $this->assertSame(['email' => 'test@test.com'], $event->getFieldValues());
 
-                        return true;
-                    }
-                ),
-                IntegrationEvents::INTEGRATION_FIND_INTERNAL_RECORDS
+                    return true;
+                })
             );
 
         $foundInternalObject = $this->mappingHelper->findMauticObject($mappingManual, $internalObjectName, $integrationObjectDAO);
 
-        Assert::assertEquals($internalObjectName, $foundInternalObject->getObject());
-        Assert::assertEquals(null, $foundInternalObject->getObjectId());
+        $this->assertEquals($internalObjectName, $foundInternalObject->getObject());
+        $this->assertEquals(null, $foundInternalObject->getObjectId());
     }
 
     public function testMauticContactIsFoundAndReturnedAsObjectDAO(): void
@@ -182,30 +177,26 @@ class MappingHelperTest extends TestCase
         $this->dispatcher->expects($this->once())
             ->method('dispatch')
             ->with(
-                $this->callback(
-                    function (InternalObjectFindEvent $event) use ($internalObject) {
-                        Assert::assertSame($internalObject, $event->getObject());
-                        Assert::assertSame(['email' => 'test@test.com'], $event->getFieldValues());
+                IntegrationEvents::INTEGRATION_FIND_INTERNAL_RECORDS,
+                $this->callback(function (InternalObjectFindEvent $event) use ($internalObject) {
+                    $this->assertSame($internalObject, $event->getObject());
+                    $this->assertSame(['email' => 'test@test.com'], $event->getFieldValues());
 
-                        // Mock a subscriber.
-                        $event->setFoundObjects(
-                            [
-                                [
-                                    'id' => 3,
-                                ],
-                            ]
-                        );
+                    // Mock a subscriber.
+                    $event->setFoundObjects([
+                        [
+                            'id' => 3,
+                        ],
+                    ]);
 
-                        return true;
-                    }
-                ),
-                IntegrationEvents::INTEGRATION_FIND_INTERNAL_RECORDS
+                    return true;
+                })
             );
 
         $foundInternalObject = $this->mappingHelper->findMauticObject($mappingManual, $internalObjectName, $integrationObjectDAO);
 
-        Assert::assertEquals($internalObjectName, $foundInternalObject->getObject());
-        Assert::assertEquals(3, $foundInternalObject->getObjectId());
+        $this->assertEquals($internalObjectName, $foundInternalObject->getObject());
+        $this->assertEquals(3, $foundInternalObject->getObjectId());
     }
 
     public function testMauticCompanyIsFoundAndReturnedAsObjectDAO(): void
@@ -241,24 +232,20 @@ class MappingHelperTest extends TestCase
         $this->dispatcher->expects($this->once())
             ->method('dispatch')
             ->with(
-                $this->callback(
-                    function (InternalObjectFindEvent $event) use ($internalObject) {
-                        Assert::assertSame($internalObject, $event->getObject());
-                        Assert::assertSame(['email' => 'test@test.com'], $event->getFieldValues());
+                IntegrationEvents::INTEGRATION_FIND_INTERNAL_RECORDS,
+                $this->callback(function (InternalObjectFindEvent $event) use ($internalObject) {
+                    $this->assertSame($internalObject, $event->getObject());
+                    $this->assertSame(['email' => 'test@test.com'], $event->getFieldValues());
 
-                        // Mock a subscriber.
-                        $event->setFoundObjects(
-                            [
-                                [
-                                    'id' => 3,
-                                ],
-                            ]
-                        );
+                    // Mock a subscriber.
+                    $event->setFoundObjects([
+                        [
+                            'id' => 3,
+                        ],
+                    ]);
 
-                        return true;
-                    }
-                ),
-                IntegrationEvents::INTEGRATION_FIND_INTERNAL_RECORDS
+                    return true;
+                })
             );
 
         $foundInternalObject = $this->mappingHelper->findMauticObject(
@@ -267,8 +254,8 @@ class MappingHelperTest extends TestCase
             $integrationObjectDAO
         );
 
-        Assert::assertEquals($internalObjectName, $foundInternalObject->getObject());
-        Assert::assertEquals(3, $foundInternalObject->getObjectId());
+        $this->assertEquals($internalObjectName, $foundInternalObject->getObject());
+        $this->assertEquals(3, $foundInternalObject->getObjectId());
     }
 
     public function testIntegrationObjectReturnedIfMapped(): void
@@ -289,23 +276,23 @@ class MappingHelperTest extends TestCase
 
         $foundIntegrationObject = $this->mappingHelper->findIntegrationObject('Test', $objectName, new ObjectDAO('Contact', 1));
 
-        Assert::assertEquals($objectName, $foundIntegrationObject->getObject());
-        Assert::assertEquals($objectId, $foundIntegrationObject->getObjectId());
-        Assert::assertEquals($changeDateTime, $foundIntegrationObject->getChangeDateTime()->format('Y-m-d H:i:s'));
+        $this->assertEquals($objectName, $foundIntegrationObject->getObject());
+        $this->assertEquals($objectId, $foundIntegrationObject->getObjectId());
+        $this->assertEquals($changeDateTime, $foundIntegrationObject->getChangeDateTime()->format('Y-m-d H:i:s'));
     }
 
     public function testEmptyIntegrationObjectReturnedIfNotMapped(): void
     {
-        $objectName = 'Object';
+        $objectName     = 'Object';
         $this->objectMappingRepository->expects($this->once())
             ->method('getIntegrationObject')
             ->willReturn([]);
 
         $foundIntegrationObject = $this->mappingHelper->findIntegrationObject('Test', $objectName, new ObjectDAO('Contact', 1));
 
-        Assert::assertEquals($objectName, $foundIntegrationObject->getObject());
-        Assert::assertEquals(null, $foundIntegrationObject->getObjectId());
-        Assert::assertEquals(null, $foundIntegrationObject->getChangeDateTime());
+        $this->assertEquals($objectName, $foundIntegrationObject->getObject());
+        $this->assertEquals(null, $foundIntegrationObject->getObjectId());
+        $this->assertEquals(null, $foundIntegrationObject->getChangeDateTime());
     }
 
     public function testDeletedExceptionThrownIfIntegrationObjectHasBeenNotedAsDeleted(): void
@@ -327,49 +314,5 @@ class MappingHelperTest extends TestCase
             );
 
         $this->mappingHelper->findIntegrationObject('Test', $objectName, new ObjectDAO('Contact', 1));
-    }
-
-    public function testObjectMappingIsInjectedIntoUpdatedObjectMappingDAO(): void
-    {
-        $objectMapping = new ObjectMapping();
-        $objectMapping->setIntegration('foobar');
-        $objectMapping->setIntegrationObjectName('foo');
-        $objectMapping->setIntegrationObjectId('1');
-
-        $this->objectMappingRepository->expects($this->once())
-            ->method('findOneBy')
-            ->with(
-                [
-                    'integration'           => $objectMapping->getIntegration(),
-                    'integrationObjectName' => $objectMapping->getIntegrationObjectName(),
-                    'integrationObjectId'   => $objectMapping->getIntegrationObjectId(),
-                ]
-            )
-            ->willReturn($objectMapping);
-
-        $updatedObjectMappingDAO = new UpdatedObjectMappingDAO('foobar', 'foo', 1, new \DateTime());
-
-        $this->mappingHelper->updateObjectMappings([$updatedObjectMappingDAO]);
-
-        Assert::assertSame($objectMapping, $updatedObjectMappingDAO->getObjectMapping());
-    }
-
-    public function testObjectMappingIsNotSetIfObjectMappingNotFoundWhenAttemptingToUpdate(): void
-    {
-        $this->objectMappingRepository->expects($this->once())
-            ->method('findOneBy')
-            ->with(
-                [
-                    'integration'           => 'foobar',
-                    'integrationObjectName' => 'foo',
-                    'integrationObjectId'   => 1,
-                ]
-            );
-
-        $updatedObjectMappingDAO = new UpdatedObjectMappingDAO('foobar', 'foo', 1, new \DateTime());
-
-        $this->mappingHelper->updateObjectMappings([$updatedObjectMappingDAO]);
-
-        Assert::assertEmpty($updatedObjectMappingDAO->getObjectMapping());
     }
 }

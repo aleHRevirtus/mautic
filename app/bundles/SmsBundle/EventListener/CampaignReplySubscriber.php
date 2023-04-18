@@ -18,7 +18,7 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
  */
 class CampaignReplySubscriber implements EventSubscriberInterface
 {
-    public const TYPE = 'sms.reply';
+    const TYPE = 'sms.reply';
 
     /**
      * @var TransportChain

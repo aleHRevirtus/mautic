@@ -5,7 +5,7 @@ namespace MauticPlugin\MauticFocusBundle\Tests\Helper;
 use MauticPlugin\MauticFocusBundle\Helper\IframeAvailabilityChecker;
 use PHPUnit\Framework\MockObject\MockObject;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class IframeAvailabilityCheckerTest extends \PHPUnit\Framework\TestCase
 {

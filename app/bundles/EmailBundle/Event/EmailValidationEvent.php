@@ -2,7 +2,7 @@
 
 namespace Mautic\EmailBundle\Event;
 
-use Symfony\Contracts\EventDispatcher\Event;
+use Symfony\Component\EventDispatcher\Event;
 
 /**
  * Class EmailValidationEvent.

@@ -3,18 +3,17 @@
 namespace Mautic\UserBundle\Tests\Model;
 
 use Doctrine\ORM\EntityManager;
-use Mautic\CoreBundle\Translation\Translator;
 use Mautic\EmailBundle\Helper\MailHelper;
 use Mautic\UserBundle\Entity\User;
 use Mautic\UserBundle\Entity\UserToken;
 use Mautic\UserBundle\Model\UserModel;
 use Mautic\UserBundle\Model\UserToken\UserTokenServiceInterface;
+use Monolog\Logger;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Routing\Router;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class UserModelTest extends TestCase
 {
@@ -56,7 +55,7 @@ class UserModelTest extends TestCase
     private $userTokenService;
 
     /**
-     * @var MockObject&LoggerInterface
+     * @var MockObject&Logger
      */
     private $logger;
 
@@ -67,9 +66,9 @@ class UserModelTest extends TestCase
         $this->entityManager    = $this->createMock(EntityManager::class);
         $this->user             = $this->createMock(User::class);
         $this->router           = $this->createMock(Router::class);
-        $this->translator       = $this->createMock(Translator::class);
+        $this->translator       = $this->createMock(TranslatorInterface::class);
         $this->userToken        = $this->createMock(UserToken::class);
-        $this->logger           = $this->createMock(LoggerInterface::class);
+        $this->logger           = $this->createMock(Logger::class);
 
         $this->userModel = new UserModel($this->mailHelper, $this->userTokenService);
         $this->userModel->setEntityManager($this->entityManager);
@@ -118,7 +117,7 @@ class UserModelTest extends TestCase
             ->willThrowException(new \Exception($errorMessage));
 
         $this->logger->expects($this->once())
-            ->method('error')
+            ->method('addError')
             ->with($errorMessage);
 
         $this->userModel->sendResetEmail($this->user);

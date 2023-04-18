@@ -7,7 +7,7 @@ use Mautic\CoreBundle\Entity\CommonRepository;
 use Mautic\CoreBundle\Helper\Serializer;
 
 /**
- * @extends CommonRepository<DynamicContent>
+ * DynamicContentRepository.
  */
 class DynamicContentRepository extends CommonRepository
 {
@@ -101,7 +101,7 @@ class DynamicContentRepository extends CommonRepository
     }
 
     /**
-     * @return array<array<string>>
+     * @return string
      */
     protected function getDefaultOrder()
     {

@@ -4,7 +4,7 @@ namespace Mautic\LeadBundle\Event;
 
 use Mautic\LeadBundle\Entity\LeadList;
 use Mautic\LeadBundle\Segment\Query\QueryBuilder;
-use Symfony\Contracts\EventDispatcher\Event;
+use Symfony\Component\EventDispatcher\Event;
 
 /**
  * Class LeadListQueryBuilderGeneratedEvent.

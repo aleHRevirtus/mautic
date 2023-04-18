@@ -236,7 +236,7 @@ class VtigerIntegration extends CrmAbstractIntegration
      *
      * @param $section
      *
-     * @return array<mixed>
+     * @return string
      */
     public function getFormNotes($section)
     {

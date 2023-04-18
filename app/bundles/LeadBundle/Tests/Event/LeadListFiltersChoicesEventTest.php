@@ -7,7 +7,7 @@ namespace Mautic\LeadBundle\Tests\Event;
 use Mautic\LeadBundle\Event\LeadListFiltersChoicesEvent;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class LeadListFiltersChoicesEventTest extends TestCase
 {

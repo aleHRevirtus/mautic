@@ -16,7 +16,7 @@ use Symfony\Component\Validator\Mapping\ClassMetadata;
 
 class LeadList extends FormEntity
 {
-    public const TABLE_NAME = 'lead_lists';
+    const TABLE_NAME = 'lead_lists';
 
     /**
      * @var int|null
@@ -73,11 +73,6 @@ class LeadList extends FormEntity
      */
     private $lastBuiltDate;
 
-    /**
-     * @var float|null
-     */
-    private $lastBuiltTime;
-
     public function __construct()
     {
         $this->leads = new ArrayCollection();
@@ -119,11 +114,6 @@ class LeadList extends FormEntity
 
         $builder->createField('lastBuiltDate', 'datetime')
             ->columnName('last_built_date')
-            ->nullable()
-            ->build();
-
-        $builder->createField('lastBuiltTime', 'float')
-            ->columnName('last_built_time')
             ->nullable()
             ->build();
     }
@@ -283,17 +273,6 @@ class LeadList extends FormEntity
         return $this->filters;
     }
 
-    public function hasFilterTypeOf(string $type): bool
-    {
-        foreach ($this->getFilters() as $filter) {
-            if ($filter['type'] === $type) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     /**
      * @param bool $isGlobal
      *
@@ -427,15 +406,5 @@ class LeadList extends FormEntity
         }
 
         $this->setLastBuiltDateToCurrentDatetime();
-    }
-
-    public function getLastBuiltTime(): ?float
-    {
-        return $this->lastBuiltTime;
-    }
-
-    public function setLastBuiltTime(?float $lastBuiltTime): void
-    {
-        $this->lastBuiltTime = $lastBuiltTime;
     }
 }

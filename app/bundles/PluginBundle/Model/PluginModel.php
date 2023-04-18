@@ -7,10 +7,9 @@ use Mautic\CoreBundle\Helper\BundleHelper;
 use Mautic\CoreBundle\Helper\CoreParametersHelper;
 use Mautic\CoreBundle\Model\FormModel;
 use Mautic\LeadBundle\Model\FieldModel;
-use Mautic\PluginBundle\Entity\Plugin;
 
 /**
- * @extends FormModel<Plugin>
+ * Class PluginModel.
  */
 class PluginModel extends FormModel
 {

@@ -3,7 +3,7 @@
 namespace Mautic\CampaignBundle\Event;
 
 use Mautic\CampaignBundle\Entity\LeadEventLog;
-use Symfony\Contracts\EventDispatcher\Event;
+use Symfony\Component\EventDispatcher\Event;
 
 /**
  * Class CampaignDecisionEvent.

@@ -9,13 +9,13 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\ParameterBag;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpKernel\Event\RequestEvent;
+use Symfony\Component\HttpKernel\Event\GetResponseEvent;
 use Symfony\Component\Routing\Router;
 
 class SAMLSubscriberTest extends TestCase
 {
     /**
-     * @var RequestEvent|MockObject
+     * @var GetResponseEvent|MockObject
      */
     private $event;
 
@@ -31,7 +31,7 @@ class SAMLSubscriberTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->event = $this->createMock(RequestEvent::class);
+        $this->event = $this->createMock(GetResponseEvent::class);
         $this->event->expects($this->once())
             ->method('isMasterRequest')
             ->willReturn(true);
@@ -40,7 +40,7 @@ class SAMLSubscriberTest extends TestCase
         $this->router               = $this->createMock(Router::class);
     }
 
-    public function testSamlRoutesAreRedirectedToDefaultLoginIfSamlIsDisabled(): void
+    public function testSamlRoutesAreRedirectedToDefaultLoginIfSamlIsDisabled()
     {
         $subscriber = new SAMLSubscriber($this->coreParametersHelper, $this->router);
 
@@ -69,7 +69,7 @@ class SAMLSubscriberTest extends TestCase
         $subscriber->onKernelRequest($this->event);
     }
 
-    public function testRedirectIsIgnoredIfSamlEnabled(): void
+    public function testRedirectIsIgnoredIfSamlEnabled()
     {
         $subscriber = new SAMLSubscriber($this->coreParametersHelper, $this->router);
 

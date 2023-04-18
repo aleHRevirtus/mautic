@@ -9,7 +9,7 @@ use Mautic\LeadBundle\Entity\LeadField;
 use Mautic\LeadBundle\Field\Exception\NoUserException;
 use Mautic\UserBundle\Entity\User;
 use Mautic\UserBundle\Model\UserModel;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class CustomFieldNotification
 {

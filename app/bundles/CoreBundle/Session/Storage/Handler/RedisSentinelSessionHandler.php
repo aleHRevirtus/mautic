@@ -28,9 +28,7 @@ class RedisSentinelSessionHandler extends AbstractSessionHandler
 
         $redisOptions = PRedisConnectionHelper::makeRedisOptions($redisConfiguration, 'session:'.$coreParametersHelper->get('db_name').':');
 
-        $redisOptions['primaryOnly'] = $coreParametersHelper->get('redis_primary_only');
-
-        $this->redis = PRedisConnectionHelper::createClient(PRedisConnectionHelper::getRedisEndpoints($redisConfiguration['url']), $redisOptions);
+        $this->redis = new Client(PRedisConnectionHelper::getRedisEndpoints($redisConfiguration['url']), $redisOptions);
     }
 
     protected function doRead($sessionId): string

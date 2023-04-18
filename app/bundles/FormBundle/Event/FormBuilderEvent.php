@@ -4,10 +4,8 @@ namespace Mautic\FormBundle\Event;
 
 use Mautic\CoreBundle\Event\ComponentValidationTrait;
 use Mautic\CoreBundle\Exception\BadConfigurationException;
+use Symfony\Component\EventDispatcher\Event;
 use Symfony\Component\Form\Form;
-use Symfony\Component\Form\FormInterface;
-use Symfony\Contracts\EventDispatcher\Event;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Class FormBuilderEvent.
@@ -32,11 +30,14 @@ class FormBuilderEvent extends Event
     private $validators = [];
 
     /**
-     * @var TranslatorInterface
+     * @var \Symfony\Bundle\FrameworkBundle\Translation\Translator
      */
     private $translator;
 
-    public function __construct(TranslatorInterface $translator)
+    /**
+     * @param \Symfony\Bundle\FrameworkBundle\Translation\Translator $translator
+     */
+    public function __construct($translator)
     {
         $this->translator = $translator;
     }
@@ -53,7 +54,7 @@ class FormBuilderEvent extends Event
      *                       'formType'           => (required) name of the form type SERVICE for the action
      *                       'allowCampaignForm'  => (optional) true to allow this action for campaign forms; defaults to false
      *                       'description'        => (optional) short description of event
-     *                       'template'           => (optional) template to use for the action's HTML in the form builder; eg AcmeMyBundle:FormAction:theaction.html.twig
+     *                       'template'           => (optional) template to use for the action's HTML in the form builder; eg AcmeMyBundle:FormAction:theaction.html.php
      *                       'formTypeOptions'    => (optional) array of options to pass to formType
      *                       'formTheme'          => (optional  theme for custom form views
      *                       ]
@@ -122,7 +123,7 @@ class FormBuilderEvent extends Event
      *                      $field = [
      *                      'label'            => (required) what to display in the list
      *                      'formType'         => (required) name of the form type SERVICE for the field's property column
-     *                      'template'         => (required) template to use for the field's HTML eg AcmeMyBundle:FormField:thefield.html.twig
+     *                      'template'         => (required) template to use for the field's HTML eg AcmeMyBundle:FormField:thefield.html.php
      *                      'formTypeOptions'  => (optional) array of options to pass to formType
      *                      'formTheme'        => (optional) theme for custom form view
      *                      'valueFilter'      => (optional) the filter to use to clean the input as supported by InputHelper or a callback;
@@ -197,10 +198,7 @@ class FormBuilderEvent extends Event
         $this->validators[$key] = $validator;
     }
 
-    /**
-     * @param FormInterface<object> $form
-     */
-    public function addValidatorsToBuilder(FormInterface $form): void
+    public function addValidatorsToBuilder(Form $form)
     {
         if (!empty($this->validators)) {
             $validationData = (isset($form->getData()['validation'])) ? $form->getData()['validation'] : [];

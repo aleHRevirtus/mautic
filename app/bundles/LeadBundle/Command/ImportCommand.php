@@ -5,29 +5,17 @@ namespace Mautic\LeadBundle\Command;
 use Mautic\LeadBundle\Exception\ImportDelayedException;
 use Mautic\LeadBundle\Exception\ImportFailedException;
 use Mautic\LeadBundle\Helper\Progress;
-use Mautic\LeadBundle\Model\ImportModel;
-use Symfony\Component\Console\Command\Command;
+use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * CLI Command to import data.
  */
-class ImportCommand extends Command
+class ImportCommand extends ContainerAwareCommand
 {
     public const COMMAND_NAME = 'mautic:import';
-    private TranslatorInterface $translator;
-    private ImportModel $importModel;
-
-    public function __construct(TranslatorInterface $translator, ImportModel $importModel)
-    {
-        parent::__construct();
-
-        $this->translator  = $translator;
-        $this->importModel = $importModel;
-    }
 
     protected function configure()
     {
@@ -44,24 +32,31 @@ EOT
             );
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $start    = microtime(true);
+        $start = microtime(true);
+
+        /** @var \Symfony\Bundle\FrameworkBundle\Translation\Translator $translator */
+        $translator = $this->getContainer()->get('translator');
+
+        /** @var \Mautic\LeadBundle\Model\ImportModel $model */
+        $model = $this->getContainer()->get('mautic.lead.model.import');
+
         $progress = new Progress($output);
         $id       = (int) $input->getOption('id');
         $limit    = (int) $input->getOption('limit');
 
         if ($id) {
-            $import = $this->importModel->getEntity($id);
+            $import = $model->getEntity($id);
 
             // This specific import was not found
             if (!$import) {
-                $output->writeln('<error>'.$this->translator->trans('mautic.core.error.notfound', [], 'flashes').'</error>');
+                $output->writeln('<error>'.$translator->trans('mautic.core.error.notfound', [], 'flashes').'</error>');
 
                 return 1;
             }
         } else {
-            $import = $this->importModel->getImportToProcess();
+            $import = $model->getImportToProcess();
 
             // No import waiting in the queue. Finish silently.
             if (null === $import) {
@@ -69,7 +64,7 @@ EOT
             }
         }
 
-        $output->writeln('<info>'.$this->translator->trans(
+        $output->writeln('<info>'.$translator->trans(
             'mautic.lead.import.is.starting',
             [
                 '%id%'    => $import->getId(),
@@ -78,9 +73,9 @@ EOT
         ).'</info>');
 
         try {
-            $this->importModel->beginImport($import, $progress, $limit);
+            $model->beginImport($import, $progress, $limit);
         } catch (ImportFailedException $e) {
-            $output->writeln('<error>'.$this->translator->trans(
+            $output->writeln('<error>'.$translator->trans(
                 'mautic.lead.import.failed',
                 [
                     '%reason%' => $import->getStatusInfo(),
@@ -89,7 +84,7 @@ EOT
 
             return 1;
         } catch (ImportDelayedException $e) {
-            $output->writeln('<info>'.$this->translator->trans(
+            $output->writeln('<info>'.$translator->trans(
                 'mautic.lead.import.delayed',
                 [
                     '%reason%' => $import->getStatusInfo(),
@@ -100,7 +95,7 @@ EOT
         }
 
         // Success
-        $output->writeln('<info>'.$this->translator->trans(
+        $output->writeln('<info>'.$translator->trans(
             'mautic.lead.import.result',
             [
                 '%lines%'   => $import->getProcessedRows(),

@@ -10,7 +10,7 @@ use Mautic\UserBundle\Entity\User;
 use Mautic\WebhookBundle\Entity\Webhook;
 use Symfony\Bundle\FrameworkBundle\Routing\Router;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class WebhookKillNotificator
 {

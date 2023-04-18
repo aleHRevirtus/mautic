@@ -7,7 +7,6 @@ use Mautic\PluginBundle\Form\Type\CompanyFieldsType;
 use Mautic\PluginBundle\Form\Type\FieldsType;
 use Mautic\PluginBundle\Form\Type\IntegrationCampaignsType;
 use Mautic\PluginBundle\Form\Type\IntegrationConfigType;
-use Mautic\PluginBundle\Helper\IntegrationHelper;
 use Mautic\PluginBundle\Model\PluginModel;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -16,10 +15,10 @@ class AjaxController extends CommonAjaxController
     /**
      * @return \Symfony\Component\HttpFoundation\JsonResponse
      */
-    public function setIntegrationFilterAction(Request $request)
+    protected function setIntegrationFilterAction(Request $request)
     {
-        $session      = $request->getSession();
-        $pluginFilter = (int) $request->get('plugin');
+        $session      = $this->get('session');
+        $pluginFilter = (int) $this->request->get('plugin');
         $session->set('mautic.integrations.filter', $pluginFilter);
 
         return $this->sendJsonResponse(['success' => 1]);
@@ -30,7 +29,7 @@ class AjaxController extends CommonAjaxController
      *
      * @return \Symfony\Component\HttpFoundation\JsonResponse
      */
-    public function getIntegrationFieldsAction(Request $request, IntegrationHelper $helper)
+    protected function getIntegrationFieldsAction(Request $request)
     {
         $integration = $request->query->get('integration');
         $settings    = $request->query->get('settings');
@@ -39,6 +38,8 @@ class AjaxController extends CommonAjaxController
         $dataArray = ['success' => 0];
 
         if (!empty($integration) && !empty($settings)) {
+            /** @var \Mautic\PluginBundle\Helper\IntegrationHelper $helper */
+            $helper = $this->get('mautic.helper.integration');
             /** @var \Mautic\PluginBundle\Integration\AbstractIntegration $integrationObject */
             $integrationObject = $helper->getIntegrationObject($integration);
 
@@ -55,7 +56,7 @@ class AjaxController extends CommonAjaxController
                     );
 
                 if (!empty($integrationFields)) {
-                    $session = $request->getSession();
+                    $session = $this->get('session');
                     $session->set('mautic.plugin.'.$integration.'.'.$object.'.page', $page);
 
                     /** @var PluginModel $pluginModel */
@@ -78,14 +79,19 @@ class AjaxController extends CommonAjaxController
                             'enable_data_priority' => $enableDataPriority,
                             'integration'          => $integration,
                             'page'                 => $page,
-                            'limit'                => $this->coreParametersHelper->get('default_pagelimit'),
+                            'limit'                => $this->get('mautic.helper.core_parameters')->get('default_pagelimit'),
                         ]
                     );
 
-                    $html = $this->render('@MauticCore/Helper/blank_form.html.twig', [
-                            'form'      => $form->createView(),
-                            'formTheme' => '@MauticPlugin/FormTheme/Integration/layout.html.twig',
-                            'function'  => 'row',
+                    $html = $this->render(
+                        'MauticCoreBundle:Helper:blank_form.html.php',
+                        [
+                            'form' => $this->setFormTheme(
+                                $form,
+                                'MauticCoreBundle:Helper:blank_form.html.php',
+                                'MauticPluginBundle:FormTheme\Integration'
+                            ),
+                            'function' => 'row',
                         ]
                     )->getContent();
 
@@ -115,10 +121,10 @@ class AjaxController extends CommonAjaxController
      *
      * @return \Symfony\Component\HttpFoundation\JsonResponse
      */
-    public function getIntegrationConfigAction(Request $request)
+    protected function getIntegrationConfigAction(Request $request)
     {
-        $integration = $request->query->get('integration');
-        $settings    = $request->query->get('settings');
+        $integration = $request->request->get('integration');
+        $settings    = $request->request->get('settings');
         $dataArray   = ['success' => 0];
 
         if (!empty($integration) && !empty($settings)) {
@@ -145,10 +151,11 @@ class AjaxController extends CommonAjaxController
                     'campaigns'       => $data,
                 ]);
 
-                $html = $this->render('@MauticCore/Helper/blank_form.html.twig', [
-                    'form'      => $form->createView(),
+                $form = $this->setFormTheme($form, 'MauticCoreBundle:Helper:blank_form.html.php', 'MauticPluginBundle:FormTheme\Integration');
+
+                $html = $this->render('MauticCoreBundle:Helper:blank_form.html.php', [
+                    'form'      => $form,
                     'function'  => 'widget',
-                    'formTheme' => '@MauticPlugin/FormTheme/Integration/layout.html.twig',
                     'variables' => [
                         'integration' => $object,
                     ],
@@ -171,11 +178,11 @@ class AjaxController extends CommonAjaxController
         return $this->sendJsonResponse($dataArray);
     }
 
-    public function getIntegrationCampaignStatusAction(Request $request)
+    protected function getIntegrationCampaignStatusAction(Request $request)
     {
-        $integration = $request->query->get('integration');
-        $campaign    = $request->query->get('campaign');
-        $settings    = $request->query->get('settings');
+        $integration = $request->request->get('integration');
+        $campaign    = $request->request->get('campaign');
+        $settings    = $request->request->get('settings');
         $dataArray   = ['success' => 0];
         $statusData  = [];
         if (!empty($integration) && !empty($campaign)) {
@@ -198,9 +205,10 @@ class AjaxController extends CommonAjaxController
                     'campaignContactStatus' => $statusData,
                 ]);
 
-                $html = $this->render('@MauticCore/Helper/blank_form.html.twig', [
-                    'form'      => $form->createView(),
-                    'formTheme' => '@MauticPlugin/FormTheme/Integration/layout.html.twig',
+                $form = $this->setFormTheme($form, 'MauticCoreBundle:Helper:blank_form.html.php', 'MauticPluginBundle:FormTheme\Integration');
+
+                $html = $this->render('MauticCoreBundle:Helper:blank_form.html.php', [
+                    'form'      => $form,
                     'function'  => 'widget',
                     'variables' => [
                         'integration' => $object,
@@ -230,9 +238,9 @@ class AjaxController extends CommonAjaxController
     /**
      * @return \Symfony\Component\HttpFoundation\JsonResponse
      */
-    public function getIntegrationCampaignsAction(Request $request)
+    protected function getIntegrationCampaignsAction(Request $request)
     {
-        $integration = $request->query->get('integration');
+        $integration = $request->request->get('integration');
         $dataArray   = ['success' => 0];
 
         if (!empty($integration)) {
@@ -254,9 +262,10 @@ class AjaxController extends CommonAjaxController
                     'csrf_protection' => false,
                 ]);
 
-                $html = $this->render('@MauticCore/Helper/blank_form.html.twig', [
-                    'form'      => $form->createView(),
-                    'formTheme' => '@MauticPlugin/FormTheme/Integration/layout.html.twig',
+                $form = $this->setFormTheme($form, 'MauticCoreBundle:Helper:blank_form.html.php', 'MauticPluginBundle:FormTheme\Integration');
+
+                $html = $this->render('MauticCoreBundle:Helper:blank_form.html.php', [
+                    'form'      => $form,
                     'function'  => 'row',
                     'variables' => [
                         'campaigns'   => $data,
@@ -272,7 +281,7 @@ class AjaxController extends CommonAjaxController
         return $this->sendJsonResponse($dataArray);
     }
 
-    public function matchFieldsAction(Request $request)
+    protected function matchFieldsAction(Request $request)
     {
         $integration       = $request->request->get('integration');
         $integration_field = $request->request->get('integrationField');
@@ -319,9 +328,7 @@ class AjaxController extends CommonAjaxController
         }
         $entity->setFeatureSettings($featureSettings);
 
-        $pluginModel = $this->getModel('plugin');
-        \assert($pluginModel instanceof PluginModel);
-        $pluginModel->saveFeatureSettings($entity);
+        $this->getModel('plugin')->saveFeatureSettings($entity);
 
         return $this->sendJsonResponse($dataArray);
     }

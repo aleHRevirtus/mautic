@@ -201,10 +201,12 @@ Mautic.campaignOnUnload = function(container) {
  */
 Mautic.campaignEventOnLoad = function (container, response) {
     if (mQuery('#campaignevent_triggerHour').length) {
+        Mautic.campaignEventShowHideIntervalSettings();
         Mautic.campaignEventUpdateIntervalHours();
         mQuery('#campaignevent_triggerHour').on('change', Mautic.campaignEventUpdateIntervalHours);
         mQuery('#campaignevent_triggerRestrictedStartHour').on('change', Mautic.campaignEventUpdateIntervalHours);
         mQuery('#campaignevent_triggerRestrictedStopHour').on('change', Mautic.campaignEventUpdateIntervalHours);
+        mQuery('#campaignevent_triggerIntervalUnit').on('change', Mautic.campaignEventShowHideIntervalSettings);
         mQuery('#campaignevent_triggerRestrictedDaysOfWeek_0').on('change', Mautic.campaignEventSelectDOW);
         mQuery('#campaignevent_triggerRestrictedDaysOfWeek_1').on('change', Mautic.campaignEventSelectDOW);
         mQuery('#campaignevent_triggerRestrictedDaysOfWeek_2').on('change', Mautic.campaignEventSelectDOW);
@@ -320,6 +322,18 @@ Mautic.campaignEventUpdateIntervalHours = function () {
         mQuery('#campaignevent_triggerHour').prop('disabled', false);
         mQuery('#campaignevent_triggerRestrictedStartHour').prop('disabled', false);
         mQuery('#campaignevent_triggerRestrictedStopHour').prop('disabled', false);
+    }
+};
+
+/**
+ * Show/hide interval settings
+ */
+Mautic.campaignEventShowHideIntervalSettings = function() {
+    var unit = mQuery('#campaignevent_triggerIntervalUnit').val();
+    if (unit === 'i' || unit === 'h') {
+        mQuery('#interval_settings').addClass('hide');
+    } else {
+        mQuery('#interval_settings').removeClass('hide');
     }
 };
 

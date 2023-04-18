@@ -12,7 +12,7 @@ class PathsHelperTest extends TestCase
 {
     private $cacheDir = __DIR__.'/resource/paths/cache';
     private $logsDir  = __DIR__.'/resource/paths/logs';
-    private $rootDir  = __DIR__.'/resource/paths';
+    private $rootDir  = __DIR__.'/resource/paths/app';
 
     /**
      * @var MockObject|UserHelper

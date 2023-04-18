@@ -4,9 +4,6 @@ namespace MauticPlugin\MauticFocusBundle\Entity;
 
 use Mautic\CoreBundle\Entity\CommonRepository;
 
-/**
- * @extends CommonRepository<Stat>
- */
 class StatRepository extends CommonRepository
 {
     /**

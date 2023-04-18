@@ -6,9 +6,6 @@ use Doctrine\ORM\Tools\Pagination\Paginator;
 use Mautic\CoreBundle\Entity\CommonRepository;
 use Mautic\LeadBundle\Entity\TimelineTrait;
 
-/**
- * @extends CommonRepository<CitrixEvent>
- */
 class CitrixEventRepository extends CommonRepository
 {
     use TimelineTrait;
@@ -156,7 +153,7 @@ class CitrixEventRepository extends CommonRepository
     }
 
     /**
-     * @return array<array<string>>
+     * @return string
      */
     protected function getDefaultOrder()
     {

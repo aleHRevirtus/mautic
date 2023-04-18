@@ -12,8 +12,9 @@ use Mautic\CoreBundle\Helper\Chart\LineChart;
 use Mautic\CoreBundle\Helper\DateTimeHelper;
 use Mautic\CoreBundle\Helper\InputHelper;
 use Mautic\CoreBundle\Helper\IpLookupHelper;
+use Mautic\CoreBundle\Helper\TemplatingHelper;
 use Mautic\CoreBundle\Model\FormModel as CommonFormModel;
-use Mautic\CoreBundle\Twig\Helper\DateHelper;
+use Mautic\CoreBundle\Templating\Helper\DateHelper;
 use Mautic\FormBundle\Crate\UploadFileCrate;
 use Mautic\FormBundle\Entity\Action;
 use Mautic\FormBundle\Entity\Field;
@@ -32,8 +33,6 @@ use Mautic\FormBundle\Helper\FormUploader;
 use Mautic\FormBundle\ProgressiveProfiling\DisplayManager;
 use Mautic\FormBundle\Validator\UploadFieldValidator;
 use Mautic\LeadBundle\DataObject\LeadManipulator;
-use Mautic\LeadBundle\Deduplicate\ContactMerger;
-use Mautic\LeadBundle\Deduplicate\Exception\SameContactException;
 use Mautic\LeadBundle\Entity\Company;
 use Mautic\LeadBundle\Entity\CompanyChangeLog;
 use Mautic\LeadBundle\Entity\Lead;
@@ -50,11 +49,7 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
-use Twig\Environment;
 
-/**
- * @extends CommonFormModel<Submission>
- */
 class SubmissionModel extends CommonFormModel
 {
     /**
@@ -63,9 +58,9 @@ class SubmissionModel extends CommonFormModel
     protected $ipLookupHelper;
 
     /**
-     * @var Environment
+     * @var TemplatingHelper
      */
-    protected $twig;
+    protected $templatingHelper;
 
     /**
      * @var FormModel
@@ -137,11 +132,9 @@ class SubmissionModel extends CommonFormModel
      */
     private $contactTracker;
 
-    private ContactMerger $contactMerger;
-
     public function __construct(
         IpLookupHelper $ipLookupHelper,
-        Environment $twig,
+        TemplatingHelper $templatingHelper,
         FormModel $formModel,
         PageModel $pageModel,
         LeadModel $leadModel,
@@ -155,11 +148,10 @@ class SubmissionModel extends CommonFormModel
         DeviceTrackingServiceInterface $deviceTrackingService,
         FieldValueTransformer $fieldValueTransformer,
         DateHelper $dateHelper,
-        ContactTracker $contactTracker,
-        ContactMerger $contactMerger
+        ContactTracker $contactTracker
     ) {
         $this->ipLookupHelper         = $ipLookupHelper;
-        $this->twig                   = $twig;
+        $this->templatingHelper       = $templatingHelper;
         $this->formModel              = $formModel;
         $this->pageModel              = $pageModel;
         $this->leadModel              = $leadModel;
@@ -174,15 +166,16 @@ class SubmissionModel extends CommonFormModel
         $this->fieldValueTransformer  = $fieldValueTransformer;
         $this->dateHelper             = $dateHelper;
         $this->contactTracker         = $contactTracker;
-        $this->contactMerger          = $contactMerger;
     }
 
-    public function getRepository(): SubmissionRepository
+    /**
+     * {@inheritdoc}
+     *
+     * @return SubmissionRepository
+     */
+    public function getRepository()
     {
-        $result = $this->em->getRepository(Submission::class);
-        \assert($result instanceof SubmissionRepository);
-
-        return $result;
+        return $this->em->getRepository('MauticFormBundle:Submission');
     }
 
     /**
@@ -340,11 +333,11 @@ class SubmissionModel extends CommonFormModel
                 $validationErrors[$alias] = $isValid;
             }
 
-            $mappedField = $f->getMappedField();
-            if (!empty($mappedField) && in_array($f->getMappedObject(), ['company', 'contact'])) {
+            $leadField = $f->getLeadField();
+            if (!empty($leadField)) {
                 $leadValue = $value;
 
-                $leadFieldMatches[$mappedField] = $leadValue;
+                $leadFieldMatches[$leadField] = $leadValue;
             }
 
             $tokens["{formfield={$alias}}"] = $this->normalizeValue($value, $f);
@@ -356,7 +349,7 @@ class SubmissionModel extends CommonFormModel
 
             //save the result
             if (false !== $f->getSaveResult()) {
-                $results['`'.$alias.'`'] = $value;
+                $results[$alias] = $value;
             }
         }
 
@@ -462,7 +455,7 @@ class SubmissionModel extends CommonFormModel
             $submissionEvent->setAction(null);
 
             // Dispatch to on submit listeners
-            $this->dispatcher->dispatch($submissionEvent, FormEvents::FORM_ON_SUBMIT);
+            $this->dispatcher->dispatch(FormEvents::FORM_ON_SUBMIT, $submissionEvent);
         }
 
         //get callback commands from the submit action
@@ -585,15 +578,15 @@ class SubmissionModel extends CommonFormModel
 
                 return $response;
             case 'html':
-                $content = $this->twig->render(
-                    '@MauticForm/Result/export.html.twig',
+                $content = $this->templatingHelper->getTemplating()->renderResponse(
+                    'MauticFormBundle:Result:export.html.php',
                     [
                         'form'           => $form,
                         'results'        => $results,
                         'pageTitle'      => $name,
                         'viewOnlyFields' => $viewOnlyFields,
                     ]
-                );
+                )->getContent();
 
                 return new Response($content);
             case 'xlsx':
@@ -739,14 +732,14 @@ class SubmissionModel extends CommonFormModel
 
                 return $response;
             case 'html':
-                $content = $this->twig->render(
-                    '@MauticPage/Result/export.html.twig',
+                $content = $this->templatingHelper->getTemplating()->renderResponse(
+                    'MauticPageBundle:Result:export.html.php',
                     [
                         'page'      => $page,
                         'results'   => $results,
                         'pageTitle' => $name,
                     ]
-                );
+                )->getContent();
 
                 return new Response($content);
             case 'xlsx':
@@ -810,15 +803,15 @@ class SubmissionModel extends CommonFormModel
     /**
      * Get line chart data of submissions.
      *
-     * @param string|null $unit          {@link php.net/manual/en/function.date.php#refsect1-function.date-parameters}
-     * @param string      $dateFormat
-     * @param array       $filter
-     * @param bool        $canViewOthers
+     * @param string $unit          {@link php.net/manual/en/function.date.php#refsect1-function.date-parameters}
+     * @param string $dateFormat
+     * @param array  $filter
+     * @param bool   $canViewOthers
      *
      * @return array
      */
     public function getSubmissionsLineChartData(
-        ?string $unit,
+        $unit,
         \DateTime $dateFrom,
         \DateTime $dateTo,
         $dateFormat = null,
@@ -923,7 +916,7 @@ class SubmissionModel extends CommonFormModel
             return array_key_exists($action->getType(), $availableActions);
         })->map(function (Action $action) use ($event, $availableActions) {
             $event->setAction($action);
-            $this->dispatcher->dispatch($event, $availableActions[$action->getType()]['eventName']);
+            $this->dispatcher->dispatch($availableActions[$action->getType()]['eventName'], $event);
         });
     }
 
@@ -1057,10 +1050,7 @@ class SubmissionModel extends CommonFormModel
                 $this->logger->debug('FORM: Merging contacts '.$lead->getId().' and '.$foundLead->getId());
 
                 // Merge the found lead with currently tracked lead
-                try {
-                    $lead = $this->contactMerger->merge($lead, $foundLead);
-                } catch (SameContactException $exception) {
-                }
+                $lead = $this->leadModel->mergeLeads($lead, $foundLead);
             }
 
             // Update unique fields data for comparison with submitted data
@@ -1177,7 +1167,7 @@ class SubmissionModel extends CommonFormModel
                     if (!is_array($validator)) {
                         $validator = ['eventName' => $validator];
                     }
-                    $event = $this->dispatcher->dispatch(new ValidationEvent($field, $value), $validator['eventName']);
+                    $event = $this->dispatcher->dispatch($validator['eventName'], new ValidationEvent($field, $value));
                     if (!$event->isValid()) {
                         return $event->getInvalidReason();
                     }

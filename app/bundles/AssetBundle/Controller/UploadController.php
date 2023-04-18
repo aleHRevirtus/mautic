@@ -6,15 +6,14 @@ use Oneup\UploaderBundle\Controller\DropzoneController;
 use Oneup\UploaderBundle\Uploader\Response\EmptyResponse;
 use Symfony\Component\HttpFoundation\File\Exception\UploadException;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\HttpFoundation\Request;
 
 class UploadController extends DropzoneController
 {
-    private TranslatorInterface $translator;
-
     public function upload(): JsonResponse
     {
-        $request  = $this->getRequest();
+        /** @var Request $request */
+        $request  = $this->container->get('request_stack')->getCurrentRequest();
         $response = new EmptyResponse();
         $files    = $this->getFiles($request->files);
 
@@ -27,23 +26,15 @@ class UploadController extends DropzoneController
                 } catch (\Exception $e) {
                     error_log($e);
 
-                    $error = new UploadException($this->translator->trans('mautic.asset.error.file.failed'));
+                    $error = new UploadException($this->container->get('translator')->trans('mautic.asset.error.file.failed'));
                     $this->errorHandler->addException($response, $error);
                 }
             }
         } else {
-            $error = new UploadException($this->translator->trans('mautic.asset.error.file.failed'));
+            $error = new UploadException($this->container->get('translator')->trans('mautic.asset.error.file.failed'));
             $this->errorHandler->addException($response, $error);
         }
 
         return $this->createSupportedJsonResponse($response->assemble());
-    }
-
-    /**
-     * @required
-     */
-    public function setTranslator(TranslatorInterface $translator): void
-    {
-        $this->translator = $translator;
     }
 }

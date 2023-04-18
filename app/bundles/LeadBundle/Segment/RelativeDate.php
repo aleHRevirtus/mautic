@@ -2,7 +2,7 @@
 
 namespace Mautic\LeadBundle\Segment;
 
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class RelativeDate
 {

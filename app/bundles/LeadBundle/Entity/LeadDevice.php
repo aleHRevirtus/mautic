@@ -346,7 +346,7 @@ class LeadDevice
     }
 
     /**
-     * @return string|null
+     * @return string
      */
     public function getTrackingId()
     {

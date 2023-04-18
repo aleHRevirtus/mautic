@@ -7,7 +7,7 @@ use Mautic\FormBundle\Entity\Field;
 use Mautic\LeadBundle\Model\CompanyReportData;
 use Mautic\LeadBundle\Model\FieldModel;
 use Mautic\ReportBundle\Event\ReportGeneratorEvent;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class CompanyReportDataTest extends \PHPUnit\Framework\TestCase
 {

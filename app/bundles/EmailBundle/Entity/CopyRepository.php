@@ -7,30 +7,27 @@ use Mautic\CoreBundle\Entity\CommonRepository;
 use Mautic\CoreBundle\Helper\EmojiHelper;
 
 /**
- * @extends CommonRepository<Copy>
+ * Class CopyRepository.
  */
 class CopyRepository extends CommonRepository
 {
     /**
-     * @param string $hash
-     * @param string $subject
-     * @param string $body
-     * @param string $bodyText
+     * @param $hash
+     * @param $subject
+     * @param $body
      */
-    public function saveCopy($hash, $subject, $body, $bodyText)
+    public function saveCopy($hash, $subject, $body)
     {
         $db = $this->getEntityManager()->getConnection();
 
         try {
-            $body     = EmojiHelper::toShort($body);
-            $subject  = EmojiHelper::toShort($subject);
-            $bodyText = EmojiHelper::toShort($bodyText);
+            $body    = EmojiHelper::toShort($body);
+            $subject = EmojiHelper::toShort($subject);
             $db->insert(
                 MAUTIC_TABLE_PREFIX.'email_copies',
                 [
                     'id'           => $hash,
                     'body'         => $body,
-                    'body_text'    => $bodyText,
                     'subject'      => $subject,
                     'date_created' => (new \DateTime())->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s'),
                 ]

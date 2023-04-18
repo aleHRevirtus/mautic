@@ -12,9 +12,11 @@ use Symfony\Component\HttpFoundation\Request;
 
 class AuthController extends CommonController
 {
-    public function callbackAction(AuthIntegrationsHelper $authIntegrationsHelper, string $integration, Request $request)
+    public function callbackAction(string $integration, Request $request)
     {
-        $authenticationError = false;
+        /** @var AuthIntegrationsHelper $authIntegrationsHelper */
+        $authIntegrationsHelper = $this->get('mautic.integrations.helper.auth_integrations');
+        $authenticationError    = false;
 
         try {
             $authIntegration = $authIntegrationsHelper->getIntegration($integration);
@@ -27,7 +29,7 @@ class AuthController extends CommonController
         }
 
         return $this->render(
-            'Integrations/Auth/authenticated.html.twig',
+            'IntegrationsBundle:Auth:authenticated.html.php',
             [
                 'message'             => $message,
                 'authenticationError' => $authenticationError,

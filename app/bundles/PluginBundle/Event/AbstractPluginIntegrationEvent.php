@@ -3,7 +3,7 @@
 namespace Mautic\PluginBundle\Event;
 
 use Mautic\PluginBundle\Integration\AbstractIntegration;
-use Symfony\Contracts\EventDispatcher\Event;
+use Symfony\Component\EventDispatcher\Event;
 
 /**
  * Class AbstractPluginIntegrationEvent.

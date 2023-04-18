@@ -35,4 +35,12 @@ class RegionType extends AbstractType
     {
         return ChoiceType::class;
     }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getBlockPrefix()
+    {
+        return 'region';
+    }
 }

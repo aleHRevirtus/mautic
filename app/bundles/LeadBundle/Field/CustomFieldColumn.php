@@ -13,7 +13,7 @@ use Mautic\LeadBundle\Field\Dispatcher\FieldColumnDispatcher;
 use Mautic\LeadBundle\Field\Exception\AbortColumnCreateException;
 use Mautic\LeadBundle\Field\Exception\CustomFieldLimitException;
 use Monolog\Logger;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class CustomFieldColumn
 {
@@ -135,7 +135,7 @@ class CustomFieldColumn
         try {
             $leadsSchema->executeChanges();
         } catch (DriverException $e) {
-            $this->logger->warning($e->getMessage());
+            $this->logger->addWarning($e->getMessage());
 
             if (1118 === $e->getErrorCode() /* ER_TOO_BIG_ROWSIZE */) {
                 throw new CustomFieldLimitException('mautic.lead.field.max_column_error');

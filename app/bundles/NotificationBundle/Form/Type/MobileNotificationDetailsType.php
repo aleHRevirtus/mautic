@@ -255,4 +255,12 @@ class MobileNotificationDetailsType extends AbstractType
             );
         }
     }
+
+    /**
+     * @return string
+     */
+    public function getBlockPrefix()
+    {
+        return 'mobile_notification_details';
+    }
 }

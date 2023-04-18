@@ -4,7 +4,7 @@ namespace Mautic\StatsBundle\Event;
 
 use Mautic\StatsBundle\Aggregate\Collection\StatCollection;
 use Mautic\StatsBundle\Event\Options\FetchOptions;
-use Symfony\Contracts\EventDispatcher\Event;
+use Symfony\Component\EventDispatcher\Event;
 
 class AggregateStatRequestEvent extends Event
 {

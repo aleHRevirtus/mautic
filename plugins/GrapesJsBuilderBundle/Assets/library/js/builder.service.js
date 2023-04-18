@@ -6,7 +6,6 @@ import grapesjspostcss from 'grapesjs-parser-postcss';
 import contentService from 'grapesjs-preset-mautic/dist/content.service';
 import grapesjsmautic from 'grapesjs-preset-mautic';
 import mjmlService from 'grapesjs-preset-mautic/dist/mjml/mjml.service';
-import editorFontsService from 'grapesjs-preset-mautic/dist/editorFonts/editorFonts.service';
 import 'grapesjs-plugin-ckeditor';
 
 // for local dev
@@ -34,6 +33,9 @@ export default class BuilderService {
     }
     if (!assets.conf.deletePath) {
       throw Error('No deletePath found');
+    }
+    if (!assets.files || !assets.files[0]) {
+      console.warn('no assets');
     }
 
     this.assets = assets.files;
@@ -114,10 +116,6 @@ export default class BuilderService {
     codeModeButton.addCommand();
     codeModeButton.addButton();
 
-    if (mauticEditorFonts) {
-      this.editor.on('load', () => editorFontsService.loadEditorFonts(this.editor));
-    }
-
     this.overrideCustomRteDisable();
     this.setListeners();
   }
@@ -138,9 +136,9 @@ export default class BuilderService {
           { name: 'paragraph', items: ['NumberedList', 'BulletedList', '-'] },
           { name: 'colors', items: ['TextColor', 'BGColor'] },
           { name: 'document', items: ['Source'] },
-          { name: 'insert', items: ['SpecialChar','Token'] },
+          { name: 'insert', items: ['SpecialChar'] },
         ],
-        extraPlugins: ['sharedspace', 'colorbutton', 'mautictoken'],
+        extraPlugins: ['sharedspace', 'colorbutton'],
       },
     };
   }
@@ -181,18 +179,11 @@ export default class BuilderService {
     // validate
     mjmlService.mjmlToHtml(components);
 
-    const styles = [
-      `${mauticBaseUrl}plugins/GrapesJsBuilderBundle/Assets/library/js/grapesjs-editor.css`
-    ];
-
     this.editor = grapesjs.init({
       clearOnRender: true,
       container: '.builder-panel',
       components,
       height: '100%',
-      canvas: {
-        styles,
-      },
       storageManager: false,
       assetManager: this.getAssetManagerConf(),
       plugins: [grapesjsmjml, grapesjspostcss, grapesjsmautic, 'gjs-plugin-ckeditor'],
@@ -216,19 +207,12 @@ export default class BuilderService {
       throw new Error('no components');
     }
 
-    const styles = [
-      `${mauticBaseUrl}plugins/GrapesJsBuilderBundle/Assets/library/js/grapesjs-editor.css`
-    ];
-
     // Launch GrapesJS with body part
     this.editor = grapesjs.init({
       clearOnRender: true,
       container: '.builder-panel',
       components,
       height: '100%',
-      canvas: {
-        styles,
-      },
       storageManager: false,
       assetManager: this.getAssetManagerConf(),
       plugins: [grapesjsnewsletter, grapesjspostcss, grapesjsmautic, 'gjs-plugin-ckeditor'],
@@ -293,6 +277,7 @@ export default class BuilderService {
     return this.editor;
   }
 
+  // https://github.com/artf/grapesjs-mjml/issues/193
   overrideCustomRteDisable() {
     const richTextEditor = this.editor.RichTextEditor;
 
@@ -312,6 +297,7 @@ export default class BuilderService {
       }
     }
   }
+
   /**
    * Generate assets list from GrapesJs
    */

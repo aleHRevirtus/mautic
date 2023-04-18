@@ -85,4 +85,12 @@ class ContactType extends AbstractType
             $builder->setAction($options['action']);
         }
     }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getBlockPrefix()
+    {
+        return 'contact';
+    }
 }

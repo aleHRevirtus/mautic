@@ -3,10 +3,8 @@
 namespace MauticPlugin\MauticCitrixBundle\Command;
 
 use Mautic\CoreBundle\Command\ModeratedCommand;
-use Mautic\CoreBundle\Helper\PathsHelper;
 use MauticPlugin\MauticCitrixBundle\Helper\CitrixHelper;
 use MauticPlugin\MauticCitrixBundle\Helper\CitrixProducts;
-use MauticPlugin\MauticCitrixBundle\Model\CitrixModel;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -18,15 +16,11 @@ use Symfony\Component\Console\Output\OutputInterface;
  */
 class SyncCommand extends ModeratedCommand
 {
-    private CitrixModel $citrixModel;
-
-    public function __construct(CitrixModel $citrixModel, PathsHelper $pathsHelper)
-    {
-        parent::__construct($pathsHelper);
-
-        $this->citrixModel = $citrixModel;
-    }
-
+    /**
+     * {@inheritdoc}
+     *
+     * @throws \Symfony\Component\Console\Exception\InvalidArgumentException
+     */
     protected function configure()
     {
         $this->setName('mautic:citrix:sync')
@@ -43,8 +37,12 @@ class SyncCommand extends ModeratedCommand
         parent::configure();
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    /**
+     * {@inheritdoc}
+     */
+    protected function execute(InputInterface $input, OutputInterface $output)
     {
+        $model   = $this->getContainer()->get('mautic.citrix.model.citrix');
         $options = $input->getOptions();
         $product = $options['product'];
 
@@ -64,14 +62,14 @@ class SyncCommand extends ModeratedCommand
             if (0 === count($activeProducts)) {
                 $this->completeRun();
 
-                return 0;
+                return;
             }
         } else {
             if (!CitrixProducts::isValidValue($product)) {
                 $output->writeln('<error>Invalid product: '.$product.'. Aborted</error>');
                 $this->completeRun();
 
-                return 0;
+                return;
             }
             $activeProducts[] = $product;
         }
@@ -100,7 +98,7 @@ class SyncCommand extends ModeratedCommand
                         ).'_#'.$productId;
                     $output->writeln('Synchronizing: ['.$productId.'] '.$eventName);
 
-                    $this->citrixModel->syncEvent($product, $productId, $eventName, $eventDesc, $count, $output);
+                    $model->syncEvent($product, $productId, $eventName, $eventDesc, $count, $output);
                 } catch (\Exception $ex) {
                     $output->writeln('<error>Error syncing '.$product.': '.$productId.'.</error>');
                     $output->writeln('<error>'.$ex->getMessage().'</error>');
@@ -115,7 +113,5 @@ class SyncCommand extends ModeratedCommand
         $output->writeln('<info>Done.</info>');
 
         $this->completeRun();
-
-        return 0;
     }
 }

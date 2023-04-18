@@ -13,7 +13,7 @@ use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 abstract class CommonStatsSubscriber implements EventSubscriberInterface
 {
     /**
-     * @var mixed[]
+     * @var CommonRepository[]
      */
     protected $repositories = [];
 
@@ -57,7 +57,7 @@ abstract class CommonStatsSubscriber implements EventSubscriberInterface
 
     public function onStatsFetch(StatsEvent $event)
     {
-        /** @var CommonRepository<object> $repository */
+        /** @var CommonRepository $repository */
         foreach ($this->repositories as $repository) {
             $table = $repository->getTableName();
 

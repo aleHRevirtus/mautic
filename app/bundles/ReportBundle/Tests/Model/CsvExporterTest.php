@@ -3,34 +3,26 @@
 namespace Mautic\ReportBundle\Tests\Model;
 
 use Mautic\CoreBundle\Helper\CoreParametersHelper;
-use Mautic\CoreBundle\Helper\DateTimeHelper;
-use Mautic\CoreBundle\Twig\Helper\DateHelper;
-use Mautic\CoreBundle\Twig\Helper\FormatterHelper;
+use Mautic\CoreBundle\Templating\Helper\DateHelper;
+use Mautic\CoreBundle\Templating\Helper\FormatterHelper;
 use Mautic\ReportBundle\Crate\ReportDataResult;
 use Mautic\ReportBundle\Model\CsvExporter;
 use Mautic\ReportBundle\Tests\Fixtures;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class CsvExporterTest extends \PHPUnit\Framework\TestCase
 {
-    public const DATEONLYFORMAT = 'F j, Y';
-
-    public const TIMEONLYFORMAT          = 'g:i a';
-
     public function testExport()
     {
+        $dateHelperMock = $this->createMock(DateHelper::class);
+
+        $dateHelperMock->expects($this->any())
+            ->method('toFullConcat')
+            ->willReturn('2017-10-01');
+
         $translator = $this->createMock(TranslatorInterface::class);
 
         $coreParametersHelperMock = $this->createMock(CoreParametersHelper::class);
-
-        $dateHelperMock =new DateHelper(
-            'F j, Y g:i a T',
-            'D, M d',
-            self::DATEONLYFORMAT,
-            self::TIMEONLYFORMAT,
-            $translator,
-           $coreParametersHelperMock
-        );
 
         $formatterHelperMock = new FormatterHelper($dateHelperMock, $translator);
 
@@ -80,72 +72,59 @@ class CsvExporterTest extends \PHPUnit\Framework\TestCase
                 '',
                 'ConnectWise',
                 '',
-                '2017-10-10',
+                '2017-10-01',
                 'connectwise@example.com',
             ],
             [
                 '',
                 '',
                 '',
-                '2017-10-10',
+                '2017-10-01',
                 'mytest@example.com',
             ],
             [
                 '',
                 '',
                 '',
-                '2017-10-10',
+                '2017-10-01',
                 'john@example.com',
             ],
             [
                 '',
                 '',
                 '',
-                '2017-10-10',
+                '2017-10-01',
                 'bogus@example.com',
             ],
             [
                 '',
                 '',
                 '',
-                '2017-10-10',
+                '2017-10-01',
                 'date-test@example.com',
             ],
             [
                 '',
                 'Bodega Club',
                 '',
-                '2017-10-10',
+                '2017-10-01',
                 'club@example.com',
             ],
             [
                 '',
                 '',
                 '',
-                '2017-10-11',
+                '2017-10-01',
                 'test@example.com',
             ],
             [
                 '',
                 '',
                 '',
-                '2017-10-12',
+                '2017-10-01',
                 'test@example.com',
             ],
         ];
-
-        $dateTimeHelper = new DateTimeHelper();
-        foreach ($expected as $key => $expect) {
-            if (0 === $key) {
-                continue;
-            }
-            if (!empty($expect[3])) {
-                $dateTimeHelper->setDateTime($expect[3]);
-                $expected[$key][3] = $dateTimeHelper->toLocalString(
-                    sprintf('%s %s', self::DATEONLYFORMAT, self::TIMEONLYFORMAT)
-                );
-            }
-        }
 
         $this->assertSame($expected, $result);
 

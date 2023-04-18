@@ -40,7 +40,7 @@ class SegmentInUseValidator extends ConstraintValidator
 
         if (count($lists)) {
             $this->context->buildViolation($constraint->message)
-                ->setCode((string) Response::HTTP_UNPROCESSABLE_ENTITY)
+                ->setCode(Response::HTTP_UNPROCESSABLE_ENTITY)
                 ->setParameter('%segments%', implode(',', $lists))
                 ->addViolation();
         }

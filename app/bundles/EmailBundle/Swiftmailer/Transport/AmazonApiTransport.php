@@ -12,7 +12,7 @@ use Mautic\EmailBundle\Helper\PlainTextMessageHelper;
 use Mautic\EmailBundle\Swiftmailer\Amazon\AmazonCallback;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class AmazonApiTransport extends AbstractTokenArrayTransport implements \Swift_Transport, TokenTransportInterface, CallbackTransportInterface
 {

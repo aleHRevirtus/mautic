@@ -7,7 +7,7 @@ use Mautic\CoreBundle\Helper\DateTimeHelper;
 use Mautic\LeadBundle\Entity\TimelineTrait;
 
 /**
- * @extends CommonRepository<Stat>
+ * Class StatRepository.
  */
 class StatRepository extends CommonRepository
 {

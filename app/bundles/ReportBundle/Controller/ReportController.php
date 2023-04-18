@@ -10,11 +10,8 @@ use Mautic\CoreBundle\Helper\InputHelper;
 use Mautic\ReportBundle\Entity\Report;
 use Mautic\ReportBundle\Form\Type\DynamicFiltersType;
 use Mautic\ReportBundle\Model\ExportResponse;
-use Mautic\ReportBundle\Model\ReportModel;
-use Mautic\ReportBundle\Scheduler\Model\FileHandler;
 use Symfony\Component\HttpFoundation;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 
 class ReportController extends FormController
@@ -24,13 +21,13 @@ class ReportController extends FormController
      *
      * @return HttpFoundation\JsonResponse|HttpFoundation\RedirectResponse|HttpFoundation\Response
      */
-    public function indexAction(Request $request, PageHelperFactoryInterface $pageHelperFactory, $page = 1)
+    public function indexAction($page = 1)
     {
         /* @type \Mautic\ReportBundle\Model\ReportModel $model */
         $model = $this->getModel('report');
 
         //set some permissions
-        $permissions = $this->security->isGranted(
+        $permissions = $this->container->get('mautic.security')->isGranted(
             [
                 'report:reports:viewown',
                 'report:reports:viewother',
@@ -51,20 +48,22 @@ class ReportController extends FormController
 
         $this->setListFilters();
 
-        $pageHelper        = $pageHelperFactory->make('mautic.report', $page);
+        /** @var PageHelperFactoryInterface $pageHelperFacotry */
+        $pageHelperFacotry = $this->get('mautic.page.helper.factory');
+        $pageHelper        = $pageHelperFacotry->make('mautic.report', $page);
 
         $limit  = $pageHelper->getLimit();
         $start  = $pageHelper->getStart();
-        $search = $request->get('search', $request->getSession()->get('mautic.report.filter', ''));
+        $search = $this->request->get('search', $this->container->get('session')->get('mautic.report.filter', ''));
         $filter = ['string' => $search, 'force' => []];
-        $request->getSession()->set('mautic.report.filter', $search);
+        $this->container->get('session')->set('mautic.report.filter', $search);
 
         if (!$permissions['report:reports:viewother']) {
             $filter['force'][] = ['column' => 'r.createdBy', 'expr' => 'eq', 'value' => $this->user->getId()];
         }
 
-        $orderBy    = $request->getSession()->get('mautic.report.orderby', 'r.name');
-        $orderByDir = $request->getSession()->get('mautic.report.orderbydir', 'DESC');
+        $orderBy    = $this->container->get('session')->get('mautic.report.orderby', 'r.name');
+        $orderByDir = $this->container->get('session')->get('mautic.report.orderbydir', 'DESC');
         $reports    = $model->getEntities(
             [
                 'start'      => $start,
@@ -85,7 +84,7 @@ class ReportController extends FormController
                 [
                     'returnUrl'       => $returnUrl,
                     'viewParameters'  => ['page' => $lastPage],
-                    'contentTemplate' => 'Mautic\ReportBundle\Controller\ReportController::indexAction',
+                    'contentTemplate' => 'MauticReportBundle:Report:index',
                     'passthroughVars' => [
                         'activeLink'    => '#mautic_report_index',
                         'mauticContent' => 'report',
@@ -106,10 +105,10 @@ class ReportController extends FormController
                     'limit'       => $limit,
                     'permissions' => $permissions,
                     'model'       => $model,
-                    'tmpl'        => $request->isXmlHttpRequest() ? $request->get('tmpl', 'index') : 'index',
-                    'security'    => $this->security,
+                    'tmpl'        => $this->request->isXmlHttpRequest() ? $this->request->get('tmpl', 'index') : 'index',
+                    'security'    => $this->container->get('mautic.security'),
                 ],
-                'contentTemplate' => '@MauticReport/Report/list.html.twig',
+                'contentTemplate' => 'MauticReportBundle:Report:list.html.php',
                 'passthroughVars' => [
                     'activeLink'    => '#mautic_report_index',
                     'mauticContent' => 'report',
@@ -133,8 +132,8 @@ class ReportController extends FormController
         $entity = $model->getEntity($objectId);
 
         if (null != $entity) {
-            if (!$this->security->isGranted('report:reports:create')
-                || !$this->security->hasEntityAccess(
+            if (!$this->container->get('mautic.security')->isGranted('report:reports:create')
+                || !$this->container->get('mautic.security')->hasEntityAccess(
                     'report:reports:viewown',
                     'report:reports:viewother',
                     $entity->getCreatedBy()
@@ -156,27 +155,27 @@ class ReportController extends FormController
      *
      * @param $objectId
      *
-     * @return array<string, string|array<string, string>>|bool|HttpFoundation\JsonResponse|HttpFoundation\RedirectResponse|HttpFoundation\Response
+     * @return HttpFoundation\JsonResponse|HttpFoundation\RedirectResponse
      */
-    public function deleteAction(Request $request, $objectId)
+    public function deleteAction($objectId)
     {
-        $page      = $request->getSession()->get('mautic.report.page', 1);
+        $page      = $this->container->get('session')->get('mautic.report.page', 1);
         $returnUrl = $this->generateUrl('mautic_report_index', ['page' => $page]);
         $flashes   = [];
 
         $postActionVars = [
             'returnUrl'       => $returnUrl,
             'viewParameters'  => ['page' => $page],
-            'contentTemplate' => 'Mautic\ReportBundle\Controller\ReportController::indexAction',
+            'contentTemplate' => 'MauticReportBundle:Report:index',
             'passthroughVars' => [
                 'activeLink'    => '#mautic_report_index',
                 'mauticContent' => 'report',
             ],
         ];
 
-        if (HttpFoundation\Request::METHOD_POST === $request->getMethod()) {
-            $model = $this->getModel('report');
-            \assert($model instanceof ReportModel);
+        if ('POST' == $this->request->getMethod()) {
+            /* @type \Mautic\ReportBundle\Model\ReportModel $model */
+            $model  = $this->getModel('report');
             $entity = $model->getEntity($objectId);
 
             $check = $this->checkEntityAccess(
@@ -193,7 +192,7 @@ class ReportController extends FormController
 
             $model->deleteEntity($entity);
 
-            $identifier = $this->translator->trans($entity->getName());
+            $identifier = $this->get('translator')->trans($entity->getName());
             $flashes[]  = [
                 'type'    => 'notice',
                 'msg'     => 'mautic.core.notice.deleted',
@@ -217,28 +216,27 @@ class ReportController extends FormController
     /**
      * Deletes a group of entities.
      *
-     * @return HttpFoundation\Response
+     * @return \Symfony\Component\HttpFoundation\JsonResponse|\Symfony\Component\HttpFoundation\RedirectResponse
      */
-    public function batchDeleteAction(Request $request)
+    public function batchDeleteAction()
     {
-        $page      = $request->getSession()->get('mautic.report.page', 1);
+        $page      = $this->container->get('session')->get('mautic.report.page', 1);
         $returnUrl = $this->generateUrl('mautic_report_index', ['page' => $page]);
         $flashes   = [];
 
         $postActionVars = [
             'returnUrl'       => $returnUrl,
             'viewParameters'  => ['page' => $page],
-            'contentTemplate' => 'Mautic\ReportBundle\Controller\ReportController::indexAction',
+            'contentTemplate' => 'MauticReportBundle:Report:index',
             'passthroughVars' => [
                 'activeLink'    => '#mautic_report_index',
                 'mauticContent' => 'report',
             ],
         ];
 
-        if (HttpFoundation\Request::METHOD_POST === $request->getMethod()) {
-            $model = $this->getModel('report');
-            \assert($model instanceof ReportModel);
-            $ids       = json_decode($request->query->get('ids', '{}'));
+        if ('POST' == $this->request->getMethod()) {
+            $model     = $this->getModel('report');
+            $ids       = json_decode($this->request->query->get('ids', '{}'));
             $deleteIds = [];
 
             // Loop over the IDs to perform access checks pre-delete
@@ -251,7 +249,7 @@ class ReportController extends FormController
                         'msg'     => 'mautic.report.report.error.notfound',
                         'msgVars' => ['%id%' => $objectId],
                     ];
-                } elseif (!$this->security->hasEntityAccess(
+                } elseif (!$this->container->get('mautic.security')->hasEntityAccess(
                     'report:reports:deleteown',
                     'report:reports:deleteother',
                     $entity->getCreatedBy()
@@ -297,12 +295,12 @@ class ReportController extends FormController
      *
      * @return HttpFoundation\JsonResponse|HttpFoundation\RedirectResponse|HttpFoundation\Response
      */
-    public function editAction(Request $request, $objectId, $ignorePost = false)
+    public function editAction($objectId, $ignorePost = false)
     {
-        $model = $this->getModel('report');
-        \assert($model instanceof ReportModel);
+        /* @type \Mautic\ReportBundle\Model\ReportModel $model */
+        $model   = $this->getModel('report');
         $entity  = $model->getEntity($objectId);
-        $session = $request->getSession();
+        $session = $this->container->get('session');
         $page    = $session->get('mautic.report.page', 1);
 
         //set the return URL
@@ -311,7 +309,7 @@ class ReportController extends FormController
         $postActionVars = [
             'returnUrl'       => $returnUrl,
             'viewParameters'  => ['page' => $page],
-            'contentTemplate' => 'Mautic\ReportBundle\Controller\ReportController::indexAction',
+            'contentTemplate' => 'MauticReportBundle:Report:index',
             'passthroughVars' => [
                 'activeLink'    => 'mautic_report_index',
                 'mauticContent' => 'report',
@@ -333,10 +331,10 @@ class ReportController extends FormController
 
         //Create the form
         $action = $this->generateUrl('mautic_report_action', ['objectAction' => 'edit', 'objectId' => $objectId]);
-        $form   = $model->createForm($entity, $this->formFactory, $action);
+        $form   = $model->createForm($entity, $this->get('form.factory'), $action);
 
         ///Check for a submitted form and process it
-        if (!$ignorePost && 'POST' == $request->getMethod()) {
+        if (!$ignorePost && 'POST' == $this->request->getMethod()) {
             $valid = false;
             if (!$cancelled = $this->isFormCancelled($form)) {
                 // Columns have to be reset in order for Symfony to honor the new submitted order
@@ -347,9 +345,9 @@ class ReportController extends FormController
                 $entity->setGraphs([]);
                 if ($valid = $this->isFormValid($form)) {
                     //form is valid so process the data
-                    $model->saveEntity($entity, $this->getFormButton($form, ['buttons', 'save'])->isClicked());
+                    $model->saveEntity($entity, $form->get('buttons')->get('save')->isClicked());
 
-                    $this->addFlashMessage(
+                    $this->addFlash(
                         'mautic.core.notice.updated',
                         [
                             '%name%'      => $entity->getName(),
@@ -371,7 +369,7 @@ class ReportController extends FormController
                         ]
                     );
                     $viewParams = ['objectId' => $entity->getId()];
-                    $template   = 'Mautic\ReportBundle\Controller\ReportController::viewAction';
+                    $template   = 'MauticReportBundle:Report:view';
                 } else {
                     //reset old columns
                     $entity->setColumns($oldColumns);
@@ -383,10 +381,10 @@ class ReportController extends FormController
 
                 $returnUrl  = $this->generateUrl('mautic_report_index', ['page' => $page]);
                 $viewParams = ['report' => $page];
-                $template   = 'Mautic\ReportBundle\Controller\ReportController::indexAction';
+                $template   = 'MauticReportBundle:Report:index';
             }
 
-            if ($cancelled || ($valid && $this->getFormButton($form, ['buttons', 'save'])->isClicked())) {
+            if ($cancelled || ($valid && $form->get('buttons')->get('save')->isClicked())) {
                 // Clear session items in case columns changed
                 $session->remove('mautic.report.'.$entity->getId().'.orderby');
                 $session->remove('mautic.report.'.$entity->getId().'.orderbydir');
@@ -403,7 +401,7 @@ class ReportController extends FormController
                 );
             } elseif ($valid) {
                 // Rebuild the form for updated columns
-                $form = $model->createForm($entity, $this->formFactory, $action);
+                $form = $model->createForm($entity, $this->get('form.factory'), $action);
             }
         } else {
             //lock the entity
@@ -414,9 +412,9 @@ class ReportController extends FormController
             [
                 'viewParameters' => [
                     'report' => $entity,
-                    'form'   => $form->createView(),
+                    'form'   => $this->setFormTheme($form, 'MauticReportBundle:Report:form.html.php', 'MauticReportBundle:FormTheme\Report'),
                 ],
-                'contentTemplate' => '@MauticReport/Report/form.html.twig',
+                'contentTemplate' => 'MauticReportBundle:Report:form.html.php',
                 'passthroughVars' => [
                     'activeLink'    => '#mautic_report_index',
                     'mauticContent' => 'report',
@@ -437,37 +435,37 @@ class ReportController extends FormController
      *
      * @param \Mautic\ReportBundle\Entity\Report|null $entity
      *
-     * @return HttpFoundation\Response
+     * @return HttpFoundation\JsonResponse|HttpFoundation\RedirectResponse|HttpFoundation\Response
      */
-    public function newAction(Request $request, $entity = null)
+    public function newAction($entity = null)
     {
-        if (!$this->security->isGranted('report:reports:create')) {
+        if (!$this->container->get('mautic.security')->isGranted('report:reports:create')) {
             return $this->accessDenied();
         }
 
+        /* @type \Mautic\ReportBundle\Model\ReportModel $model */
         $model = $this->getModel('report');
-        \assert($model instanceof ReportModel);
 
         if (!($entity instanceof Report)) {
             /** @var \Mautic\ReportBundle\Entity\Report $entity */
             $entity = $model->getEntity();
         }
 
-        $session = $request->getSession();
+        $session = $this->container->get('session');
         $page    = $session->get('mautic.report.page', 1);
 
         $action = $this->generateUrl('mautic_report_action', ['objectAction' => 'new']);
-        $form   = $model->createForm($entity, $this->formFactory, $action);
+        $form   = $model->createForm($entity, $this->get('form.factory'), $action);
 
         ///Check for a submitted form and process it
-        if (HttpFoundation\Request::METHOD_POST === $request->getMethod()) {
+        if ('POST' == $this->request->getMethod()) {
             $valid = false;
             if (!$cancelled = $this->isFormCancelled($form)) {
                 if ($valid = $this->isFormValid($form)) {
                     //form is valid so process the data
                     $model->saveEntity($entity);
 
-                    $this->addFlashMessage(
+                    $this->addFlash(
                         'mautic.core.notice.created',
                         [
                             '%name%'      => $entity->getName(),
@@ -482,24 +480,24 @@ class ReportController extends FormController
                         ]
                     );
 
-                    if (!$this->getFormButton($form, ['buttons', 'save'])->isClicked()) {
+                    if (!$form->get('buttons')->get('save')->isClicked()) {
                         //return edit view so that all the session stuff is loaded
-                        return $this->editAction($request, $entity->getId(), true);
+                        return $this->editAction($entity->getId(), true);
                     }
 
                     $viewParameters = [
                         'objectId' => $entity->getId(),
                     ];
                     $returnUrl = $this->generateUrl('mautic_report_view', $viewParameters);
-                    $template  = 'Mautic\ReportBundle\Controller\ReportController::viewAction';
+                    $template  = 'MauticReportBundle:Report:view';
                 }
             } else {
                 $viewParameters = ['page' => $page];
                 $returnUrl      = $this->generateUrl('mautic_report_index', $viewParameters);
-                $template       = 'Mautic\ReportBundle\Controller\ReportController::indexAction';
+                $template       = 'MauticReportBundle:Report:index';
             }
 
-            if ($cancelled || ($valid && $this->getFormButton($form, ['buttons', 'save'])->isClicked())) {
+            if ($cancelled || ($valid && $form->get('buttons')->get('save')->isClicked())) {
                 return $this->postActionRedirect(
                     [
                         'returnUrl'       => $returnUrl,
@@ -518,9 +516,9 @@ class ReportController extends FormController
             [
                 'viewParameters' => [
                     'report' => $entity,
-                    'form'   => $form->createView(),
+                    'form'   => $this->setFormTheme($form, 'MauticReportBundle:Report:form.html.php', 'MauticReportBundle:FormTheme\Report'),
                 ],
-                'contentTemplate' => '@MauticReport/Report/form.html.twig',
+                'contentTemplate' => 'MauticReportBundle:Report:form.html.php',
                 'passthroughVars' => [
                     'activeLink'    => '#mautic_report_index',
                     'mauticContent' => 'report',
@@ -543,21 +541,21 @@ class ReportController extends FormController
      *
      * @return HttpFoundation\JsonResponse|HttpFoundation\Response
      */
-    public function viewAction(Request $request, $objectId, $reportPage = 1)
+    public function viewAction($objectId, $reportPage = 1)
     {
-        $model = $this->getModel('report');
-        \assert($model instanceof ReportModel);
+        /* @type \Mautic\ReportBundle\Model\ReportModel $model */
+        $model    = $this->getModel('report');
         $entity   = $model->getEntity($objectId);
-        $security = $this->security;
+        $security = $this->container->get('mautic.security');
 
         if (null === $entity) {
-            $page = $request->getSession()->get('mautic.report.page', 1);
+            $page = $this->container->get('session')->get('mautic.report.page', 1);
 
             return $this->postActionRedirect(
                 [
                     'returnUrl'       => $this->generateUrl('mautic_report_index', ['page' => $page]),
                     'viewParameters'  => ['page' => $page],
-                    'contentTemplate' => 'Mautic\ReportBundle\Controller\ReportController::indexAction',
+                    'contentTemplate' => 'MauticReportBundle:Report:index',
                     'passthroughVars' => [
                         'activeLink'    => '#mautic_report_index',
                         'mauticContent' => 'report',
@@ -578,13 +576,13 @@ class ReportController extends FormController
         $this->setListFilters();
 
         $mysqlFormat = 'Y-m-d';
-        $session     = $request->getSession();
+        $session     = $this->container->get('session');
 
         // Init the forms
         $action = $this->generateUrl('mautic_report_action', ['objectAction' => 'view', 'objectId' => $objectId]);
 
         // Get the date range filter values from the request of from the session
-        $dateRangeValues = $request->get('daterange', []);
+        $dateRangeValues = $this->request->get('daterange', []);
 
         if (!empty($dateRangeValues['date_from'])) {
             $from = new \DateTime($dateRangeValues['date_from']);
@@ -599,8 +597,8 @@ class ReportController extends FormController
             $dateRangeValues['date_to'] = $toDate;
         }
 
-        $dateRangeForm = $this->formFactory->create(DateRangeType::class, $dateRangeValues, ['action' => $action]);
-        if ('POST' === $request->getMethod() && $request->request->has('daterange')) {
+        $dateRangeForm = $this->get('form.factory')->create(DateRangeType::class, $dateRangeValues, ['action' => $action]);
+        if ('POST' == $this->request->getMethod() && $this->request->request->has('daterange')) {
             if ($this->isFormValid($dateRangeForm)) {
                 $to                         = new \DateTime($dateRangeForm['date_to']->getData());
                 $dateRangeValues['date_to'] = $to->format($mysqlFormat);
@@ -633,7 +631,7 @@ class ReportController extends FormController
             $filterSettings[$filterDefinitions->definitions[$filter['column']]['alias']] = $filter['value'];
         }
 
-        $dynamicFilterForm = $this->formFactory->create(
+        $dynamicFilterForm = $this->get('form.factory')->create(
             DynamicFiltersType::class,
             $filterSettings,
             [
@@ -645,7 +643,7 @@ class ReportController extends FormController
 
         $reportData = $model->getReportData(
             $entity,
-            $this->formFactory,
+            $this->container->get('form.factory'),
             [
                 'dynamicFilters' => $dynamicFilters,
                 'paginate'       => true,
@@ -666,7 +664,7 @@ class ReportController extends FormController
                     'report'       => $entity,
                     'reportPage'   => $reportPage,
                     'graphs'       => $reportData['graphs'],
-                    'tmpl'         => $request->isXmlHttpRequest() ? $request->get('tmpl', 'index') : 'index',
+                    'tmpl'         => $this->request->isXmlHttpRequest() ? $this->request->get('tmpl', 'index') : 'index',
                     'limit'        => $reportData['limit'],
                     'permissions'  => $security->isGranted(
                         [
@@ -702,12 +700,14 @@ class ReportController extends FormController
     /**
      * Checks access to an entity.
      *
-     * @param array<mixed> $postActionVars
-     * @param array<mixed> $permissions
+     * @param object                               $entity
+     * @param int                                  $objectId
+     * @param \Mautic\CoreBundle\Model\CommonModel $model
+     * @param string                               $modelName
      *
-     * @return array<string, string|array<string, string>>|bool|HttpFoundation\JsonResponse|HttpFoundation\RedirectResponse|HttpFoundation\Response
+     * @return HttpFoundation\JsonResponse|HttpFoundation\RedirectResponse|void
      */
-    private function checkEntityAccess(array $postActionVars, ?Report $entity, int $objectId, array $permissions, ReportModel $model, string $modelName)
+    private function checkEntityAccess($postActionVars, $entity, $objectId, array $permissions, $model, $modelName)
     {
         if (null === $entity) {
             return $this->postActionRedirect(
@@ -724,7 +724,7 @@ class ReportController extends FormController
                     ]
                 )
             );
-        } elseif (!$this->security->hasEntityAccess($permissions[0], $permissions[1], $entity->getCreatedBy())) {
+        } elseif (!$this->container->get('mautic.security')->hasEntityAccess($permissions[0], $permissions[1], $entity->getCreatedBy())) {
             return $this->accessDenied();
         } elseif ($model->isLocked($entity)) {
             //deny access if the entity is locked
@@ -738,25 +738,25 @@ class ReportController extends FormController
      * @param int    $objectId
      * @param string $format
      *
-     * @return HttpFoundation\Response
+     * @return \Symfony\Component\HttpFoundation\StreamedResponse
      *
      * @throws \Exception
      */
-    public function exportAction(Request $request, $objectId, $format = 'csv')
+    public function exportAction($objectId, $format = 'csv')
     {
         /** @var \Mautic\ReportBundle\Model\ReportModel $model */
         $model    = $this->getModel('report');
         $entity   = $model->getEntity($objectId);
-        $security = $this->security;
+        $security = $this->container->get('mautic.security');
 
         if (null === $entity) {
-            $page = $request->getSession()->get('mautic.report.page', 1);
+            $page = $this->container->get('session')->get('mautic.report.page', 1);
 
             return $this->postActionRedirect(
                 [
                     'returnUrl'       => $this->generateUrl('mautic_report_index', ['page' => $page]),
                     'viewParameters'  => ['page' => $page],
-                    'contentTemplate' => 'Mautic\ReportBundle\Controller\ReportController::indexAction',
+                    'contentTemplate' => 'MauticReportBundle:Report:index',
                     'passthroughVars' => [
                         'activeLink'    => '#mautic_report_index',
                         'mauticContent' => 'report',
@@ -774,7 +774,7 @@ class ReportController extends FormController
             return $this->accessDenied();
         }
 
-        $session  = $request->getSession();
+        $session  = $this->get('session');
         $fromDate = $session->get('mautic.report.date.from', (new \DateTime('-30 days'))->format('Y-m-d'));
         $toDate   = $session->get('mautic.report.date.to', (new \DateTime())->format('Y-m-d'));
 
@@ -827,7 +827,7 @@ class ReportController extends FormController
      *
      * @throws \Exception
      */
-    public function downloadAction(FileHandler $fileHandler, $reportId, $format = 'csv')
+    public function downloadAction($reportId, $format = 'csv')
     {
         if ('csv' !== $format) {
             throw new \Exception($this->translator->trans('mautic.format.invalid', ['%format%' => $format, '%validFormats%' => 'csv']));
@@ -840,7 +840,10 @@ class ReportController extends FormController
         $report = $model->getEntity($reportId);
 
         /** @var \Mautic\CoreBundle\Security\Permissions\CorePermissions $security */
-        $security = $this->security;
+        $security = $this->container->get('mautic.security');
+
+        /** @var \Mautic\ReportBundle\Scheduler\Model\FileHandler $fileHandler */
+        $fileHandler = $this->container->get('mautic.report.model.file_handler');
 
         if (empty($report)) {
             return $this->notFound($this->translator->trans('mautic.report.notfound', ['%id%' => $reportId]));

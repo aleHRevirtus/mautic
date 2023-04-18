@@ -5,16 +5,9 @@ namespace Mautic\ChannelBundle\Controller;
 use Mautic\ChannelBundle\Entity\Channel;
 use Mautic\ChannelBundle\Model\MessageModel;
 use Mautic\CoreBundle\Controller\AbstractStandardFormController;
-use Mautic\CoreBundle\Factory\PageHelperFactoryInterface;
 use Mautic\CoreBundle\Helper\Chart\LineChart;
-use Mautic\CoreBundle\Helper\UserHelper;
-use Mautic\CoreBundle\Security\Permissions\CorePermissions;
-use Mautic\FormBundle\Helper\FormFieldHelper;
 use Mautic\LeadBundle\Controller\EntityContactsTrait;
 use Symfony\Component\Form\Form;
-use Symfony\Component\Form\FormFactoryInterface;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Class MessageController.
@@ -23,21 +16,12 @@ class MessageController extends AbstractStandardFormController
 {
     use EntityContactsTrait;
 
-    private RequestStack $requestStack;
-
-    public function __construct(CorePermissions $security, UserHelper $userHelper, FormFactoryInterface $formFactory, FormFieldHelper $fieldHelper, RequestStack $requestStack)
-    {
-        $this->requestStack = $requestStack;
-
-        parent::__construct($security, $userHelper, $formFactory, $fieldHelper);
-    }
-
     /**
      * @return \Symfony\Component\HttpFoundation\JsonResponse|\Symfony\Component\HttpFoundation\RedirectResponse
      */
-    public function batchDeleteAction(Request $request)
+    public function batchDeleteAction()
     {
-        return $this->batchDeleteStandard($request);
+        return $this->batchDeleteStandard();
     }
 
     /**
@@ -45,9 +29,9 @@ class MessageController extends AbstractStandardFormController
      *
      * @return \Mautic\CoreBundle\Controller\Response|\Symfony\Component\HttpFoundation\JsonResponse|\Symfony\Component\HttpFoundation\RedirectResponse
      */
-    public function cloneAction(Request $request, $objectId)
+    public function cloneAction($objectId)
     {
-        return $this->cloneStandard($request, $objectId);
+        return $this->cloneStandard($objectId);
     }
 
     /**
@@ -56,9 +40,9 @@ class MessageController extends AbstractStandardFormController
      *
      * @return \Mautic\CoreBundle\Controller\Response|\Symfony\Component\HttpFoundation\JsonResponse
      */
-    public function editAction(Request $request, $objectId, $ignorePost = false)
+    public function editAction($objectId, $ignorePost = false)
     {
-        return $this->editStandard($request, $objectId, $ignorePost);
+        return $this->editStandard($objectId, $ignorePost);
     }
 
     /**
@@ -66,17 +50,17 @@ class MessageController extends AbstractStandardFormController
      *
      * @return \Mautic\CoreBundle\Controller\Response|\Symfony\Component\HttpFoundation\JsonResponse|\Symfony\Component\HttpFoundation\RedirectResponse
      */
-    public function indexAction(Request $request, $page = 1)
+    public function indexAction($page = 1)
     {
-        return $this->indexStandard($request, $page);
+        return $this->indexStandard($page);
     }
 
     /**
      * @return \Mautic\CoreBundle\Controller\Response|\Symfony\Component\HttpFoundation\JsonResponse
      */
-    public function newAction(Request $request)
+    public function newAction()
     {
-        return $this->newStandard($request);
+        return $this->newStandard();
     }
 
     /**
@@ -84,9 +68,9 @@ class MessageController extends AbstractStandardFormController
      *
      * @return array|\Symfony\Component\HttpFoundation\JsonResponse|\Symfony\Component\HttpFoundation\RedirectResponse|\Symfony\Component\HttpFoundation\Response
      */
-    public function viewAction(Request $request, $objectId)
+    public function viewAction($objectId)
     {
-        return $this->viewStandard($request, $objectId, 'message', 'channel');
+        return $this->viewStandard($objectId, 'message', 'channel');
     }
 
     /**
@@ -103,14 +87,14 @@ class MessageController extends AbstractStandardFormController
         switch ($action) {
             case 'index':
                 $viewParameters = [
-                    'headerTitle' => $this->translator->trans('mautic.channel.messages'),
+                    'headerTitle' => $this->get('translator')->trans('mautic.channel.messages'),
                     'listHeaders' => [
                         [
                             'text'  => 'mautic.core.channels',
                             'class' => 'visible-md visible-lg',
                         ],
                     ],
-                    'listItemTemplate'  => '@MauticChannel/Message/list_item.html.twig',
+                    'listItemTemplate'  => 'MauticChannelBundle:Message:list_item.html.php',
                     'enableCloneButton' => true,
                 ];
 
@@ -127,23 +111,23 @@ class MessageController extends AbstractStandardFormController
                     ]
                 );
 
-                list($dateFrom, $dateTo) = $this->getViewDateRange($this->requestStack->getCurrentRequest(), $message->getId(), $returnUrl, 'local', $dateRangeForm);
+                list($dateFrom, $dateTo) = $this->getViewDateRange($message->getId(), $returnUrl, 'local', $dateRangeForm);
                 $chart                   = new LineChart(null, $dateFrom, $dateTo);
 
                 /** @var Channel[] $channels */
                 $channels        = $model->getChannels();
                 $messageChannels = $message->getChannels();
                 $chart->setDataset(
-                    $this->translator->trans('mautic.core.all'),
+                    $this->get('translator')->trans('mautic.core.all'),
                     $model->getLeadStatsPost($message->getId(), $dateFrom, $dateTo)
                 );
 
                 $messagedLeads = [
                     'all' => $this->forward(
-                        'Mautic\ChannelBundle\Controller\MessageController::contactsAction',
+                        'MauticChannelBundle:Message:contacts',
                         [
                             'objectId'   => $message->getId(),
-                            'page'       => $this->requestStack->getCurrentRequest()->getSession()->get('mautic.'.$this->getSessionBase('all').'.contact.page', 1),
+                            'page'       => $this->get('session')->get('mautic.'.$this->getSessionBase('all').'.contact.page', 1),
                             'ignoreAjax' => true,
                             'channel'    => 'all',
                         ]
@@ -158,10 +142,10 @@ class MessageController extends AbstractStandardFormController
                         );
 
                         $messagedLeads[$channel->getChannel()] = $this->forward(
-                            'Mautic\ChannelBundle\Controller\MessageController::contactsAction',
+                            'MauticChannelBundle:Message:contacts',
                             [
                                 'objectId' => $message->getId(),
-                                'page'     => $this->requestStack->getCurrentRequest()->getSession()->get(
+                                'page'     => $this->get('session')->get(
                                     'mautic.'.$this->getSessionBase($channel->getChannel()).'.contact.page',
                                     1
                                 ),
@@ -199,14 +183,17 @@ class MessageController extends AbstractStandardFormController
      *
      * @return \Symfony\Component\HttpFoundation\JsonResponse|\Symfony\Component\HttpFoundation\RedirectResponse
      */
-    protected function deleteAction(Request $request, $objectId)
+    protected function deleteAction($objectId)
     {
-        return $this->deleteStandard($request, $objectId);
+        return $this->deleteStandard($objectId);
     }
 
-    protected function getTemplateBase(): string
+    /**
+     * {@inheritdoc}
+     */
+    protected function getControllerBase()
     {
-        return '@MauticChannel/Message';
+        return 'MauticChannelBundle:Message';
     }
 
     /**
@@ -216,7 +203,17 @@ class MessageController extends AbstractStandardFormController
      */
     protected function getFormView(Form $form, $view)
     {
-        return $form->createView();
+        $themes = ['MauticChannelBundle:FormTheme'];
+        /** @var MessageModel $model */
+        $model    = $this->getModel($this->getModelName());
+        $channels = $model->getChannels();
+        foreach ($channels as $channel) {
+            if (isset($channel['formTheme'])) {
+                $themes[] = $channel['formTheme'];
+            }
+        }
+
+        return $this->setFormTheme($form, 'MauticChannelBundle:Message:form.html.php', $themes);
     }
 
     /**
@@ -267,13 +264,8 @@ class MessageController extends AbstractStandardFormController
      *
      * @return JsonResponse|\Symfony\Component\HttpFoundation\RedirectResponse|Response
      */
-    public function contactsAction(
-        Request $request,
-        PageHelperFactoryInterface $pageHelperFactory,
-        $objectId,
-        $channel,
-        $page = 1
-    ) {
+    public function contactsAction($objectId, $channel, $page = 1)
+    {
         $filter = [];
         if ('all' !== $channel) {
             $returnUrl = $this->generateUrl(
@@ -283,7 +275,7 @@ class MessageController extends AbstractStandardFormController
                     'objectId'     => $objectId,
                 ]
             );
-            list($dateFrom, $dateTo) = $this->getViewDateRange($request, $objectId, $returnUrl, 'UTC');
+            list($dateFrom, $dateTo) = $this->getViewDateRange($objectId, $returnUrl, 'UTC');
 
             $filter = [
                 'channel' => $channel,
@@ -299,8 +291,6 @@ class MessageController extends AbstractStandardFormController
         }
 
         return $this->generateContactsGrid(
-            $request,
-            $pageHelperFactory,
             $objectId,
             $page,
             'channel:messages:view',

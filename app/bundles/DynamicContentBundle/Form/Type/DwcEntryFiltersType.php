@@ -12,7 +12,7 @@ use Symfony\Component\Form\FormEvents;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Form\FormView;
 use Symfony\Component\OptionsResolver\OptionsResolver;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 /**
  * Class DwcEntryFiltersType.
@@ -97,6 +97,14 @@ class DwcEntryFiltersType extends AbstractType
                 'error_bubbling' => false,
             ]
         );
+    }
+
+    /**
+     * @return string
+     */
+    public function getBlockPrefix()
+    {
+        return 'dwc_entry_filters';
     }
 
     /**

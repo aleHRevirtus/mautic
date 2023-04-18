@@ -79,7 +79,7 @@ class DashboardBestHoursSubscriber extends MainDashboardSubscriber
                 ]);
             }
 
-            $event->setTemplate('@MauticCore/Helper/chart.html.twig');
+            $event->setTemplate('MauticCoreBundle:Helper:chart.html.php');
             $event->stopPropagation();
         }
     }

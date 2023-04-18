@@ -4,16 +4,12 @@ namespace Mautic\CampaignBundle\Model;
 
 use Mautic\CampaignBundle\Entity\Event;
 use Mautic\CampaignBundle\Entity\LeadEventLog;
-use Mautic\CampaignBundle\Entity\LeadEventLogRepository;
 use Mautic\CampaignBundle\Executioner\Scheduler\EventScheduler;
 use Mautic\CoreBundle\Helper\InputHelper;
 use Mautic\CoreBundle\Helper\IpLookupHelper;
 use Mautic\CoreBundle\Model\AbstractCommonModel;
 use Mautic\LeadBundle\Entity\Lead;
 
-/**
- * @extends AbstractCommonModel<LeadEventLog>
- */
 class EventLogModel extends AbstractCommonModel
 {
     protected EventModel $eventModel;
@@ -36,12 +32,14 @@ class EventLogModel extends AbstractCommonModel
         $this->eventScheduler = $eventScheduler;
     }
 
-    public function getRepository(): LeadEventLogRepository
+    /**
+     * {@inheritdoc}
+     *
+     * @return \Mautic\CampaignBundle\Entity\LeadEventLogRepository
+     */
+    public function getRepository()
     {
-        $result = $this->em->getRepository(LeadEventLog::class);
-        \assert($result instanceof LeadEventLogRepository);
-
-        return $result;
+        return $this->em->getRepository('MauticCampaignBundle:LeadEventLog');
     }
 
     /**

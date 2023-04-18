@@ -2,86 +2,101 @@
 
 namespace Mautic\UserBundle\Security\Authentication\Token;
 
-use InvalidArgumentException;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Security\Core\Authentication\Token\AbstractToken;
-use Symfony\Component\Security\Core\User\UserInterface;
-use Symfony\Component\Security\Guard\Token\GuardTokenInterface;
 
-class PluginToken extends AbstractToken implements GuardTokenInterface
+class PluginToken extends AbstractToken
 {
-    private ?string $providerKey;
-
-    private string $credentials;
-
-    private ?string $authenticatingService;
-
-    private ?Response $response;
+    /**
+     * @var array|\Symfony\Component\Security\Core\Role\RoleInterface[]
+     */
+    protected $providerKey;
 
     /**
-     * @param UserInterface|string|null $user
-     * @param array<string>             $roles
+     * @var string
+     */
+    protected $credentials;
+
+    protected $authenticatingService;
+
+    /**
+     * @var Response
+     */
+    protected $response;
+
+    /**
+     * @param array|\Symfony\Component\Security\Core\Role\RoleInterface[] $providerKey
+     * @param null                                                        $authenticatingService
+     * @param string                                                      $user
+     * @param string                                                      $credentials
+     * @param Response                                                    $response
      */
     public function __construct(
-        ?string $providerKey,
-        ?string $authenticatingService = null,
-        $user = null,
-        string $credentials = '',
+        $providerKey,
+        $authenticatingService = null,
+        $user = '',
+        $credentials = '',
         array $roles = [],
         Response $response = null
     ) {
         parent::__construct($roles);
 
-        if ('' === $providerKey) {
-            throw new InvalidArgumentException('$providerKey must not be empty.');
+        if (empty($providerKey)) {
+            throw new \InvalidArgumentException('$providerKey must not be empty.');
         }
 
-        if (null !== $user) {
-            $this->setUser($user);
-        }
-
+        $this->setUser($user);
         $this->authenticatingService = $authenticatingService;
         $this->credentials           = $credentials;
         $this->providerKey           = $providerKey;
         $this->response              = $response;
 
-        $this->setAuthenticated(count($roles) > 0);
+        parent::setAuthenticated(count($roles) > 0);
     }
 
-    public function getCredentials(): string
+    /**
+     * @return string
+     */
+    public function getCredentials()
     {
         return $this->credentials;
     }
 
-    public function getProviderKey(): ?string
+    /**
+     * @return array|\Symfony\Component\Security\Core\Role\RoleInterface[]
+     */
+    public function getProviderKey()
     {
         return $this->providerKey;
     }
 
-    public function getAuthenticatingService(): ?string
+    public function getAuthenticatingService()
     {
         return $this->authenticatingService;
     }
 
-    public function getResponse(): ?Response
+    /**
+     * @return mixed
+     */
+    public function getResponse()
     {
         return $this->response;
     }
 
     /**
-     * @return array<int, mixed>
+     * {@inheritdoc}
      */
-    public function __serialize(): array
+    public function serialize()
     {
-        return array_merge([$this->authenticatingService, $this->credentials, $this->providerKey, parent::__serialize()]);
+        return serialize([$this->authenticatingService, $this->credentials, $this->providerKey, parent::serialize()]);
     }
 
     /**
-     * @param array<int, mixed> $data
+     * {@inheritdoc}
      */
-    public function __unserialize(array $data): void
+    public function unserialize($serialized)
     {
-        [$this->authenticatingService, $this->credentials, $this->providerKey, $parentArray] = $data;
-        parent::__unserialize($parentArray);
+        list($this->authenticatingService, $this->credentials, $this->providerKey, $parentStr) = unserialize($serialized);
+        parent::unserialize($parentStr);
     }
 }

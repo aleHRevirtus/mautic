@@ -56,7 +56,7 @@ class EmailSendEvent extends CommonEvent
     private $tokens = [];
 
     /**
-     * @var bool
+     * @var internalSend
      */
     private $internalSend = false;
 
@@ -103,7 +103,7 @@ class EmailSendEvent extends CommonEvent
     /**
      * Check if this email is an internal send or to the lead; if an internal send, don't append lead tracking.
      *
-     * @return bool
+     * @return internalSend
      */
     public function isInternalSend()
     {
@@ -123,7 +123,7 @@ class EmailSendEvent extends CommonEvent
     /**
      * Returns the Email entity.
      *
-     * @return Email|null
+     * @return Email
      */
     public function getEmail()
     {
@@ -166,7 +166,7 @@ class EmailSendEvent extends CommonEvent
     /**
      * Get email content.
      *
-     * @return string
+     * @return array
      */
     public function getPlainText()
     {
@@ -242,7 +242,7 @@ class EmailSendEvent extends CommonEvent
     }
 
     /**
-     * @return array|object|null
+     * @return array
      */
     public function getLead()
     {
@@ -370,16 +370,5 @@ class EmailSendEvent extends CommonEvent
     public function isDynamicContentParsing()
     {
         return $this->isDynamicContentParsing;
-    }
-
-    public function getCombinedContent(): string
-    {
-        $content = $this->getSubject();
-        $content .= $this->getContent();
-        $content .= $this->getPlainText();
-        $content .= $this->getEmail() ? $this->getEmail()->getCustomHtml() : '';
-        $content .= implode(' ', $this->getTextHeaders());
-
-        return $content;
     }
 }

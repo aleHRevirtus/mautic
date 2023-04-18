@@ -4,33 +4,40 @@ declare(strict_types=1);
 
 namespace Mautic\LeadBundle\Tests\Entity;
 
+use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Driver\ResultStatement;
 use Doctrine\DBAL\Query\QueryBuilder;
+use Doctrine\ORM\EntityManager;
+use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\Query\Expr;
-use Mautic\CoreBundle\Test\Doctrine\RepositoryConfiguratorTrait;
-use Mautic\LeadBundle\Entity\LeadList;
 use Mautic\LeadBundle\Entity\LeadListRepository;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
 class LeadListRepositoryTest extends TestCase
 {
-    use RepositoryConfiguratorTrait;
+    /**
+     * @var Connection|MockObject
+     */
+    private $connection;
 
     /**
-     * @var MockObject&ResultStatement<mixed>
+     * @var MockObject
      */
     private $stmt;
 
-    private LeadListRepository $repository;
+    /**
+     * @var LeadListRepository
+     */
+    private $repository;
 
     /**
-     * @var QueryBuilder&MockObject
+     * @var QueryBuilder|MockObject
      */
     private $queryBuilderMock;
 
     /**
-     * @var Expr&MockObject
+     * @var Expr|MockObject
      */
     private $expressionMock;
 
@@ -38,11 +45,16 @@ class LeadListRepositoryTest extends TestCase
     {
         parent::setUp();
 
+        $this->connection       = $this->createMock(Connection::class);
+        $entityManager          = $this->createMock(EntityManager::class);
+        $classMetadata          = $this->createMock(ClassMetadata::class);
         $this->stmt             = $this->createMock(ResultStatement::class);
         $this->queryBuilderMock = $this->createMock(QueryBuilder::class);
         $this->expressionMock   = $this->createMock(Expr::class);
 
-        $this->repository = $this->configureRepository(LeadList::class);
+        $this->repository = new LeadListRepository($entityManager, $classMetadata);
+
+        $entityManager->method('getConnection')->willReturn($this->connection);
     }
 
     public function testGetMultipleLeadCounts(): void
@@ -132,7 +144,8 @@ class LeadListRepositoryTest extends TestCase
      */
     private function mockGetLeadCount(array $queryResult): void
     {
-        $this->connection->method('createQueryBuilder')
+        $this->connection
+            ->method('createQueryBuilder')
             ->willReturn($this->queryBuilderMock);
 
         $this->queryBuilderMock->expects(self::once())

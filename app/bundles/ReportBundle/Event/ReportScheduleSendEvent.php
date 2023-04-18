@@ -3,7 +3,7 @@
 namespace Mautic\ReportBundle\Event;
 
 use Mautic\ReportBundle\Entity\Scheduler;
-use Symfony\Contracts\EventDispatcher\Event;
+use Symfony\Component\EventDispatcher\Event;
 
 /**
  * Class ReportScheduleSendEvent.

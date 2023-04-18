@@ -3,30 +3,20 @@
 namespace MauticPlugin\MauticFocusBundle\Controller\Api;
 
 use Mautic\ApiBundle\Controller\CommonApiController;
-use MauticPlugin\MauticFocusBundle\Entity\Focus;
-use MauticPlugin\MauticFocusBundle\Model\FocusModel;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Event\ControllerEvent;
+use Symfony\Component\HttpKernel\Event\FilterControllerEvent;
 
 /**
- * @extends CommonApiController<Focus>
+ * Class FocusApiController.
  */
 class FocusApiController extends CommonApiController
 {
-    /**
-     * @var FocusModel|null
-     */
-    protected $model = null;
-
-    public function initialize(ControllerEvent $event)
+    public function initialize(FilterControllerEvent $event)
     {
         parent::initialize($event);
 
-        $focusModel = $this->getModel('focus');
-        \assert($focusModel instanceof FocusModel);
-
-        $this->model           = $focusModel;
-        $this->entityClass     = Focus::class;
+        $this->model           = $this->getModel('focus');
+        $this->entityClass     = 'MauticPlugin\MauticFocusBundle\Entity\Focus';
         $this->entityNameOne   = 'focus';
         $this->entityNameMulti = 'focus';
         $this->permissionBase  = 'focus:items';

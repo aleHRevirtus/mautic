@@ -3,51 +3,36 @@
 namespace Mautic\CoreBundle\Controller\Api;
 
 use Mautic\ApiBundle\Controller\CommonApiController;
-use Mautic\ApiBundle\Helper\EntityResultHelper;
-use Mautic\CoreBundle\Helper\AppVersion;
 use Mautic\CoreBundle\Helper\InputHelper;
-use Mautic\CoreBundle\Helper\PathsHelper;
-use Mautic\CoreBundle\Helper\ThemeHelper;
-use Mautic\CoreBundle\Security\Permissions\CorePermissions;
-use Mautic\CoreBundle\Translation\Translator;
-use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\ResponseHeaderBag;
-use Symfony\Component\Routing\RouterInterface;
+use Symfony\Component\HttpKernel\Event\FilterControllerEvent;
 
 /**
- * @extends CommonApiController<object>
+ * Class ThemeApiController.
  */
 class ThemeApiController extends CommonApiController
 {
     /**
-     * @var ThemeHelper
+     * @var Mautic\CoreBundle\Helper\ThemeHelper
      */
     protected $themeHelper;
 
-    public function __construct(
-        CorePermissions $security,
-        Translator $translator,
-        EntityResultHelper $entityResultHelper,
-        RouterInterface $router,
-        FormFactoryInterface $formFactory,
-        AppVersion $appVersion,
-        ThemeHelper $themeHelper,
-        RequestStack $requestStack
-    ) {
-        $this->themeHelper = $themeHelper;
-        parent::__construct($security, $translator, $entityResultHelper, $router, $formFactory, $appVersion, $requestStack);
+    public function initialize(FilterControllerEvent $event)
+    {
+        $this->themeHelper = $this->container->get('mautic.helper.theme');
+
+        parent::initialize($event);
     }
 
     /**
      * Accepts the zip file and installs the theme from it.
      *
-     * @return \Symfony\Component\HttpFoundation\Response
+     * @return \Symfony\Component\HttpFoundation\JsonResponse
      */
-    public function newAction(Request $request, PathsHelper $pathsHelper)
+    public function newAction(Request $request)
     {
         if (!$this->security->isGranted('core:themes:create')) {
             return $this->accessDenied();
@@ -70,7 +55,7 @@ class ThemeApiController extends CommonApiController
         } else {
             $fileName  = InputHelper::filename($themeZip->getClientOriginalName());
             $themeName = basename($fileName, '.zip');
-            $dir       = $pathsHelper->getSystemPath('themes', true);
+            $dir       = $this->get('mautic.helper.paths')->getSystemPath('themes', true);
 
             if (!empty($themeZip)) {
                 try {
@@ -98,7 +83,7 @@ class ThemeApiController extends CommonApiController
      *
      * @param string $theme dir name
      *
-     * @return Response
+     * @return BinaryFileResponse
      */
     public function getAction($theme)
     {
@@ -130,7 +115,7 @@ class ThemeApiController extends CommonApiController
     /**
      * List the folders (themes) in the /themes directory.
      *
-     * @return \Symfony\Component\HttpFoundation\Response
+     * @return \Symfony\Component\HttpFoundation\JsonResponse
      */
     public function listAction()
     {
@@ -154,7 +139,7 @@ class ThemeApiController extends CommonApiController
      *
      * @param string $theme
      *
-     * @return \Symfony\Component\HttpFoundation\Response
+     * @return \Symfony\Component\HttpFoundation\JsonResponse
      */
     public function deleteAction($theme)
     {

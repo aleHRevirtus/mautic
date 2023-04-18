@@ -117,6 +117,14 @@ class DynamicContentFilterEntryType extends AbstractType
         );
     }
 
+    /**
+     * @return string
+     */
+    public function getBlockPrefix()
+    {
+        return 'dynamic_content_filter_entry';
+    }
+
     private function filterFieldChoices()
     {
         $this->fieldChoices['lead'] = array_filter(

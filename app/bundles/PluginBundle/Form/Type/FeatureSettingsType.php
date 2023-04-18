@@ -10,13 +10,13 @@ use Symfony\Component\Form\FormError;
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
 use Symfony\Component\Form\FormInterface;
-use Symfony\Component\HttpFoundation\Session\SessionInterface;
+use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 class FeatureSettingsType extends AbstractType
 {
     /**
-     * @var SessionInterface
+     * @var Session
      */
     protected $session;
 
@@ -31,7 +31,7 @@ class FeatureSettingsType extends AbstractType
     protected $logger;
 
     public function __construct(
-        SessionInterface $session,
+        Session $session,
         CoreParametersHelper $coreParametersHelper,
         LoggerInterface $logger
     ) {

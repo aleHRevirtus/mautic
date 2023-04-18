@@ -44,7 +44,7 @@ class Action
     private $properties = [];
 
     /**
-     * @var Form|null
+     * @var Form
      */
     private $form;
 
@@ -213,7 +213,7 @@ class Action
     /**
      * Get form.
      *
-     * @return Form|null
+     * @return Form
      */
     public function getForm()
     {

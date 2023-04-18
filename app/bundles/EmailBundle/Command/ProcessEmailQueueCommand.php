@@ -4,7 +4,6 @@ namespace Mautic\EmailBundle\Command;
 
 use Mautic\CoreBundle\Command\ModeratedCommand;
 use Mautic\CoreBundle\Helper\CoreParametersHelper;
-use Mautic\CoreBundle\Helper\PathsHelper;
 use Mautic\EmailBundle\EmailEvents;
 use Mautic\EmailBundle\Event\QueueEmailEvent;
 use Swift_Transport;
@@ -24,19 +23,18 @@ class ProcessEmailQueueCommand extends ModeratedCommand
     private EventDispatcherInterface $eventDispatcher;
     private CoreParametersHelper $parametersHelper;
 
-    public function __construct(
-        Swift_Transport $swiftTransport,
-        EventDispatcherInterface $eventDispatcher,
-        CoreParametersHelper $parametersHelper,
-        PathsHelper $pathsHelper
-    ) {
-        parent::__construct($pathsHelper);
+    public function __construct(Swift_Transport $swiftTransport, EventDispatcherInterface $eventDispatcher, CoreParametersHelper $parametersHelper)
+    {
+        parent::__construct();
 
         $this->swiftTransport   = $swiftTransport;
         $this->eventDispatcher  = $eventDispatcher;
         $this->parametersHelper = $parametersHelper;
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function configure()
     {
         $this
@@ -58,17 +56,20 @@ EOT
         parent::configure();
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    /**
+     * {@inheritdoc}
+     */
+    protected function execute(InputInterface $input, OutputInterface $output)
     {
         $options     = $input->getOptions();
         $env         = (!empty($options['env'])) ? $options['env'] : 'dev';
         $skipClear   = $input->getOption('do-not-clear');
-        $quiet       = $input->hasOption('quiet') ? $input->getOption('quiet') : false;
+        $quiet       = (bool) $input->getOption('quiet');
         $timeout     = $input->getOption('clear-timeout');
         $queueMode   = $this->parametersHelper->get('mailer_spool_type');
         $lockName    = $input->getOption('lock-name') ?? '';
 
-        if ('file' != $queueMode) {
+        if ('file' !== $queueMode) {
             $output->writeln('Mautic is not set to queue email.');
 
             return 0;
@@ -119,7 +120,7 @@ EOT
                         $tryAgain = false;
                         if ($this->eventDispatcher->hasListeners(EmailEvents::EMAIL_RESEND)) {
                             $event = new QueueEmailEvent($message);
-                            $this->eventDispatcher->dispatch($event, EmailEvents::EMAIL_RESEND);
+                            $this->eventDispatcher->dispatch(EmailEvents::EMAIL_RESEND, $event);
                             $tryAgain = $event->shouldTryAgain();
                         }
 
@@ -128,7 +129,7 @@ EOT
                         } catch (\Swift_TransportException $e) {
                             if (!$tryAgain && $this->eventDispatcher->hasListeners(EmailEvents::EMAIL_FAILED)) {
                                 $event = new QueueEmailEvent($message);
-                                $this->eventDispatcher->dispatch($event, EmailEvents::EMAIL_FAILED);
+                                $this->eventDispatcher->dispatch(EmailEvents::EMAIL_FAILED, $event);
                             }
                         }
                     } else {
@@ -148,7 +149,7 @@ EOT
         }
 
         //now process new emails
-        if (!$quiet) {
+        if ($quiet) {
             $output->setVerbosity(OutputInterface::VERBOSITY_QUIET);
         }
 
@@ -187,7 +188,7 @@ EOT
         $this->completeRun();
 
         if (0 !== $returnCode) {
-            return (int) $returnCode;
+            return $returnCode;
         }
 
         return 0;

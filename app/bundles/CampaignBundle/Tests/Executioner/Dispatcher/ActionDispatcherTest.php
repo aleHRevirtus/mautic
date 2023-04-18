@@ -105,16 +105,15 @@ class ActionDispatcherTest extends \PHPUnit\Framework\TestCase
             ->method('dispatch')
             ->withConsecutive(
                 [],
-                [$this->isInstanceOf(ExecutedEvent::class), CampaignEvents::ON_EVENT_EXECUTED],
-                [$this->isInstanceOf(ExecutedBatchEvent::class), CampaignEvents::ON_EVENT_EXECUTED_BATCH],
-                [$this->isInstanceOf(FailedEvent::class), CampaignEvents::ON_EVENT_FAILED]
+                [CampaignEvents::ON_EVENT_EXECUTED, $this->isInstanceOf(ExecutedEvent::class)],
+                [CampaignEvents::ON_EVENT_EXECUTED_BATCH, $this->isInstanceOf(ExecutedBatchEvent::class)],
+                [CampaignEvents::ON_EVENT_FAILED, $this->isInstanceOf(FailedEvent::class)]
             )
             ->willReturnCallback(
-                function (\Symfony\Contracts\EventDispatcher\Event $event, string $eventName) use ($logs, &$dispatcCounter) {
+                function (string $eventName, $event) use ($logs, &$dispatcCounter) {
                     ++$dispatcCounter;
                     if (1 === $dispatcCounter) {
                         Assert::assertInstanceOf(PendingEvent::class, $event);
-                        \assert($event instanceof PendingEvent);
                         $event->pass($logs->get(1));
                         $event->fail($logs->get(2), 'just because');
                     }
@@ -192,7 +191,7 @@ class ActionDispatcherTest extends \PHPUnit\Framework\TestCase
         $this->dispatcher->expects($this->once())
             ->method('dispatch')
             ->willReturnCallback(
-                function (PendingEvent $pendingEvent, string $eventName) use ($logs) {
+                function ($eventName, PendingEvent $pendingEvent) use ($logs) {
                     $pendingEvent->pass($logs->get(1));
 
                     // One log is not processed so the exception should be thrown
@@ -252,7 +251,7 @@ class ActionDispatcherTest extends \PHPUnit\Framework\TestCase
         $this->dispatcher->expects($this->once())
             ->method('dispatch')
             ->willReturnCallback(
-                function (PendingEvent $pendingEvent, string $eventName) use ($logs) {
+                function ($eventName, PendingEvent $pendingEvent) use ($logs) {
                     $pendingEvent->fail($logs->get(2), 'something');
 
                     // One log is not processed so the exception should be thrown

@@ -53,7 +53,7 @@ class CampaignSendSubscriber implements EventSubscriberInterface
                     'eventName'        => SmsEvents::ON_CAMPAIGN_TRIGGER_ACTION,
                     'formType'         => SmsSendType::class,
                     'formTypeOptions'  => ['update_select' => 'campaignevent_properties_sms'],
-                    'formTheme'        => '@MauticSms/FormTheme/SmsSendList/smssend_list_row.html.twig',
+                    'formTheme'        => 'MauticSmsBundle:FormTheme\SmsSendList',
                     'channel'          => 'sms',
                     'channelIdField'   => 'sms',
                 ]

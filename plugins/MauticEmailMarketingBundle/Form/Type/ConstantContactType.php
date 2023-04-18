@@ -13,20 +13,33 @@ use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
-use Symfony\Component\HttpFoundation\Session\SessionInterface;
+use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
+/**
+ * Class ConstantContactType.
+ */
 class ConstantContactType extends AbstractType
 {
-    private IntegrationHelper $integrationHelper;
+    /**
+     * @var IntegrationHelper
+     */
+    private $integrationHelper;
 
-    private PluginModel $pluginModel;
+    /** @var PluginModel */
+    private $pluginModel;
 
-    protected SessionInterface $session;
+    /**
+     * @var Session
+     */
+    protected $session;
 
-    protected CoreParametersHelper $coreParametersHelper;
+    /**
+     * @var CoreParametersHelper
+     */
+    protected $coreParametersHelper;
 
-    public function __construct(IntegrationHelper $integrationHelper, PluginModel $pluginModel, SessionInterface $session, CoreParametersHelper $coreParametersHelper)
+    public function __construct(IntegrationHelper $integrationHelper, PluginModel $pluginModel, Session $session, CoreParametersHelper $coreParametersHelper)
     {
         $this->integrationHelper    = $integrationHelper;
         $this->pluginModel          = $pluginModel;

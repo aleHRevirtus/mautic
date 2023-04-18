@@ -28,14 +28,14 @@ use Symfony\Component\Form\FormBuilder;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\Routing\Router;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 /**
  * @method HubspotApi getApiHelper
  */
 class HubspotIntegration extends CrmAbstractIntegration
 {
-    public const ACCESS_KEY = 'accessKey';
+    const ACCESS_KEY = 'accessKey';
 
     /**
      * @var UserHelper
@@ -526,7 +526,7 @@ class HubspotIntegration extends CrmAbstractIntegration
      * @param mixed       $data        Profile data from integration
      * @param bool|true   $persist     Set to false to not persist lead to the database in this method
      * @param array|null  $socialCache
-     * @param mixed|null  $identifiers
+     * @param mixed||null $identifiers
      * @param string|null $object
      *
      * @return Lead
@@ -596,7 +596,7 @@ class HubspotIntegration extends CrmAbstractIntegration
                         $this->em->detach($company);
                     }
                 } catch (\Exception $exception) {
-                    $this->logger->warning($exception->getMessage());
+                    $this->logger->addWarning($exception->getMessage());
 
                     return;
                 }

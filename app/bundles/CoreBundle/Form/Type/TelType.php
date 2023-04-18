@@ -28,4 +28,12 @@ class TelType extends AbstractType
     {
         return TextType::class;
     }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getBlockPrefix()
+    {
+        return 'tel';
+    }
 }

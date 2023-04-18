@@ -20,7 +20,7 @@ use Mautic\IntegrationsBundle\Exception\PluginNotConfiguredException;
  */
 abstract class AbstractClientFactory implements AuthProviderInterface
 {
-    public const NAME = 'oauth2_three_legged';
+    const NAME = 'oauth2_three_legged';
 
     public function getAuthType(): string
     {

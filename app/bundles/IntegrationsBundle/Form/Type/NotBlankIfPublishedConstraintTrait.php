@@ -13,7 +13,7 @@ trait NotBlankIfPublishedConstraintTrait
     /**
      * Get not blank restraint if published.
      *
-     * @return callable
+     * @return callback
      */
     private function getNotBlankConstraint()
     {

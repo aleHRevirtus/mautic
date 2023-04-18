@@ -4,21 +4,17 @@ namespace Mautic\CategoryBundle\Controller\Api;
 
 use Mautic\ApiBundle\Controller\CommonApiController;
 use Mautic\CategoryBundle\Entity\Category;
-use Mautic\CategoryBundle\Model\CategoryModel;
-use Symfony\Component\HttpKernel\Event\ControllerEvent;
+use Symfony\Component\HttpKernel\Event\FilterControllerEvent;
 
 /**
- * @extends CommonApiController<Category>
+ * Class CategoryApiController.
  */
 class CategoryApiController extends CommonApiController
 {
-    public function initialize(ControllerEvent $event)
+    public function initialize(FilterControllerEvent $event)
     {
-        $categoryModel = $this->getModel('category');
-        \assert($categoryModel instanceof CategoryModel);
-
-        $this->model            = $categoryModel;
-        $this->entityClass      = Category::class;
+        $this->model            = $this->getModel('category');
+        $this->entityClass      = 'Mautic\CategoryBundle\Entity\Category';
         $this->entityNameOne    = 'category';
         $this->entityNameMulti  = 'categories';
         $this->serializerGroups = ['categoryDetails'];
@@ -58,9 +54,9 @@ class CategoryApiController extends CommonApiController
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array
      */
-    protected function getEntityFormOptions(): array
+    protected function getEntityFormOptions()
     {
         return ['show_bundle_select' => true];
     }

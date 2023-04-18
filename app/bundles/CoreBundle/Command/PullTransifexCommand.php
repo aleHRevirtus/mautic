@@ -66,7 +66,10 @@ EOT
         );
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    /**
+     * {@inheritdoc}
+     */
+    protected function execute(InputInterface $input, OutputInterface $output)
     {
         $languageFilter = $input->getOption('language');
         $bundleFilter   = $input->getOption('bundle');

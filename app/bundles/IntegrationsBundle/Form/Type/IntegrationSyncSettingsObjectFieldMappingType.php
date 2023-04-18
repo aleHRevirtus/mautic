@@ -14,7 +14,7 @@ use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class IntegrationSyncSettingsObjectFieldMappingType extends AbstractType
 {
@@ -41,8 +41,12 @@ class IntegrationSyncSettingsObjectFieldMappingType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $integrationFields = $options['integrationFields'];
+
+        /** @var ConfigFormSyncInterface $integrationObject */
         $integrationObject = $options['integrationObject'];
-        \assert($integrationObject instanceof ConfigFormSyncInterface);
+        if (!$integrationObject instanceof ConfigFormSyncInterface) {
+            throw new InvalidFormOptionException('integrationObject must be an instance of ConfigFormSyncInterface');
+        }
 
         $objectName = $options['object'];
         foreach ($integrationFields as $fieldName => $fieldInfo) {

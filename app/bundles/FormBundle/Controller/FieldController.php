@@ -3,73 +3,63 @@
 namespace Mautic\FormBundle\Controller;
 
 use Mautic\CoreBundle\Controller\FormController as CommonFormController;
-use Mautic\CoreBundle\Helper\UserHelper;
-use Mautic\CoreBundle\Security\Permissions\CorePermissions;
-use Mautic\FormBundle\Collector\AlreadyMappedFieldCollectorInterface;
-use Mautic\FormBundle\Collector\MappedObjectCollectorInterface;
+use Mautic\CoreBundle\Model\AbstractCommonModel;
 use Mautic\FormBundle\Entity\Field;
 use Mautic\FormBundle\Event\FormBuilderEvent;
 use Mautic\FormBundle\FormEvents;
 use Mautic\FormBundle\Helper\FormFieldHelper;
 use Mautic\FormBundle\Model\FieldModel;
 use Mautic\FormBundle\Model\FormModel;
-use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Event\FilterControllerEvent;
 
 class FieldController extends CommonFormController
 {
-    private FormModel $formModel;
-
-    private FieldModel $formFieldModel;
+    /**
+     * @var FormModel|AbstractCommonModel
+     */
+    private $formModel;
 
     /**
-     * @var MappedObjectCollectorInterface
+     * @var FieldModel|AbstractCommonModel
      */
-    private $mappedObjectCollector;
+    private $formFieldModel;
 
     /**
-     * @var AlreadyMappedFieldCollectorInterface
+     * @var FormFieldHelper
      */
-    private $alreadyMappedFieldCollector;
+    private $fieldHelper;
 
-    public function __construct(FormModel $formModel, FieldModel $formFieldModel, FormFieldHelper $fieldHelper, CorePermissions $security, UserHelper $userHelper, FormFactoryInterface $formFactory, MappedObjectCollectorInterface $mappedObjectCollector, AlreadyMappedFieldCollectorInterface $alreadyMappedFieldCollector)
+    public function initialize(FilterControllerEvent $event)
     {
-        $this->formModel                   = $formModel;
-        $this->formFieldModel              = $formFieldModel;
-        $this->fieldHelper                 = $fieldHelper;
-        $this->security                    = $security;
-        $this->formFactory                 = $formFactory;
-        $this->mappedObjectCollector       = $mappedObjectCollector;
-        $this->alreadyMappedFieldCollector = $alreadyMappedFieldCollector;
-
-        parent::__construct($security, $userHelper, $formFactory, $fieldHelper);
+        $this->formModel      = $this->getModel('form');
+        $this->formFieldModel = $this->getModel('form.field');
+        $this->fieldHelper    = $this->get('mautic.helper.form.field_helper');
     }
 
     /**
      * Generates new form and processes post data.
      *
-     * @return Response
+     * @return JsonResponse
      */
-    public function newAction(Request $request)
+    public function newAction()
     {
         $success = 0;
         $valid   = $cancelled   = false;
-        $method  = $request->getMethod();
-        $session = $request->getSession();
+        $method  = $this->request->getMethod();
+        $session = $this->get('session');
 
         if ('POST' == $method) {
-            $formField = $request->request->get('formfield');
+            $formField = $this->request->request->get('formfield');
             $fieldType = $formField['type'];
             $formId    = $formField['formId'];
         } else {
-            $fieldType = $request->query->get('type');
-            $formId    = $request->query->get('formId');
+            $fieldType = $this->request->query->get('type');
+            $formId    = $this->request->query->get('formId');
             $formField = [
                 'type'     => $fieldType,
                 'formId'   => $formId,
-                'parent'   => $request->query->get('parent'),
+                'parent'   => $this->request->query->get('parent'),
             ];
         }
 
@@ -77,8 +67,8 @@ class FieldController extends CommonFormController
         $customParams     = (isset($customComponents['fields'][$fieldType])) ? $customComponents['fields'][$fieldType] : false;
         //ajax only for form fields
         if (!$fieldType ||
-            !$request->isXmlHttpRequest() ||
-            !$this->security->isGranted(['form:forms:editown', 'form:forms:editother', 'form:forms:create'], 'MATCH_ONE')
+            !$this->request->isXmlHttpRequest() ||
+            !$this->get('mautic.security')->isGranted(['form:forms:editown', 'form:forms:editother', 'form:forms:create'], 'MATCH_ONE')
         ) {
             return $this->modalAccessDenied();
         }
@@ -113,10 +103,8 @@ class FieldController extends CommonFormController
                     }
 
                     // Generate or ensure a unique alias
-                    $alias          = empty($formField['alias']) ? $formField['label'] : $formField['alias'];
-                    $formFieldModel = $this->getModel('form.field');
-                    \assert($formFieldModel instanceof FieldModel);
-                    $formField['alias'] = $formFieldModel->generateAlias($alias, $aliases);
+                    $alias              = empty($formField['alias']) ? $formField['label'] : $formField['alias'];
+                    $formField['alias'] = $this->getModel('form.field')->generateAlias($alias, $aliases);
 
                     // Force required for captcha if not a honeypot
                     if ('captcha' == $formField['type']) {
@@ -138,9 +126,13 @@ class FieldController extends CommonFormController
                     $session->set('mautic.form.'.$formId.'.fields.modified', $fields);
 
                     // Keep track of used lead fields
-                    if (!empty($formField['mappedObject']) && !empty($formField['mappedField']) && empty($formData['parent'])) {
-                        $this->alreadyMappedFieldCollector->addField($formId, $formField['mappedObject'], $formField['mappedField']);
+                    $usedLeadFields = $this->get('session')->get('mautic.form.'.$formId.'.fields.leadfields', []);
+                    if (!empty($formData['leadField']) && empty($formData['parent'])) {
+                        $usedLeadFields[$keyId] = $formData['leadField'];
+                    } else {
+                        unset($usedLeadFields[$keyId]);
                     }
+                    $session->set('mautic.form.'.$formId.'.fields.leadfields', $usedLeadFields);
                 } else {
                     $success = 0;
                 }
@@ -153,8 +145,8 @@ class FieldController extends CommonFormController
         } else {
             $closeModal                = false;
             $viewParams['tmpl']        = 'field';
-            $viewParams['form']        = (isset($customParams['formTheme'])) ? $this->setFormTheme($form, '@MauticForm/Builder/field.html.twig', $customParams['formTheme']) : $form->createView();
-            $viewParams['fieldHeader'] = (!empty($customParams)) ? $this->translator->trans($customParams['label']) : $this->translator->transConditional('mautic.core.type.'.$fieldType, 'mautic.form.field.type.'.$fieldType);
+            $viewParams['form']        = (isset($customParams['formTheme'])) ? $this->setFormTheme($form, 'MauticFormBundle:Builder:field.html.php', $customParams['formTheme']) : $form->createView();
+            $viewParams['fieldHeader'] = (!empty($customParams)) ? $this->get('translator')->trans($customParams['label']) : $this->get('translator')->transConditional('mautic.core.type.'.$fieldType, 'mautic.form.field.type.'.$fieldType);
         }
 
         $passthroughVars = [
@@ -171,11 +163,9 @@ class FieldController extends CommonFormController
 
             $passthroughVars['parent']    = $formField['parent'];
             $passthroughVars['fieldId']   = $keyId;
-            $template                     = (!empty($customParams)) ? $customParams['template'] : '@MauticForm/Field/'.$fieldType.'.html.twig';
-            $leadFieldModel               = $this->getModel('lead.field');
-            \assert($leadFieldModel instanceof \Mautic\LeadBundle\Model\FieldModel);
+            $template                     = (!empty($customParams)) ? $customParams['template'] : 'MauticFormBundle:Field:'.$fieldType.'.html.php';
             $passthroughVars['fieldHtml'] = $this->renderView(
-                '@MauticForm/Builder/_field_wrapper.html.twig',
+                'MauticFormBundle:Builder:fieldwrapper.html.php',
                 [
                     'isConditional'        => !empty($formField['parent']),
                     'template'             => $template,
@@ -184,7 +174,8 @@ class FieldController extends CommonFormController
                     'id'                   => $keyId,
                     'formId'               => $formId,
                     'formName'             => null === $formEntity ? 'newform' : $formEntity->generateFormName(),
-                    'mappedFields'         => $this->mappedObjectCollector->buildCollection((string) $formField['mappedObject']),
+                    'contactFields'        => $this->getModel('lead.field')->getFieldListWithProperties(),
+                    'companyFields'        => $this->getModel('lead.field')->getFieldListWithProperties('company'),
                     'inBuilder'            => true,
                     'fields'               => $this->fieldHelper->getChoiceList($customComponents['fields']),
                     'viewOnlyFields'       => $customComponents['viewOnlyFields'],
@@ -200,8 +191,8 @@ class FieldController extends CommonFormController
             return new JsonResponse($passthroughVars);
         }
 
-        return $this->ajaxAction($request, [
-            'contentTemplate' => '@MauticForm/Builder/'.$viewParams['tmpl'].'.html.twig',
+        return $this->ajaxAction([
+            'contentTemplate' => 'MauticFormBundle:Builder:'.$viewParams['tmpl'].'.html.php',
             'viewParameters'  => $viewParams,
             'passthroughVars' => $passthroughVars,
         ]);
@@ -212,14 +203,14 @@ class FieldController extends CommonFormController
      *
      * @param int $objectId
      *
-     * @return Response
+     * @return JsonResponse
      */
-    public function editAction(Request $request, $objectId)
+    public function editAction($objectId)
     {
-        $session   = $request->getSession();
-        $method    = $request->getMethod();
-        $formfield = $request->request->get('formfield', []);
-        $formId    = 'POST' === $method ? ($formfield['formId'] ?? '') : $request->query->get('formId');
+        $session   = $this->get('session');
+        $method    = $this->request->getMethod();
+        $formfield = $this->request->request->get('formfield', []);
+        $formId    = 'POST' === $method ? ($formfield['formId'] ?? '') : $this->request->query->get('formId');
         $fields    = $session->get('mautic.form.'.$formId.'.fields.modified', []);
         $success   = 0;
         $valid     = $cancelled = false;
@@ -230,8 +221,8 @@ class FieldController extends CommonFormController
 
             //ajax only for form fields
             if (!$fieldType ||
-                !$request->isXmlHttpRequest() ||
-                !$this->security->isGranted(['form:forms:editown', 'form:forms:editother', 'form:forms:create'], 'MATCH_ONE')
+                !$this->request->isXmlHttpRequest() ||
+                !$this->get('mautic.security')->isGranted(['form:forms:editown', 'form:forms:editother', 'form:forms:create'], 'MATCH_ONE')
             ) {
                 return $this->modalAccessDenied();
             }
@@ -248,7 +239,7 @@ class FieldController extends CommonFormController
                         //form is valid so process the data
 
                         //save the properties to session
-                        $session  = $request->getSession();
+                        $session  = $this->get('session');
                         $fields   = $session->get('mautic.form.'.$formId.'.fields.modified');
                         $formData = $form->getData();
 
@@ -278,9 +269,13 @@ class FieldController extends CommonFormController
                         $session->set('mautic.form.'.$formId.'.fields.modified', $fields);
 
                         // Keep track of used lead fields
-                        if (!empty($formField['mappedObject']) && !empty($formField['mappedField']) && empty($formData['parent'])) {
-                            $this->alreadyMappedFieldCollector->addField($formId, $formField['mappedObject'], $formField['mappedField']);
+                        $usedLeadFields = $this->get('session')->get('mautic.form.'.$formId.'.fields.leadfields', []);
+                        if (!empty($formData['leadField']) && empty($formData['parent'])) {
+                            $usedLeadFields[$objectId] = $formData['leadField'];
+                        } else {
+                            unset($usedLeadFields[$objectId]);
                         }
+                        $session->set('mautic.form.'.$formId.'.fields.leadfields', $usedLeadFields);
                     }
                 }
             }
@@ -296,12 +291,14 @@ class FieldController extends CommonFormController
                 $viewParams['tmpl'] = 'field';
                 $viewParams['form'] = (isset($customParams['formTheme'])) ? $this->setFormTheme(
                     $form,
-                    '@MauticForm/Builder/field.html.twig',
+                    'MauticFormBundle:Builder:field.html.php',
                     $customParams['formTheme']
                 ) : $form->createView();
                 $viewParams['fieldHeader'] = (!empty($customParams))
-                    ? $this->translator->trans($customParams['label'])
-                    : $this->translator->transConditional('mautic.core.type.'.$fieldType, 'mautic.form.field.type.'.$fieldType);
+                    ? $this->get('translator')->trans($customParams['label'])
+                    : $this->get(
+                        'translator'
+                    )->transConditional('mautic.core.type.'.$fieldType, 'mautic.form.field.type.'.$fieldType);
             }
 
             $passthroughVars = [
@@ -311,17 +308,15 @@ class FieldController extends CommonFormController
             ];
 
             $passthroughVars['fieldId'] = $objectId;
-            $template                   = (!empty($customParams)) ? $customParams['template'] : '@MauticForm/Field/'.$fieldType.'.html.twig';
+            $template                   = (!empty($customParams)) ? $customParams['template'] : 'MauticFormBundle:Field:'.$fieldType.'.html.php';
 
             //prevent undefined errors
-            $entity       = new Field();
-            $blank        = $entity->convertToArray();
-            $formField    = array_merge($blank, $formField);
+            $entity    = new Field();
+            $blank     = $entity->convertToArray();
+            $formField = array_merge($blank, $formField);
 
-            $leadFieldModel = $this->getModel('lead.field');
-            \assert($leadFieldModel instanceof \Mautic\LeadBundle\Model\FieldModel);
             $passthroughVars['fieldHtml'] = $this->renderView(
-                '@MauticForm/Builder/_field_wrapper.html.twig',
+                'MauticFormBundle:Builder:fieldwrapper.html.php',
                 [
                     'isConditional'        => !empty($formField['parent']),
                     'template'             => $template,
@@ -329,7 +324,8 @@ class FieldController extends CommonFormController
                     'field'                => $formField,
                     'id'                   => $objectId,
                     'formId'               => $formId,
-                    'mappedFields'         => $this->mappedObjectCollector->buildCollection((string) $formField['mappedObject']),
+                    'contactFields'        => $this->getModel('lead.field')->getFieldListWithProperties(),
+                    'companyFields'        => $this->getModel('lead.field')->getFieldListWithProperties('company'),
                     'inBuilder'            => true,
                     'fields'               => $this->fieldHelper->getChoiceList($customComponents['fields']),
                     'formFields'           => $fields,
@@ -345,9 +341,8 @@ class FieldController extends CommonFormController
             }
 
             return $this->ajaxAction(
-                $request,
                 [
-                    'contentTemplate' => '@MauticForm/Builder/'.$viewParams['tmpl'].'.html.twig',
+                    'contentTemplate' => 'MauticFormBundle:Builder:'.$viewParams['tmpl'].'.html.php',
                     'viewParameters'  => $viewParams,
                     'passthroughVars' => $passthroughVars,
                 ]
@@ -364,26 +359,30 @@ class FieldController extends CommonFormController
      *
      * @return JsonResponse
      */
-    public function deleteAction(Request $request, $objectId)
+    public function deleteAction($objectId)
     {
-        $session = $request->getSession();
-        $formId  = $request->query->get('formId');
+        $session = $this->get('session');
+        $formId  = $this->request->query->get('formId');
         $fields  = $session->get('mautic.form.'.$formId.'.fields.modified', []);
         $delete  = $session->get('mautic.form.'.$formId.'.fields.deleted', []);
 
         //ajax only for form fields
-        if (!$request->isXmlHttpRequest() ||
-            !$this->security->isGranted(['form:forms:editown', 'form:forms:editother', 'form:forms:create'], 'MATCH_ONE')
+        if (!$this->request->isXmlHttpRequest() ||
+            !$this->get('mautic.security')->isGranted(['form:forms:editown', 'form:forms:editother', 'form:forms:create'], 'MATCH_ONE')
         ) {
             return $this->accessDenied();
         }
 
         $formField = (array_key_exists($objectId, $fields)) ? $fields[$objectId] : null;
 
-        if ('POST' === $request->getMethod() && null !== $formField) {
-            if ($formField['mappedObject'] && $formField['mappedField']) {
-                // Allow to select the lead field from the delete field again
-                $this->alreadyMappedFieldCollector->removeField($formId, $formField['mappedObject'], $formField['mappedField']);
+        if ('POST' === $this->request->getMethod() && null !== $formField) {
+            $usedLeadFields = $session->get('mautic.form.'.$formId.'.fields.leadfields');
+
+            // Allow to select the lead field from the delete field again
+            $unusedLeadField = array_search($formField['leadField'], $usedLeadFields);
+            if (!empty($formField['leadField']) && empty($formField['parent']) && false !== $unusedLeadField) {
+                unset($usedLeadFields[$unusedLeadField]);
+                $session->set('mautic.form.'.$formId.'.fields.leadfields', $usedLeadFields);
             }
 
             //add the field to the delete list
@@ -405,24 +404,19 @@ class FieldController extends CommonFormController
     }
 
     /**
-     * @param int     $formId
-     * @param mixed[] $formField
+     * @param $formId
      *
      * @return mixed
      */
     private function getFieldForm($formId, array $formField)
     {
         //fire the form builder event
-        $formModel = $this->getModel('form.form');
-        \assert($formModel instanceof FormModel);
-        $customComponents = $this->formModel->getCustomComponents();
+        $customComponents = $this->getModel('form.form')->getCustomComponents();
         $customParams     = (isset($customComponents['fields'][$formField['type']])) ? $customComponents['fields'][$formField['type']] : false;
 
-        $formFieldModel = $this->getModel('form.field');
-        \assert($formFieldModel instanceof FieldModel);
-        $form = $formFieldModel->createForm(
+        $form = $this->getModel('form.field')->createForm(
             $formField,
-            $this->formFactory,
+            $this->get('form.factory'),
             (!empty($formField['id'])) ?
                 $this->generateUrl('mautic_formfield_action', ['objectAction' => 'edit', 'objectId' => $formField['id']])
                 : $this->generateUrl('mautic_formfield_action', ['objectAction' => 'new']),
@@ -430,8 +424,8 @@ class FieldController extends CommonFormController
         );
         $form->get('formId')->setData($formId);
 
-        $event      = new FormBuilderEvent($this->translator);
-        $this->dispatcher->dispatch($event, FormEvents::FORM_ON_BUILD);
+        $event      = new FormBuilderEvent($this->get('translator'));
+        $this->dispatcher->dispatch(FormEvents::FORM_ON_BUILD, $event);
         $event->addValidatorsToBuilder($form);
 
         return $form;

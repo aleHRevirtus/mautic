@@ -3,25 +3,20 @@
 namespace Mautic\PluginBundle\Command;
 
 use Mautic\PluginBundle\Helper\IntegrationHelper;
-use Symfony\Component\Console\Command\Command;
+use Mautic\PluginBundle\Integration\AbstractIntegration;
+use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
-class PushLeadActivityCommand extends Command
+/**
+ * Class PushLeadActivityCommand.
+ */
+class PushLeadActivityCommand extends ContainerAwareCommand
 {
-    private TranslatorInterface $translator;
-    private IntegrationHelper $integrationHelper;
-
-    public function __construct(TranslatorInterface $translator, IntegrationHelper $integrationHelper)
-    {
-        parent::__construct();
-
-        $this->translator        = $translator;
-        $this->integrationHelper = $integrationHelper;
-    }
-
+    /**
+     * {@inheritdoc}
+     */
     protected function configure()
     {
         $this
@@ -57,8 +52,14 @@ class PushLeadActivityCommand extends Command
         parent::configure();
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    /**
+     * {@inheritdoc}
+     */
+    protected function execute(InputInterface $input, OutputInterface $output)
     {
+        $container = $this->getContainer();
+
+        $translator  = $container->get('translator');
         $integration = $input->getOption('integration');
         $startDate   = $input->getOption('start-date');
         $endDate     = $input->getOption('end-date');
@@ -76,17 +77,21 @@ class PushLeadActivityCommand extends Command
         }
 
         if ($integration && $startDate && $endDate) {
-            $integrationObject = $this->integrationHelper->getIntegrationObject($integration);
+            /** @var IntegrationHelper $integrationHelper */
+            $integrationHelper = $container->get('mautic.helper.integration');
+
+            /** @var AbstractIntegration $integrationObject */
+            $integrationObject = $integrationHelper->getIntegrationObject($integration);
 
             if (null !== $integrationObject && method_exists($integrationObject, 'pushLeadActivity')) {
-                $output->writeln('<info>'.$this->translator->trans('mautic.plugin.command.push.leads.activity', ['%integration%' => $integration]).'</info>');
+                $output->writeln('<info>'.$translator->trans('mautic.plugin.command.push.leads.activity', ['%integration%' => $integration]).'</info>');
 
                 $params['start'] = $startDate;
                 $params['end']   = $endDate;
 
                 $processed = intval($integrationObject->pushLeadActivity($params));
 
-                $output->writeln('<comment>'.$this->translator->trans('mautic.plugin.command.push.leads.events_executed', ['%events%' => $processed]).'</comment>'."\n");
+                $output->writeln('<comment>'.$translator->trans('mautic.plugin.command.push.leads.events_executed', ['%events%' => $processed]).'</comment>'."\n");
             }
         }
 

@@ -12,15 +12,12 @@ use Mautic\CoreBundle\Model\FormModel;
 use Mautic\LeadBundle\Entity\Lead;
 use Mautic\LeadBundle\Model\CompanyModel;
 use Mautic\LeadBundle\Model\LeadModel;
-use Symfony\Contracts\EventDispatcher\Event;
+use Symfony\Component\EventDispatcher\Event;
 
-/**
- * @extends FormModel<MessageQueue>
- */
 class MessageQueueModel extends FormModel
 {
     /** @var string A default message reschedule interval */
-    public const DEFAULT_RESCHEDULE_INTERVAL = 'PT15M';
+    const DEFAULT_RESCHEDULE_INTERVAL = 'PT15M';
 
     /**
      * @var LeadModel
@@ -452,7 +449,7 @@ class MessageQueueModel extends FormModel
                 $event = new MessageQueueEvent($entity, $isNew);
                 $event->setEntityManager($this->em);
             }
-            $this->dispatcher->dispatch($event, $name);
+            $this->dispatcher->dispatch($name, $event);
 
             return $event;
         } else {

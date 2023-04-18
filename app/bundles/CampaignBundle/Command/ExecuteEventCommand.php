@@ -3,13 +3,16 @@
 namespace Mautic\CampaignBundle\Command;
 
 use Mautic\CampaignBundle\Executioner\ScheduledExecutioner;
-use Mautic\CoreBundle\Twig\Helper\FormatterHelper;
+use Mautic\CoreBundle\Templating\Helper\FormatterHelper;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
+/**
+ * Class TriggerCampaignCommand.
+ */
 class ExecuteEventCommand extends Command
 {
     use WriteCountTrait;
@@ -29,6 +32,9 @@ class ExecuteEventCommand extends Command
      */
     private $formatterHelper;
 
+    /**
+     * ExecuteEventCommand constructor.
+     */
     public function __construct(ScheduledExecutioner $scheduledExecutioner, TranslatorInterface $translator, FormatterHelper $formatterHelper)
     {
         parent::__construct();
@@ -57,9 +63,11 @@ class ExecuteEventCommand extends Command
     }
 
     /**
+     * @return int|null
+     *
      * @throws \Exception
      */
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    protected function execute(InputInterface $input, OutputInterface $output)
     {
         defined('MAUTIC_CAMPAIGN_SYSTEM_TRIGGERED') or define('MAUTIC_CAMPAIGN_SYSTEM_TRIGGERED', 1);
 

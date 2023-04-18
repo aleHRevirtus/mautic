@@ -20,8 +20,8 @@ use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 abstract class PipedriveTest extends MauticMysqlTestCase
 {
-    public const WEBHOOK_USER     = 'user';
-    public const WEBHOOK_PASSWORD = 'pa$$word';
+    const WEBHOOK_USER     = 'user';
+    const WEBHOOK_PASSWORD = 'pa$$word';
 
     protected MockHandler $mockHandler;
 
@@ -35,12 +35,14 @@ abstract class PipedriveTest extends MauticMysqlTestCase
         $_SERVER['SERVER_NAME']     = 'www.example.com';
         $_SERVER['REQUEST_URI']     = '/index.php';
 
-        $this->mockHandler = self::$container->get(MockHandler::class);
+        $this->mockHandler = self::$container->get('mautic.http.client.mock_handler');
     }
 
-    public function beforeTearDown(): void
+    public function tearDown(): void
     {
         unset($_SERVER['SERVER_PROTOCOL'], $_SERVER['SERVER_PORT'], $_SERVER['SERVER_NAME']);
+
+        parent::tearDown();
     }
 
     public static function getData(string $type): ?string

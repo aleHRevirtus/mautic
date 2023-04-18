@@ -34,7 +34,7 @@ class PullTransifexCommandFunctionalTest extends MauticMysqlTestCase
         // Using the same translation for both file as we don't know which response will be processed first.
         $someTranslation = 'some.translation="Some translation"';
 
-        $handlerStack = self::$container->get(MockHandler::class);
+        $handlerStack = self::$container->get('mautic.http.client.mock_handler');
         \assert($handlerStack instanceof MockHandler);
         $handlerStack->append(
             // Fetches all languages for webhook's messages.ini
@@ -61,8 +61,10 @@ class PullTransifexCommandFunctionalTest extends MauticMysqlTestCase
         Assert::assertSame($someTranslation, $this->filesystem->readFile(self::FAKE_TRANSLATION_DIR.'/cs/WebhookBundle/flashes.ini'));
     }
 
-    protected function beforeTearDown(): void
+    protected function tearDown(): void
     {
+        parent::tearDown();
+
         $this->filesystem->remove(self::FAKE_TRANSLATION_DIR);
     }
 }

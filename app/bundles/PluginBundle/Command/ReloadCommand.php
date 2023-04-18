@@ -2,22 +2,15 @@
 
 namespace Mautic\PluginBundle\Command;
 
-use Mautic\PluginBundle\Facade\ReloadFacade;
-use Symfony\Component\Console\Command\Command;
+use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class ReloadCommand extends Command
+class ReloadCommand extends ContainerAwareCommand
 {
-    private ReloadFacade $reloadFacade;
-
-    public function __construct(ReloadFacade $reloadFacade)
-    {
-        parent::__construct();
-
-        $this->reloadFacade = $reloadFacade;
-    }
-
+    /**
+     * {@inheritdoc}
+     */
     protected function configure()
     {
         $this
@@ -33,9 +26,14 @@ class ReloadCommand extends Command
         parent::configure();
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    /**
+     * {@inheritdoc}
+     */
+    protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $output->writeLn($this->reloadFacade->reloadPlugins());
+        $output->writeLn(
+            $this->getContainer()->get('mautic.plugin.facade.reload')->reloadPlugins()
+        );
 
         return 0;
     }

@@ -4,12 +4,12 @@ namespace MauticPlugin\MauticClearbitBundle\EventListener;
 
 use Mautic\CoreBundle\CoreEvents;
 use Mautic\CoreBundle\Event\CustomButtonEvent;
-use Mautic\CoreBundle\Twig\Helper\ButtonHelper;
+use Mautic\CoreBundle\Templating\Helper\ButtonHelper;
 use Mautic\PluginBundle\Helper\IntegrationHelper;
 use MauticPlugin\MauticClearbitBundle\Integration\ClearbitIntegration;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\Routing\RouterInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class ButtonSubscriber implements EventSubscriberInterface
 {
@@ -19,12 +19,12 @@ class ButtonSubscriber implements EventSubscriberInterface
     private $helper;
 
     /**
-     * @var TranslatorInterface
+     * @var RouterInterface
      */
     private $translator;
 
     /**
-     * @var RouterInterface
+     * @var TranslatorInterface
      */
     private $router;
 

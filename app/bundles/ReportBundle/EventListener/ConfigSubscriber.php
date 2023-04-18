@@ -25,7 +25,7 @@ class ConfigSubscriber implements EventSubscriberInterface
             'bundle'     => 'ReportBundle',
             'formAlias'  => 'reportconfig',
             'formType'   => ConfigType::class,
-            'formTheme'  => '@MauticReport/FormTheme/Config/_config_reportconfig_widget.html.twig',
+            'formTheme'  => 'MauticReportBundle:FormTheme\Config',
             'parameters' => $event->getParametersFromConfig('MauticReportBundle'),
         ]);
     }

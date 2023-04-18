@@ -5,10 +5,10 @@ namespace Mautic\AssetBundle\EventListener;
 use Mautic\AssetBundle\Model\AssetModel;
 use Mautic\CoreBundle\CoreEvents;
 use Mautic\CoreBundle\Event as MauticEvents;
+use Mautic\CoreBundle\Helper\TemplatingHelper;
 use Mautic\CoreBundle\Helper\UserHelper;
 use Mautic\CoreBundle\Security\Permissions\CorePermissions;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-use Twig\Environment;
 
 class SearchSubscriber implements EventSubscriberInterface
 {
@@ -28,16 +28,16 @@ class SearchSubscriber implements EventSubscriberInterface
     private $userHelper;
 
     /**
-     * @var Environment
+     * @var TemplatingHelper
      */
-    private $twig;
+    private $templating;
 
-    public function __construct(AssetModel $assetModel, CorePermissions $security, UserHelper $userHelper, Environment $twig)
+    public function __construct(AssetModel $assetModel, CorePermissions $security, UserHelper $userHelper, TemplatingHelper $templating)
     {
         $this->assetModel = $assetModel;
         $this->security   = $security;
         $this->userHelper = $userHelper;
-        $this->twig       = $twig;
+        $this->templating = $templating;
     }
 
     /**
@@ -83,20 +83,20 @@ class SearchSubscriber implements EventSubscriberInterface
                 $assetResults = [];
 
                 foreach ($assets as $asset) {
-                    $assetResults[] = $this->twig->render(
-                        '@MauticAsset/SubscribedEvents\Search/global.html.twig',
+                    $assetResults[] = $this->templating->getTemplating()->renderResponse(
+                        'MauticAssetBundle:SubscribedEvents\Search:global.html.php',
                         ['asset' => $asset]
-                    );
+                    )->getContent();
                 }
                 if (count($assets) > 5) {
-                    $assetResults[] = $this->twig->render(
-                        '@MauticAsset/SubscribedEvents\Search/global.html.twig',
+                    $assetResults[] = $this->templating->getTemplating()->renderResponse(
+                        'MauticAssetBundle:SubscribedEvents\Search:global.html.php',
                         [
                             'showMore'     => true,
                             'searchString' => $str,
                             'remaining'    => (count($assets) - 5),
                         ]
-                    );
+                    )->getContent();
                 }
                 $assetResults['count'] = count($assets);
                 $event->addResults('mautic.asset.assets', $assetResults);

@@ -1116,7 +1116,7 @@ class Email extends FormEntity implements VariantEntityInterface, TranslationEnt
     /**
      * Check all links in content and decode ampersands.
      *
-     * @param $content
+     * @param string $content
      */
     private function decodeAmpersands(&$content)
     {
@@ -1213,10 +1213,5 @@ class Email extends FormEntity implements VariantEntityInterface, TranslationEnt
     public function getClonedId(): ?int
     {
         return $this->clonedId;
-    }
-
-    public function isBackgroundSending(): bool
-    {
-        return $this->isPublished() && !empty($this->getPublishUp()) && ($this->getPublishUp() < new \DateTime());
     }
 }

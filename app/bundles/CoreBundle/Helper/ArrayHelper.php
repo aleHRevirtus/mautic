@@ -105,25 +105,6 @@ class ArrayHelper
     }
 
     /**
-     * @param array<mixed> $multidimensionalArray
-     *
-     * @return array<mixed>
-     */
-    public static function flatten(array $multidimensionalArray): array
-    {
-        $flattenedArray = [];
-
-        array_walk_recursive(
-            $multidimensionalArray,
-            function ($value, $key) use (&$flattenedArray) {
-                $flattenedArray[$key] = $value;
-            }
-        );
-
-        return $flattenedArray;
-    }
-
-    /**
      *  SUM/SUBSTRACT between two arrays.
      *
      * @param bool $subtracted

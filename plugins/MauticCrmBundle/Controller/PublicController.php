@@ -2,12 +2,7 @@
 
 namespace MauticPlugin\MauticCrmBundle\Controller;
 
-use function assert;
 use Mautic\CoreBundle\Controller\CommonController;
-use Mautic\PluginBundle\Helper\IntegrationHelper;
-use MauticPlugin\MauticCrmBundle\Integration\HubspotIntegration;
-use Psr\Log\LoggerInterface;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -15,36 +10,35 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class PublicController extends CommonController
 {
-    public function contactDataAction(Request $request, LoggerInterface $mauticLogger, IntegrationHelper $integrationHelper)
+    public function contactDataAction()
     {
-        $content = $request->getContent();
+        $content = $this->get('request')->getContent();
         if (!empty($content)) {
             $data = json_decode($content, true); // 2nd param to get as array
         } else {
             return new Response('ERROR');
         }
 
-        $integration = 'Hubspot';
+        $logger = $this->get('monolog.logger.mautic');
+
+        $integration       = 'Hubspot';
+        $integrationHelper = $this->get('mautic.helper.integration');
 
         $integrationObject = $integrationHelper->getIntegrationObject($integration);
-        assert($integrationObject instanceof HubspotIntegration);
-
         foreach ($data as $info) {
             $object = explode('.', $info['subscriptionType']);
             $id     = $info['objectId'];
 
             try {
                 switch ($object[0]) {
-                    case 'contact':
-                        $executed = [];
-                        $integrationObject->getLeads($id, null, $executed);
+                    case 'contact': $integrationObject->getContacts($id);
                         break;
                     case 'company':
                         $integrationObject->getCompanies($id);
                         break;
                 }
             } catch (\Exception $ex) {
-                $mauticLogger->log('error', 'ERROR on Hubspot webhook: '.$ex->getMessage());
+                $logger->log('error', 'ERROR on Hubspot webhook: '.$ex->getMessage());
             }
         }
 

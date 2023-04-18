@@ -78,8 +78,6 @@ class LeadDetailFunctionalTest extends MauticMysqlTestCase
             ->execute()
             ->fetchAll(FetchMode::COLUMN);
 
-        $expectedLabels = array_merge(['Created on', 'ID'], $expectedLabels);
-
         $crawler = $this->client->request('GET', sprintf('/s/contacts/view/%d', $lead->getId()));
 
         // get actual core labels

@@ -3,7 +3,7 @@
 namespace Mautic\CampaignBundle\Event;
 
 use Mautic\CampaignBundle\Entity\Campaign;
-use Symfony\Contracts\EventDispatcher\Event;
+use Symfony\Component\EventDispatcher\Event;
 
 class CampaignTriggerEvent extends Event
 {

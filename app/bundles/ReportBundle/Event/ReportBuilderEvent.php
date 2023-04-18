@@ -6,7 +6,7 @@ use Mautic\ChannelBundle\Helper\ChannelListHelper;
 use Mautic\ReportBundle\Builder\MauticReportBuilder;
 use Mautic\ReportBundle\Helper\ReportHelper;
 use Mautic\ReportBundle\Model\ReportModel;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 /**
  * Class ReportBuilderEvent.
@@ -58,21 +58,18 @@ class ReportBuilderEvent extends AbstractReportEvent
 
     private $reportHelper;
 
-    private ?string $reportSource;
-
     /**
      * ReportBuilderEvent constructor.
      *
      * @param string $context
      */
-    public function __construct(TranslatorInterface $translator, ChannelListHelper $channelListHelper, $context, $leadFields, ReportHelper $reportHelper, ?string $reportSource = null)
+    public function __construct(TranslatorInterface $translator, ChannelListHelper $channelListHelper, $context, $leadFields, ReportHelper $reportHelper)
     {
         $this->context           = $context;
         $this->translator        = $translator;
         $this->channelListHelper = $channelListHelper;
         $this->leadFields        = $leadFields;
         $this->reportHelper      = $reportHelper;
-        $this->reportSource      = $reportSource;
     }
 
     /**
@@ -92,7 +89,7 @@ class ReportBuilderEvent extends AbstractReportEvent
         $data['group'] = (null == $group) ? $context : $group;
 
         foreach ($data['columns'] as $column => &$d) {
-            $d['label'] = null !== $d['label'] ? $this->translator->trans($d['label']) : '';
+            $d['label'] = $this->translator->trans($d['label']);
             if (!isset($d['alias'])) {
                 $d['alias'] = substr(
                     $column,
@@ -144,14 +141,6 @@ class ReportBuilderEvent extends AbstractReportEvent
     public function getTables()
     {
         return $this->tableArray;
-    }
-
-    /**
-     * Fetch the source of the report.
-     */
-    public function getReportSource(): ?string
-    {
-        return $this->reportSource;
     }
 
     /**

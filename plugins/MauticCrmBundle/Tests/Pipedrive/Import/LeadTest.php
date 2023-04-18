@@ -7,7 +7,6 @@ namespace MauticPlugin\MauticCrmBundle\Tests\Pipedrive\Import;
 use GuzzleHttp\Psr7\Response as GuzzleResponse;
 use Mautic\LeadBundle\Entity\Lead;
 use MauticPlugin\MauticCrmBundle\Tests\Pipedrive\PipedriveTest;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class LeadTest extends PipedriveTest
@@ -33,7 +32,7 @@ class LeadTest extends PipedriveTest
         ]);
     }
 
-    public function testCreateLeadViaUpdate(): void
+    public function testCreateLeadViaUpdate()
     {
         $this->installPipedriveIntegration(
             true,
@@ -45,13 +44,13 @@ class LeadTest extends PipedriveTest
         );
         $data = $this->getData('person.updated');
 
-        $this->makeRequest(Request::METHOD_POST, $data);
+        $this->makeRequest('POST', $data);
 
         $response     = $this->client->getResponse();
         $responseData = json_decode($response->getContent(), true);
         $lead         = $this->em->getRepository(Lead::class)->find(1);
 
-        $this->assertSame(Response::HTTP_OK, $response->getStatusCode(), $response->getContent());
+        $this->assertSame(200, $response->getStatusCode());
         $this->assertEquals('ok', $responseData['status']);
         $this->assertEquals('Test Person', $lead->getName());
         $this->assertEquals('test@test.pl', $lead->getEmail());
@@ -60,7 +59,7 @@ class LeadTest extends PipedriveTest
         $this->assertEquals('gravatar', $lead->getPreferredProfileImage());
     }
 
-    public function testUpdateLead(): void
+    public function testUpdateLead()
     {
         $this->installPipedriveIntegration(
             true,
@@ -91,7 +90,7 @@ class LeadTest extends PipedriveTest
         $this->assertNotNull($lead->getDateModified());
     }
 
-    public function testUpdateLeadOwner(): void
+    public function testUpdateLeadOwner()
     {
         $newOwnerId    = 88;
         $newOwnerEmail = 'new@admin.com';
@@ -127,7 +126,7 @@ class LeadTest extends PipedriveTest
         $this->assertEquals($newOwnerEmail, $lead->getOwner()->getEmail());
     }
 
-    public function testUpdateLeadCompany(): void
+    public function testUpdateLeadCompany()
     {
         $newCompanyId      = 88;
         $newCompanyName    = 'New Company Name';
@@ -172,7 +171,7 @@ class LeadTest extends PipedriveTest
         $this->assertNotNull($lead->getDateModified());
     }
 
-    public function testRemoveLeadCompany(): void
+    public function testRemoveLeadCompany()
     {
         $companyModel = self::$container->get('mautic.lead.model.company');
 
@@ -213,7 +212,7 @@ class LeadTest extends PipedriveTest
         $this->assertNotNull($lead->getDateModified());
     }
 
-    public function testRemoveLeadOwner(): void
+    public function testRemoveLeadOwner()
     {
         $this->installPipedriveIntegration(
             true,
@@ -247,8 +246,17 @@ class LeadTest extends PipedriveTest
         $this->assertNotNull($lead->getDateModified());
     }
 
-    public function testDeleteLead(): void
+    public function testDeleteLead()
     {
+        $features = [
+            'leadFields' => [
+                'first_name' => 'firstname',
+                'last_name'  => 'lastname',
+                'email'      => 'email',
+                'phone'      => 'phone',
+            ],
+        ];
+
         $this->installPipedriveIntegration(
             true,
             $this->features,

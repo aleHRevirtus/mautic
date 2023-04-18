@@ -5,8 +5,8 @@ namespace Mautic\CoreBundle\EventListener;
 use LightSaml\Error\LightSamlException;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
-use Symfony\Component\HttpKernel\Event\ExceptionEvent;
-use Symfony\Component\HttpKernel\EventListener\ErrorListener;
+use Symfony\Component\HttpKernel\Event\GetResponseForExceptionEvent;
+use Symfony\Component\HttpKernel\EventListener\ExceptionListener as KernelExceptionListener;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
@@ -15,9 +15,11 @@ use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
 use Symfony\Component\Security\Core\Exception\LogoutException;
 use Symfony\Component\Security\Core\Security;
-use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
-class ExceptionListener extends ErrorListener
+/**
+ * Class ExceptionListener.
+ */
+class ExceptionListener extends KernelExceptionListener
 {
     /**
      * @var Router
@@ -25,6 +27,8 @@ class ExceptionListener extends ErrorListener
     protected $router;
 
     /**
+     * ExceptionListener constructor.
+     *
      * @param LoggerInterface $controller
      */
     public function __construct(Router $router, $controller, LoggerInterface $logger = null)
@@ -34,9 +38,9 @@ class ExceptionListener extends ErrorListener
         $this->router = $router;
     }
 
-    public function onKernelException(ExceptionEvent $event, string $eventName = null, EventDispatcherInterface $eventDispatcher = null)
+    public function onKernelException(GetResponseForExceptionEvent $event)
     {
-        $exception = $event->getThrowable();
+        $exception = $event->getException();
 
         if ($exception instanceof LightSamlException) {
             // Redirect to login page with message
@@ -56,7 +60,7 @@ class ExceptionListener extends ErrorListener
             $this->logException($exception, sprintf('Uncaught PHP Exception %s: "%s" at %s line %s', get_class($exception), $exception->getMessage(), $exception->getFile(), $exception->getLine()));
         }
 
-        $exception = $event->getThrowable();
+        $exception = $event->getException();
         $request   = $event->getRequest();
         $request   = $this->duplicateRequest($exception, $request);
         try {

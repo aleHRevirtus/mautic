@@ -52,9 +52,9 @@ use Symfony\Component\HttpFoundation\Request;
 
 class EmailModelTest extends \PHPUnit\Framework\TestCase
 {
-    public const SEGMENT_A = 'segment A';
+    const SEGMENT_A = 'segment A';
 
-    public const SEGMENT_B = 'segment B';
+    const SEGMENT_B = 'segment B';
 
     /**
      * @var Connection|MockObject

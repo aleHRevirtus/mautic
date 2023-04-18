@@ -32,7 +32,7 @@ class RemoveCommand extends Command
         parent::configure();
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    protected function execute(InputInterface $input, OutputInterface $output)
     {
         $output->writeln('Removing '.$input->getArgument('package').', this might take a while...');
         $packageVendorAndName = $input->getArgument('package');

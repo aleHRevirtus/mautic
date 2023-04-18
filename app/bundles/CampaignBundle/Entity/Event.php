@@ -14,18 +14,18 @@ use Mautic\LeadBundle\Entity\Lead as Contact;
  */
 class Event implements ChannelInterface
 {
-    public const TYPE_DECISION  = 'decision';
-    public const TYPE_ACTION    = 'action';
-    public const TYPE_CONDITION = 'condition';
+    const TYPE_DECISION  = 'decision';
+    const TYPE_ACTION    = 'action';
+    const TYPE_CONDITION = 'condition';
 
-    public const PATH_INACTION = 'no';
-    public const PATH_ACTION   = 'yes';
+    const PATH_INACTION = 'no';
+    const PATH_ACTION   = 'yes';
 
-    public const TRIGGER_MODE_DATE      = 'date';
-    public const TRIGGER_MODE_INTERVAL  = 'interval';
-    public const TRIGGER_MODE_IMMEDIATE = 'immediate';
+    const TRIGGER_MODE_DATE      = 'date';
+    const TRIGGER_MODE_INTERVAL  = 'interval';
+    const TRIGGER_MODE_IMMEDIATE = 'immediate';
 
-    public const CHANNEL_EMAIL = 'email';
+    const CHANNEL_EMAIL = 'email';
 
     /**
      * @var int

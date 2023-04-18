@@ -25,16 +25,15 @@ final class Version20191219155630 extends AbstractMauticMigration
      */
     public function preUp(Schema $schema): void
     {
-        if ($schema->hasTable($this->prefix.'sync_object_field_change_report') && $schema->hasTable($this->prefix.'sync_object_mapping')) {
+        if ($schema->hasTable($this->prefix.'sync_object_field_change_report')) {
             throw new SkipMigration('Schema includes this migration');
         }
     }
 
     public function up(Schema $schema): void
     {
-        if (!$schema->hasTable($this->prefix.'sync_object_field_change_report')) {
-            $this->addSql(
-                "# Dump of table mautic_sync_object_field_change_report
+        $this->addSql(
+            "# Dump of table mautic_sync_object_field_change_report
             # ------------------------------------------------------------
 
             CREATE TABLE `{$this->prefix}sync_object_field_change_report` (
@@ -51,12 +50,10 @@ final class Version20191219155630 extends AbstractMauticMigration
             KEY `{$this->prefix}integration_object_composite_key` (`integration`,`object_type`,`object_id`,`column_name`),
             KEY `{$this->prefix}integration_object_type_modification_composite_key` (`integration`,`object_type`,`modified_at`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci"
-            );
-        }
+        );
 
-        if (!$schema->hasTable($this->prefix.'sync_object_mapping')) {
-            $this->addSql(
-                "# Dump of table mautic_sync_object_mapping
+        $this->addSql(
+            "# Dump of table mautic_sync_object_mapping
             # ------------------------------------------------------------
             
             CREATE TABLE `{$this->prefix}sync_object_mapping` (
@@ -78,8 +75,7 @@ final class Version20191219155630 extends AbstractMauticMigration
             KEY `{$this->prefix}integration_object` (`integration`,`integration_object_name`,`integration_object_id`,`integration_reference_id`),
             KEY `{$this->prefix}integration_reference` (`integration`,`integration_object_name`,`integration_reference_id`,`integration_object_id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci"
-            );
-        }
+        );
     }
 
     public function down(Schema $schema): void

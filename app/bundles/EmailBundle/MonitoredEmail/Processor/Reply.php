@@ -3,7 +3,6 @@
 namespace Mautic\EmailBundle\MonitoredEmail\Processor;
 
 use Doctrine\ORM\EntityNotFoundException;
-use Mautic\CoreBundle\Helper\EmailAddressHelper;
 use Mautic\EmailBundle\EmailEvents;
 use Mautic\EmailBundle\Entity\EmailReply;
 use Mautic\EmailBundle\Entity\Stat;
@@ -21,11 +20,6 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 class Reply implements ProcessorInterface
 {
-    /**
-     * @var EmailAddressHelper
-     */
-    private $addressHelper;
-
     /**
      * @var StatRepository
      */
@@ -62,8 +56,7 @@ class Reply implements ProcessorInterface
         LeadModel $leadModel,
         EventDispatcherInterface $dispatcher,
         LoggerInterface $logger,
-        ContactTracker $contactTracker,
-        EmailAddressHelper $addressHelper
+        ContactTracker $contactTracker
     ) {
         $this->statRepo         = $statRepository;
         $this->contactFinder    = $contactFinder;
@@ -71,7 +64,6 @@ class Reply implements ProcessorInterface
         $this->dispatcher       = $dispatcher;
         $this->logger           = $logger;
         $this->contactTracker   = $contactTracker;
-        $this->addressHelper    = $addressHelper;
     }
 
     public function process(Message $message)
@@ -98,12 +90,12 @@ class Reply implements ProcessorInterface
         }
 
         // A stat has been found so let's compare to the From address for the contact to prevent false positives
-        $possibleFromEmails = $this->addressHelper->getVariations($stat->getLead()->getEmail());
-        $fromEmail          = $this->addressHelper->cleanEmail($repliedEmail->getFromAddress());
+        $contactEmail = $this->cleanEmail($stat->getLead()->getEmail());
+        $fromEmail    = $this->cleanEmail($repliedEmail->getFromAddress());
 
-        if (!in_array($fromEmail, $possibleFromEmails)) {
+        if ($contactEmail !== $fromEmail) {
             // We can't reliably assume this email was from the originating contact
-            $this->logger->debug('MONITORED EMAIL: '.implode(', ', $possibleFromEmails).' != '.$fromEmail.' so cannot confirm match');
+            $this->logger->debug('MONITORED EMAIL: '.$contactEmail.' != '.$fromEmail.' so cannot confirm match');
 
             return;
         }
@@ -161,13 +153,25 @@ class Reply implements ProcessorInterface
         }
     }
 
+    /**
+     * Clean the email for comparison.
+     *
+     * @param string $email
+     *
+     * @return string
+     */
+    protected function cleanEmail($email)
+    {
+        return strtolower(preg_replace("/[^a-z0-9\.@]/i", '', $email));
+    }
+
     private function dispatchEvent(Stat $stat)
     {
         if ($this->dispatcher->hasListeners(EmailEvents::EMAIL_ON_REPLY)) {
             $this->contactTracker->setTrackedContact($stat->getLead());
 
             $event = new EmailReplyEvent($stat);
-            $this->dispatcher->dispatch($event, EmailEvents::EMAIL_ON_REPLY);
+            $this->dispatcher->dispatch(EmailEvents::EMAIL_ON_REPLY, $event);
             unset($event);
         }
     }

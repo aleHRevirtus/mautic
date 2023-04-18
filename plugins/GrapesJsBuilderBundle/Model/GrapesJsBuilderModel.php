@@ -11,9 +11,6 @@ use MauticPlugin\GrapesJsBuilderBundle\Entity\GrapesJsBuilder;
 use MauticPlugin\GrapesJsBuilderBundle\Entity\GrapesJsBuilderRepository;
 use Symfony\Component\HttpFoundation\RequestStack;
 
-/**
- * @extends AbstractCommonModel<GrapesJsBuilder>
- */
 class GrapesJsBuilderModel extends AbstractCommonModel
 {
     /**

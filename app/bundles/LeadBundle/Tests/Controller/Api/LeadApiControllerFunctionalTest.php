@@ -5,7 +5,6 @@ namespace Mautic\LeadBundle\Tests\Controller\Api;
 use Mautic\CoreBundle\Test\MauticMysqlTestCase;
 use Mautic\LeadBundle\Entity\DoNotContact;
 use Mautic\LeadBundle\Entity\Lead;
-use PHPUnit\Framework\Assert;
 use Symfony\Component\HttpFoundation\Response;
 
 class LeadApiControllerFunctionalTest extends MauticMysqlTestCase
@@ -62,10 +61,7 @@ class LeadApiControllerFunctionalTest extends MauticMysqlTestCase
 
         $this->client->request('POST', '/api/contacts/batch/new', $payload);
         $clientResponse = $this->client->getResponse();
-
-        Assert::assertSame(Response::HTTP_CREATED, $clientResponse->getStatusCode(), $clientResponse->getContent());
-
-        $response = json_decode($clientResponse->getContent(), true);
+        $response       = json_decode($clientResponse->getContent(), true);
 
         // Assert status codes
         $this->assertEquals(Response::HTTP_CREATED, $response['statusCodes'][0]);
@@ -155,10 +151,7 @@ class LeadApiControllerFunctionalTest extends MauticMysqlTestCase
         // Update the 3 contacts
         $this->client->request('POST', '/api/contacts/batch/new', $payload);
         $clientResponse = $this->client->getResponse();
-
-        Assert::assertSame(Response::HTTP_CREATED, $clientResponse->getStatusCode(), $clientResponse->getContent());
-
-        $response = json_decode($clientResponse->getContent(), true);
+        $response       = json_decode($clientResponse->getContent(), true);
 
         $this->assertEquals(Response::HTTP_OK, $response['statusCodes'][0]);
         $this->assertEquals($contactId1, $response['contacts'][0]['id']);
@@ -249,10 +242,7 @@ class LeadApiControllerFunctionalTest extends MauticMysqlTestCase
 
         $this->client->request('PUT', '/api/contacts/batch/edit', $payload);
         $clientResponse = $this->client->getResponse();
-
-        Assert::assertSame(Response::HTTP_OK, $clientResponse->getStatusCode(), $clientResponse->getContent());
-
-        $response= json_decode($clientResponse->getContent(), true);
+        $response       = json_decode($clientResponse->getContent(), true);
 
         $this->assertEquals(Response::HTTP_OK, $response['statusCodes'][0]);
         $this->assertEquals($contact->getId(), $response['contacts'][0]['id']);
@@ -267,10 +257,7 @@ class LeadApiControllerFunctionalTest extends MauticMysqlTestCase
 
         $this->client->request('PUT', '/api/contacts/batch/edit', $payload);
         $clientResponse = $this->client->getResponse();
-
-        Assert::assertSame(Response::HTTP_OK, $clientResponse->getStatusCode(), $clientResponse->getContent());
-
-        $response = json_decode($clientResponse->getContent(), true);
+        $response       = json_decode($clientResponse->getContent(), true);
 
         $this->assertEquals(Response::HTTP_CREATED, $response['statusCodes'][0]);
         $this->assertGreaterThanOrEqual(1, $response['contacts'][0]['id']);

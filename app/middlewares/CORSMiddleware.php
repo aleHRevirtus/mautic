@@ -10,7 +10,7 @@ class CORSMiddleware implements HttpKernelInterface, PrioritizedMiddlewareInterf
 {
     use ConfigAwareTrait;
 
-    public const PRIORITY = 1000;
+    const PRIORITY = 1000;
 
     /**
      * @var array

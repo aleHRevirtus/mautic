@@ -29,6 +29,9 @@ class FieldValueTransformer
      */
     private $isTransformed = false;
 
+    /**
+     * FieldValueTransformer constructor.
+     */
     public function __construct(RouterInterface $router)
     {
         $this->router = $router;
@@ -36,10 +39,9 @@ class FieldValueTransformer
 
     public function transformValuesAfterSubmit(SubmissionEvent $submissionEvent)
     {
-        if (true === $this->isTransformed) {
+        if ($this->isIsTransformed()) {
             return;
         }
-
         $fields              = $submissionEvent->getForm()->getFields();
         $contactFieldMatches = $submissionEvent->getContactFieldMatches();
         $tokens              = $submissionEvent->getTokens();
@@ -63,8 +65,8 @@ class FieldValueTransformer
                         $this->tokensToUpdate[$tokenAlias] = $tokens[$tokenAlias] = $newValue;
                     }
 
-                    $contactFieldAlias = $field->getMappedField();
-                    if ('contact' === $field->getMappedObject() && !empty($contactFieldMatches[$contactFieldAlias])) {
+                    $contactFieldAlias = $field->getLeadField();
+                    if (!empty($contactFieldMatches[$contactFieldAlias])) {
                         $this->contactFieldsToUpdate[$contactFieldAlias] = $contactFieldMatches[$contactFieldAlias] = $newValue;
                     }
 
@@ -94,8 +96,6 @@ class FieldValueTransformer
     }
 
     /**
-     * @deprecated will be removed in Mautic 4. This should have been a private method. Not actually needed.
-     *
      * @return bool
      */
     public function isIsTransformed()

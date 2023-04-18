@@ -6,13 +6,17 @@ use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Reference;
 
+/**
+ * Class ModelPass.
+ */
 class ModelPass implements CompilerPassInterface
 {
-    public const TAG = 'mautic.model';
-
+    /**
+     * {@inheritdoc}
+     */
     public function process(ContainerBuilder $container)
     {
-        foreach ($container->findTaggedServiceIds(self::TAG) as $id => $tags) {
+        foreach ($container->findTaggedServiceIds('mautic.model') as $id => $tags) {
             $definition = $container->findDefinition($id);
 
             $modelClass = $definition->getClass();

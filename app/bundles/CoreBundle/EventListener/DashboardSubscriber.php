@@ -2,6 +2,7 @@
 
 namespace Mautic\CoreBundle\EventListener;
 
+use Mautic\CoreBundle\CoreEvents;
 use Mautic\CoreBundle\Event\IconEvent;
 use Mautic\CoreBundle\Factory\ModelFactory;
 use Mautic\CoreBundle\Model\AuditLogModel;
@@ -9,14 +10,12 @@ use Mautic\CoreBundle\Model\FormModel;
 use Mautic\CoreBundle\Security\Permissions\CorePermissions;
 use Mautic\DashboardBundle\Event\WidgetDetailEvent;
 use Mautic\DashboardBundle\EventListener\DashboardSubscriber as MainDashboardSubscriber;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Routing\RouterInterface;
-use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class DashboardSubscriber extends MainDashboardSubscriber
 {
-    public const TYPE_RECENT_ACTIVITY = 'recent.activity';
-
     /**
      * Define the name of the bundle/category of the widget(s).
      *
@@ -30,26 +29,42 @@ class DashboardSubscriber extends MainDashboardSubscriber
      * @var string
      */
     protected $types = [
-        self::TYPE_RECENT_ACTIVITY => [],
+        'recent.activity' => [],
     ];
 
-    private AuditLogModel $auditLogModel;
-
-    private TranslatorInterface $translator;
-
-    private RouterInterface $router;
-
-    private CorePermissions $security;
-
-    private EventDispatcherInterface $dispatcher;
-
     /**
-     * @var ModelFactory<object>
+     * @var AuditLogModel
      */
-    protected ModelFactory $modelFactory;
+    protected $auditLogModel;
 
     /**
-     * @param ModelFactory<object> $modelFactory
+     * @var TranslatorInterface
+     */
+    protected $translator;
+
+    /**
+     * @var RouterInterface
+     */
+    protected $router;
+
+    /**
+     * @var CorePermissions
+     */
+    protected $security;
+
+    /**
+     * @var EventDispatcherInterface
+     */
+    protected $dispatcher;
+
+    /**
+     * @var ModelFactory
+     */
+    protected $modelFactory;
+
+    /**
+     * @param AuditLogModel   $router
+     * @param CorePermissions $dispatcher
      */
     public function __construct(
         AuditLogModel $auditLogModel,
@@ -70,59 +85,54 @@ class DashboardSubscriber extends MainDashboardSubscriber
     /**
      * Set a widget detail when needed.
      */
-    public function onWidgetDetailGenerate(WidgetDetailEvent $event): void
+    public function onWidgetDetailGenerate(WidgetDetailEvent $event)
     {
-        if (self::TYPE_RECENT_ACTIVITY !== $event->getType()) {
-            return;
-        }
+        if ('recent.activity' == $event->getType()) {
+            if (!$event->isCached()) {
+                $height = $event->getWidget()->getHeight();
+                $limit  = round(($height - 80) / 75);
+                $logs   = $this->auditLogModel->getLogForObject(null, null, null, $limit);
 
-        if (!$event->isCached()) {
-            $height = $event->getWidget()->getHeight();
-            $limit  = (int) round(($height - 80) / 75);
-            $logs   = $this->auditLogModel->getLogForObject(null, null, null, $limit);
+                // Get names of log's items
+                foreach ($logs as $key => &$log) {
+                    if (!empty($log['bundle']) && !empty($log['object']) && !empty($log['objectId'])) {
+                        try {
+                            $model = $this->modelFactory->getModel($log['bundle'].'.'.$log['object']);
+                            $item  = $model->getEntity($log['objectId']);
+                            if (null === $item) {
+                                $log['objectName'] = $log['object'].'-'.$log['objectId'];
+                            } elseif ($model instanceof FormModel && method_exists($item, $model->getNameGetter())) {
+                                $log['objectName'] = $item->{$model->getNameGetter()}();
 
-            // Get names of log's items
-            foreach ($logs as $key => &$log) {
-                if (!isset($log['bundle'], $log['object'], $log['objectId'])) {
-                    continue;
-                }
+                                if ('lead' === $log['bundle'] && 'mautic.lead.lead.anonymous' === $log['objectName']) {
+                                    $log['objectName'] = $this->translator->trans('mautic.lead.lead.anonymous');
+                                }
+                            } else {
+                                $log['objectName'] = '';
+                            }
 
-                try {
-                    $model = $this->modelFactory->getModel($log['bundle'].'.'.$log['object']);
-                    $item  = $model->getEntity($log['objectId']);
-                    if (null === $item) {
-                        $log['objectName'] = $log['object'].'-'.$log['objectId'];
-                    } elseif ($model instanceof FormModel && method_exists($item, $model->getNameGetter())) {
-                        $log['objectName'] = $item->{$model->getNameGetter()}();
-
-                        if ('lead' === $log['bundle'] && 'mautic.lead.lead.anonymous' === $log['objectName']) {
-                            $log['objectName'] = $this->translator->trans('mautic.lead.lead.anonymous');
+                            $routeName = 'mautic_'.$log['bundle'].'_action';
+                            if (null !== $item && null !== $this->router->getRouteCollection()->get($routeName)) {
+                                $log['route'] = $this->router->generate(
+                                    'mautic_'.$log['bundle'].'_action',
+                                    ['objectAction' => 'view', 'objectId' => $log['objectId']]
+                                );
+                            } else {
+                                $log['route'] = false;
+                            }
+                        } catch (\Exception $e) {
+                            unset($logs[$key]);
                         }
-                    } else {
-                        $log['objectName'] = '';
                     }
-
-                    $routeName = 'mautic_'.$log['bundle'].'_action';
-                    if (null !== $item && null !== $this->router->getRouteCollection()->get($routeName)) {
-                        $log['route'] = $this->router->generate(
-                            $routeName,
-                            ['objectAction' => 'view', 'objectId' => $log['objectId']]
-                        );
-                    } else {
-                        $log['route'] = false;
-                    }
-                } catch (\Exception $e) {
-                    unset($logs[$key]);
                 }
+
+                $iconEvent = new IconEvent($this->security);
+                $this->dispatcher->dispatch(CoreEvents::FETCH_ICONS, $iconEvent);
+                $event->setTemplateData(['logs' => $logs, 'icons' => $iconEvent->getIcons()]);
             }
-            unset($log);
 
-            $iconEvent = new IconEvent($this->security);
-            $this->dispatcher->dispatch($iconEvent);
-            $event->setTemplateData(['logs' => $logs, 'icons' => $iconEvent->getIcons()]);
+            $event->setTemplate('MauticDashboardBundle:Dashboard:recentactivity.html.php');
+            $event->stopPropagation();
         }
-
-        $event->setTemplate('@MauticDashboard/Dashboard/recentactivity.html.twig');
-        $event->stopPropagation();
     }
 }

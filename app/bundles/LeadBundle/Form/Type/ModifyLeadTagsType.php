@@ -4,7 +4,7 @@ namespace Mautic\LeadBundle\Form\Type;
 
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\FormBuilderInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class ModifyLeadTagsType extends AbstractType
 {
@@ -51,5 +51,13 @@ class ModifyLeadTagsType extends AbstractType
                 'add_transformer' => true,
             ]
         );
+    }
+
+    /**
+     * @return string
+     */
+    public function getBlockPrefix()
+    {
+        return 'modify_lead_tags';
     }
 }

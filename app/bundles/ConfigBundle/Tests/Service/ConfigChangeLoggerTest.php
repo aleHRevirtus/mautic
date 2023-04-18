@@ -8,7 +8,7 @@ use Mautic\CoreBundle\Model\AuditLogModel;
 
 class ConfigChangeLoggerTest extends \PHPUnit\Framework\TestCase
 {
-    public function testSetOriginalNormData(): void
+    public function testSetOriginalNormData()
     {
         $ipLookupHelper = $this->createMock(IpLookupHelper::class);
         $auditLogModel  = $this->createMock(AuditLogModel::class);
@@ -17,7 +17,7 @@ class ConfigChangeLoggerTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals($logger, $logger->setOriginalNormData([]));
     }
 
-    public function testOriginalNormDataExpected(): void
+    public function testOriginalNormDataExpected()
     {
         $this->expectException(\RuntimeException::class);
 
@@ -29,7 +29,7 @@ class ConfigChangeLoggerTest extends \PHPUnit\Framework\TestCase
         $logger->log([]);
     }
 
-    public function testNothingToLog(): void
+    public function testNothingToLog()
     {
         $ipLookupHelper = $this->createMock(IpLookupHelper::class);
         $ipLookupHelper->expects($this->never())->method('getIpAddressFromRequest');
@@ -47,7 +47,7 @@ class ConfigChangeLoggerTest extends \PHPUnit\Framework\TestCase
         $logger->log($postData);
     }
 
-    public function testLog(): void
+    public function testLog()
     {
         $change = [
             'key2' => 'changedValue',

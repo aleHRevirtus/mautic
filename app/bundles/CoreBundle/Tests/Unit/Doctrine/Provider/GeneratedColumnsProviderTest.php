@@ -68,6 +68,7 @@ final class GeneratedColumnsProviderTest extends \PHPUnit\Framework\TestCase
         $this->dispatcher->expects($this->once())
             ->method('dispatch')
             ->with(
+                CoreEvents::ON_GENERATED_COLUMNS_BUILD,
                 $this->callback(
                     // Emulate a subscriber.
                     function (GeneratedColumnsEvent $event) {
@@ -75,8 +76,7 @@ final class GeneratedColumnsProviderTest extends \PHPUnit\Framework\TestCase
 
                         return true;
                     }
-                ),
-                CoreEvents::ON_GENERATED_COLUMNS_BUILD
+                )
             );
 
         $generatedColumns = $this->provider->getGeneratedColumns();

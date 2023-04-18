@@ -30,7 +30,7 @@ class FormSubscriber implements EventSubscriberInterface
             'description' => 'mautic.plugin.actions.tooltip',
             'label'       => 'mautic.plugin.actions.push_lead',
             'formType'    => IntegrationsListType::class,
-            'formTheme'   => '@MauticPlugin/FormTheme/Integration/layout.html.twig',
+            'formTheme'   => 'MauticPluginBundle:FormTheme\Integration',
             'eventName'   => FormEvents::ON_EXECUTE_SUBMIT_ACTION,
         ]);
     }

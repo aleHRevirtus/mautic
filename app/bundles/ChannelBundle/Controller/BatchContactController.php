@@ -5,12 +5,10 @@ namespace Mautic\ChannelBundle\Controller;
 use Mautic\ChannelBundle\Model\ChannelActionModel;
 use Mautic\ChannelBundle\Model\FrequencyActionModel;
 use Mautic\CoreBundle\Controller\AbstractFormController;
-use Mautic\CoreBundle\Helper\UserHelper;
-use Mautic\CoreBundle\Security\Permissions\CorePermissions;
 use Mautic\LeadBundle\Form\Type\ContactChannelsType;
 use Mautic\LeadBundle\Model\LeadModel;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Event\FilterControllerEvent;
 
 class BatchContactController extends AbstractFormController
 {
@@ -29,17 +27,15 @@ class BatchContactController extends AbstractFormController
      */
     private $contactModel;
 
-    public function __construct(
-        CorePermissions $security,
-        UserHelper $userHelper,
-        ChannelActionModel $channelActionModel,
-        FrequencyActionModel $frequencyActionModel,
-        LeadModel $leadModel
-    ) {
-        $this->channelActionModel   = $channelActionModel;
-        $this->frequencyActionModel = $frequencyActionModel;
-        $this->contactModel         = $leadModel;
-        parent::__construct($security, $userHelper);
+    /**
+     * Initialize object props here to simulate constructor
+     * and make the future controller refactoring easier.
+     */
+    public function initialize(FilterControllerEvent $event)
+    {
+        $this->channelActionModel   = $this->container->get('mautic.channel.model.channel.action');
+        $this->frequencyActionModel = $this->container->get('mautic.channel.model.frequency.action');
+        $this->contactModel         = $this->container->get('mautic.lead.model.lead');
     }
 
     /**
@@ -47,9 +43,9 @@ class BatchContactController extends AbstractFormController
      *
      * @return JsonResponse
      */
-    public function setAction(Request $request)
+    public function setAction()
     {
-        $params = $request->get('contact_channels', []);
+        $params = $this->request->get('contact_channels', []);
         $ids    = empty($params['ids']) ? [] : json_decode($params['ids']);
 
         if ($ids && is_array($ids)) {
@@ -59,11 +55,11 @@ class BatchContactController extends AbstractFormController
             $this->channelActionModel->update($ids, $subscribedChannels);
             $this->frequencyActionModel->update($ids, $params, $preferredChannel);
 
-            $this->addFlashMessage('mautic.lead.batch_leads_affected', [
+            $this->addFlash('mautic.lead.batch_leads_affected', [
                 '%count%'     => count($ids),
             ]);
         } else {
-            $this->addFlashMessage('mautic.core.error.ids.missing');
+            $this->addFlash('mautic.core.error.ids.missing');
         }
 
         return new JsonResponse([
@@ -90,7 +86,7 @@ class BatchContactController extends AbstractFormController
                     'save_button'   => true,
                 ])->createView(),
             ],
-            'contentTemplate' => '@MauticLead/Batch/channel.html.twig',
+            'contentTemplate' => 'MauticLeadBundle:Batch:channel.html.php',
             'passthroughVars' => [
                 'activeLink'    => '#mautic_contact_index',
                 'mauticContent' => 'leadBatch',

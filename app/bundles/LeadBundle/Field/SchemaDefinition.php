@@ -4,34 +4,26 @@ declare(strict_types=1);
 
 namespace Mautic\LeadBundle\Field;
 
-use Mautic\CoreBundle\Doctrine\Mapping\ClassMetadataBuilder;
-
 class SchemaDefinition
 {
-    /**
-     * Max length of VARCHAR fields.
-     * Fields: charLengthLimit.
-     */
-    public const MAX_VARCHAR_LENGTH = 191;
-
     /**
      * Get the MySQL database type based on the field type
      * Use a static function so that it's accessible from DoctrineSubscriber
      * without causing a circular service injection error.
      */
-    public static function getSchemaDefinition(string $alias, string $type, bool $isUnique = false, int $length = null): array
+    public static function getSchemaDefinition(string $alias, string $type, bool $isUnique = false): array
     {
-        $options = ['notnull' => false];
-
         // Unique is always a string in order to control index length
         if ($isUnique) {
             return [
                 'name'    => $alias,
                 'type'    => 'string',
-                'options' => $options,
+                'options' => [
+                    'notnull' => false,
+                ],
             ];
         }
-
+        $schemaLength = null;
         switch ($type) {
             case 'datetime':
             case 'date':
@@ -48,60 +40,35 @@ class SchemaDefinition
             case 'email':
             case 'lookup':
             case 'select':
+            case 'multiselect':
             case 'region':
             case 'tel':
             case 'url':
-                $schemaType        = 'string';
-                $options['length'] = $length;
+                $schemaType = 'string';
                 break;
             case 'text':
-                $schemaType        = (false !== strpos($alias, 'description')) ? 'text' : 'string';
-                $options['length'] = $length;
+                $schemaType = (false !== strpos($alias, 'description')) ? 'text' : 'string';
                 break;
-            case 'multiselect':
-                $schemaType        = 'text';
-                $options['length'] = 65535;
-                break;
-            case 'html':
             default:
                 $schemaType = 'text';
         }
 
-        if ('string' === $schemaType && empty($options['length'])) {
-            $options['length'] = self::MAX_VARCHAR_LENGTH;
+        if ('string' === $schemaType) {
+            $schemaLength = 191;
         }
 
         return [
             'name'    => $alias,
             'type'    => $schemaType,
-            'options' => $options,
+            'options' => ['notnull' => false, 'length' => $schemaLength],
         ];
-    }
-
-    /**
-     * @param mixed[] $schemaDefinition
-     */
-    public static function getFieldCharLengthLimit(array $schemaDefinition): ?int
-    {
-        $length = $schemaDefinition['options']['length'] ?? null;
-        $type   = $schemaDefinition['type'] ?? null;
-
-        switch ($type) {
-            case 'string':
-                return $length ?? ClassMetadataBuilder::MAX_VARCHAR_INDEXED_LENGTH;
-
-            case 'text':
-                return $length;
-        }
-
-        return null;
     }
 
     /**
      * Get the MySQL database type based on the field type.
      */
-    public function getSchemaDefinitionNonStatic(string $alias, string $type, bool $isUnique = false, int $length = null): array
+    public function getSchemaDefinitionNonStatic(string $alias, string $type, bool $isUnique = false): array
     {
-        return self::getSchemaDefinition($alias, $type, $isUnique, $length);
+        return self::getSchemaDefinition($alias, $type, $isUnique);
     }
 }

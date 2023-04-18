@@ -5,14 +5,15 @@ namespace Mautic\CoreBundle\Menu;
 use Knp\Menu\ItemInterface;
 use Knp\Menu\Matcher\MatcherInterface;
 use Knp\Menu\Renderer\RendererInterface;
-use Twig\Environment;
+use Mautic\CoreBundle\Helper\TemplatingHelper;
+use Symfony\Bundle\FrameworkBundle\Templating\DelegatingEngine;
 
 class MenuRenderer implements RendererInterface
 {
     /**
-     * @var Environment
+     * @var DelegatingEngine
      */
-    private $twig;
+    private $engine;
 
     /**
      * @var MatcherInterface
@@ -24,9 +25,9 @@ class MenuRenderer implements RendererInterface
      */
     private $defaultOptions;
 
-    public function __construct(MatcherInterface $matcher, Environment $twig, array $defaultOptions = [])
+    public function __construct(MatcherInterface $matcher, TemplatingHelper $templatingHelper, array $defaultOptions = [])
     {
-        $this->twig           = $twig;
+        $this->engine         = $templatingHelper->getTemplating();
         $this->matcher        = $matcher;
         $this->defaultOptions = array_merge(
             [
@@ -37,8 +38,7 @@ class MenuRenderer implements RendererInterface
                 'ancestorClass'     => 'open',
                 'firstClass'        => 'first',
                 'lastClass'         => 'last',
-                'itemAttributes'    => [],
-                'template'          => '@MauticCore/Menu/main.html.twig',
+                'template'          => 'MauticCoreBundle:Menu:main.html.php',
                 'compressed'        => false,
                 'allow_safe_labels' => false,
                 'clear_matcher'     => true,
@@ -59,7 +59,7 @@ class MenuRenderer implements RendererInterface
         }
 
         //render html
-        $html = $this->twig->render($options['template'], [
+        $html = $this->engine->render($options['template'], [
             'item'    => $item,
             'options' => $options,
             'matcher' => $this->matcher,

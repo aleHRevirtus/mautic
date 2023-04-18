@@ -2,7 +2,7 @@
 
 namespace Mautic\ChannelBundle\Event;
 
-use Symfony\Contracts\EventDispatcher\Event;
+use Symfony\Component\EventDispatcher\Event;
 
 class MessageQueueBatchProcessEvent extends Event
 {

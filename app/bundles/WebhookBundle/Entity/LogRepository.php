@@ -5,9 +5,6 @@ namespace Mautic\WebhookBundle\Entity;
 use Doctrine\DBAL\ParameterType;
 use Mautic\CoreBundle\Entity\CommonRepository;
 
-/**
- * @extends CommonRepository<Log>
- */
 class LogRepository extends CommonRepository
 {
     private const LOG_DELETE_BATCH_SIZE = 5000;

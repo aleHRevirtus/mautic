@@ -69,7 +69,7 @@ class TwilioTransport implements TransportInterface
 
             return true;
         } catch (NumberParseException $exception) {
-            $this->logger->warning(
+            $this->logger->addWarning(
                 $exception->getMessage(),
                 ['exception' => $exception]
             );
@@ -77,14 +77,14 @@ class TwilioTransport implements TransportInterface
             return $exception->getMessage();
         } catch (ConfigurationException $exception) {
             $message = ($exception->getMessage()) ? $exception->getMessage() : 'mautic.sms.transport.twilio.not_configured';
-            $this->logger->warning(
+            $this->logger->addWarning(
                 $message,
                 ['exception' => $exception]
             );
 
             return $message;
         } catch (TwilioException $exception) {
-            $this->logger->warning(
+            $this->logger->addWarning(
                 $exception->getMessage(),
                 ['exception' => $exception]
             );

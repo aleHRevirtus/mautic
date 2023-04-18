@@ -15,7 +15,7 @@ use Mautic\LeadBundle\Provider\FieldChoicesProviderInterface;
 use Mautic\LeadBundle\Provider\TypeOperatorProviderInterface;
 use Mautic\LeadBundle\Segment\OperatorOptions;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 final class FilterOperatorSubscriber implements EventSubscriberInterface
 {

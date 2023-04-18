@@ -85,7 +85,7 @@ final class MomentumFacade implements MomentumFacadeInterface
                 return $sendCount;
             }
 
-            $this->logger->error(
+            $this->logger->addError(
                 'Momentum send: '.$response->getStatusCode(),
                 [
                     'response' => $response->getBody(),
@@ -94,7 +94,7 @@ final class MomentumFacade implements MomentumFacadeInterface
 
             throw new MomentumSendException($this->getErrors($response->getBody()));
         } catch (\Exception $exception) {
-            $this->logger->error(
+            $this->logger->addError(
                 'Momentum send exception',
                 [
                     'message' => $exception->getMessage(),

@@ -8,7 +8,7 @@ use MauticPlugin\MauticCitrixBundle\Model\CitrixModel;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\FormBuilderInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 /**
  * Class CitrixCampaignEventType.
@@ -85,5 +85,13 @@ class CitrixCampaignEventType extends AbstractType
                 'multiple'          => true,
             ]
         );
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getBlockPrefix()
+    {
+        return 'citrix_campaign_event';
     }
 }

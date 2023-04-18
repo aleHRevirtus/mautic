@@ -101,7 +101,7 @@ class ReloadHelperTest extends \PHPUnit\Framework\TestCase
                         'public' => [
                             'mautic_citrix_proxy' => [
                                 'path'       => '/citrix/proxy',
-                                'controller' => 'MauticPlugin\MauticCitrixBundle\Controller\PublicController::proxyAction',
+                                'controller' => 'MauticCitrixBundle:Public:proxy',
                             ],
                         ],
                     ],

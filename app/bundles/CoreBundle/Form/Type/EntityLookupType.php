@@ -14,9 +14,12 @@ use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Form\FormView;
 use Symfony\Component\OptionsResolver\Options;
 use Symfony\Component\OptionsResolver\OptionsResolver;
-use Symfony\Component\Routing\RouterInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Routing\Router;
+use Symfony\Component\Translation\TranslatorInterface;
 
+/**
+ * Class EntityLookupType.
+ */
 class EntityLookupType extends AbstractType
 {
     /**
@@ -25,12 +28,12 @@ class EntityLookupType extends AbstractType
     private $translator;
 
     /**
-     * @var RouterInterface
+     * @var Router
      */
     private $router;
 
     /**
-     * @var ModelFactory<object>
+     * @var ModelFactory
      */
     private $modelFactory;
 
@@ -45,9 +48,9 @@ class EntityLookupType extends AbstractType
     private $choiceLoaders;
 
     /**
-     * @param ModelFactory<object> $modelFactory
+     * EntityLookupType constructor.
      */
-    public function __construct(ModelFactory $modelFactory, TranslatorInterface $translator, Connection $connection, RouterInterface $router)
+    public function __construct(ModelFactory $modelFactory, TranslatorInterface $translator, Connection $connection, Router $router)
     {
         $this->translator   = $translator;
         $this->router       = $router;

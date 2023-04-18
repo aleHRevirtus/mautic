@@ -31,7 +31,7 @@ class CommonStatsSubscriberTest extends \PHPUnit\Framework\TestCase
     private $user;
 
     /**
-     * @var MockObject&CommonRepository<object>
+     * @var CommonRepository|MockObject
      */
     private $repository;
 

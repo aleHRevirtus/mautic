@@ -2,69 +2,35 @@
 
 namespace Mautic\CoreBundle\Factory;
 
-use function assert;
 use Doctrine\ORM\EntityManager;
-use Doctrine\Persistence\ManagerRegistry;
 use Mautic\CoreBundle\Entity\IpAddress;
 use Mautic\CoreBundle\Exception\FileNotFoundException;
 use Mautic\CoreBundle\Helper\DateTimeHelper;
-use Mautic\CoreBundle\Helper\UserHelper;
 use Mautic\CoreBundle\Model\AbstractCommonModel;
-use Mautic\CoreBundle\Security\Permissions\CorePermissions;
-use Mautic\CoreBundle\Translation\Translator;
 use Mautic\EmailBundle\Helper\MailHelper;
 use Mautic\UserBundle\Entity\User;
 use Symfony\Bundle\FrameworkBundle\Routing\Router;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
-use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 
 /**
  * @deprecated 2.0 to be removed in 3.0
  */
 class MauticFactory
 {
-    private ContainerInterface $container;
-
     /**
-     * @var ModelFactory<object>
+     * @var ContainerInterface
      */
-    private ModelFactory $modelFactory;
+    private $container;
 
-    private CorePermissions $security;
+    private $database;
 
-    private AuthorizationCheckerInterface $authorizationChecker;
+    private $entityManager;
 
-    private UserHelper $userHelper;
-
-    private RequestStack $requestStack;
-
-    private ManagerRegistry $doctrine;
-
-    private Translator $translator;
-
-    /**
-     * @param ModelFactory<object> $modelFactory
-     */
-    public function __construct(
-        ContainerInterface $container,
-        ModelFactory $modelFactory,
-        CorePermissions $security,
-        AuthorizationCheckerInterface $authorizationChecker,
-        UserHelper $userHelper,
-        RequestStack $requestStack,
-        ManagerRegistry $doctrine,
-        Translator $translator
-    ) {
-        $this->container            = $container;
-        $this->modelFactory         = $modelFactory;
-        $this->security             = $security;
-        $this->authorizationChecker = $authorizationChecker;
-        $this->userHelper           = $userHelper;
-        $this->requestStack         = $requestStack;
-        $this->doctrine             = $doctrine;
-        $this->translator           = $translator;
+    public function __construct(ContainerInterface $container)
+    {
+        $this->container = $container;
     }
 
     /**
@@ -72,13 +38,13 @@ class MauticFactory
      *
      * @param $modelNameKey
      *
-     * @return AbstractCommonModel<object>
+     * @return AbstractCommonModel
      *
      * @throws \InvalidArgumentException
      */
     public function getModel($modelNameKey)
     {
-        return $this->modelFactory->getModel($modelNameKey);
+        return $this->container->get('mautic.model.factory')->getModel($modelNameKey);
     }
 
     /**
@@ -88,15 +54,17 @@ class MauticFactory
      */
     public function getSecurity()
     {
-        return $this->security;
+        return $this->container->get('mautic.security');
     }
 
     /**
      * Retrieves Symfony's security context.
+     *
+     * @return \Symfony\Component\Security\Core\SecurityContext
      */
-    public function getSecurityContext(): AuthorizationCheckerInterface
+    public function getSecurityContext()
     {
-        return $this->authorizationChecker;
+        return $this->container->get('security.context');
     }
 
     /**
@@ -108,7 +76,17 @@ class MauticFactory
      */
     public function getUser($nullIfGuest = false)
     {
-        return $this->userHelper->getUser($nullIfGuest);
+        return $this->container->get('mautic.helper.user')->getUser($nullIfGuest);
+    }
+
+    /**
+     * Retrieves session object.
+     *
+     * @return \Symfony\Component\HttpFoundation\Session\Session
+     */
+    public function getSession()
+    {
+        return $this->container->get('session');
     }
 
     /**
@@ -118,10 +96,12 @@ class MauticFactory
      */
     public function getEntityManager()
     {
-        $manager = $this->doctrine->getManager();
-        assert($manager instanceof EntityManager);
+        return ($this->entityManager) ? $this->entityManager : $this->container->get('doctrine')->getManager();
+    }
 
-        return $manager;
+    public function setEntityManager(EntityManager $em)
+    {
+        $this->entityManager = $em;
     }
 
     /**
@@ -131,7 +111,15 @@ class MauticFactory
      */
     public function getDatabase()
     {
-        return $this->doctrine->getConnection();
+        return ($this->database) ? $this->database : $this->container->get('database_connection');
+    }
+
+    /**
+     * @param $db
+     */
+    public function setDatabase($db)
+    {
+        $this->database = $db;
     }
 
     /**
@@ -142,7 +130,8 @@ class MauticFactory
     public function getTranslator()
     {
         if (defined('IN_MAUTIC_CONSOLE')) {
-            $translator = $this->translator;
+            /** @var \Mautic\CoreBundle\Translation\Translator $translator */
+            $translator = $this->container->get('translator');
 
             $translator->setLocale(
                 $this->getParameter('locale')
@@ -151,17 +140,27 @@ class MauticFactory
             return $translator;
         }
 
-        return $this->translator;
+        return $this->container->get('translator');
     }
 
     /**
-     * Retrieves twig service.
+     * Retrieves serializer.
      *
-     * @return \Twig\Environment
+     * @return \JMS\Serializer\Serializer
      */
-    public function getTwig()
+    public function getSerializer()
     {
-        return $this->container->get('twig');
+        return $this->container->get('jms_serializer');
+    }
+
+    /**
+     * Retrieves templating service.
+     *
+     * @return \Symfony\Bundle\FrameworkBundle\Templating\DelegatingEngine
+     */
+    public function getTemplating()
+    {
+        return $this->container->get('mautic.helper.templating')->getTemplating();
     }
 
     /**
@@ -181,7 +180,7 @@ class MauticFactory
      */
     public function getRequest()
     {
-        $request = $this->requestStack->getCurrentRequest();
+        $request = $this->container->get('request_stack')->getCurrentRequest();
         if (empty($request)) {
             //likely in a test as the request is not populated for outside the container
             $request      = Request::createFromGlobals();
@@ -190,6 +189,26 @@ class MauticFactory
         }
 
         return $request;
+    }
+
+    /**
+     * Retrieves Symfony's validator.
+     *
+     * @return \Symfony\Component\Validator\Validator
+     */
+    public function getValidator()
+    {
+        return $this->container->get('validator');
+    }
+
+    /**
+     * Retrieves Mautic system parameters.
+     *
+     * @return array
+     */
+    public function getSystemParameters()
+    {
+        return $this->container->getParameter('mautic.parameters');
     }
 
     /**
@@ -380,15 +399,15 @@ class MauticFactory
     {
         switch ($helper) {
             case 'template.assets':
-                return $this->container->get('twig.helper.assets');
+                return $this->container->get('templating.helper.assets');
             case 'template.slots':
-                return $this->container->get('twig.helper.slots');
+                return $this->container->get('templating.helper.slots');
             case 'template.form':
-                return $this->container->get('twig.helper.form');
+                return $this->container->get('templating.helper.form');
             case 'template.translator':
-                return $this->container->get('twig.helper.translator');
+                return $this->container->get('templating.helper.translator');
             case 'template.router':
-                return $this->container->get('twig.helper.router');
+                return $this->container->get('templating.helper.router');
             default:
                 return $this->container->get('mautic.helper.'.$helper);
         }

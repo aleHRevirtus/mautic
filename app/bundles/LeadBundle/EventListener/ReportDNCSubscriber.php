@@ -11,11 +11,11 @@ use Mautic\ReportBundle\Event\ReportGeneratorEvent;
 use Mautic\ReportBundle\ReportEvents;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\Routing\RouterInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class ReportDNCSubscriber implements EventSubscriberInterface
 {
-    public const DNC = 'contact.dnc';
+    const DNC = 'contact.dnc';
 
     /**
      * @var FieldsBuilder
@@ -77,9 +77,8 @@ class ReportDNCSubscriber implements EventSubscriberInterface
             return;
         }
 
-        $columns            = $this->fieldsBuilder->getLeadFieldsColumns('l.');
-        $companyColumns     = $this->companyReportData->getCompanyData();
-        $leadFilters        = $this->fieldsBuilder->getLeadFilter('l.', 's.');
+        $columns        = $this->fieldsBuilder->getLeadFieldsColumns('l.');
+        $companyColumns = $this->companyReportData->getCompanyData();
 
         $dncColumns = [
             'dnc.reason' => [
@@ -108,7 +107,6 @@ class ReportDNCSubscriber implements EventSubscriberInterface
         $data = [
             'display_name' => 'mautic.lead.report.dnc',
             'columns'      => array_merge($columns, $companyColumns, $dncColumns),
-            'filters'      => array_merge($columns, $companyColumns, $dncColumns, $leadFilters),
         ];
         $event->addTable(self::DNC, $data, ReportSubscriber::GROUP_CONTACTS);
     }
@@ -137,10 +135,6 @@ class ReportDNCSubscriber implements EventSubscriberInterface
         if ($this->companyReportData->eventHasCompanyColumns($event)) {
             $qb->leftJoin('l', MAUTIC_TABLE_PREFIX.'companies_leads', 'companies_lead', 'l.id = companies_lead.lead_id');
             $qb->leftJoin('companies_lead', MAUTIC_TABLE_PREFIX.'companies', 'comp', 'companies_lead.company_id = comp.id');
-        }
-
-        if ($event->hasFilter('s.leadlist_id')) {
-            $qb->join('l', MAUTIC_TABLE_PREFIX.'lead_lists_leads', 's', 's.lead_id = l.id AND s.manually_removed = 0');
         }
 
         $event->setQueryBuilder($qb);

@@ -6,8 +6,6 @@ use Mautic\CoreBundle\Controller\AjaxController as CommonAjaxController;
 use Mautic\CoreBundle\Controller\VariantAjaxControllerTrait;
 use Mautic\CoreBundle\Helper\InputHelper;
 use Mautic\PageBundle\Form\Type\AbTestPropertiesType;
-use Mautic\PageBundle\Model\PageModel;
-use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -20,29 +18,26 @@ class AjaxController extends CommonAjaxController
     /**
      * @return \Symfony\Component\HttpFoundation\JsonResponse
      */
-    public function getAbTestFormAction(Request $request, FormFactoryInterface $formFactory)
+    protected function getAbTestFormAction(Request $request)
     {
         return $this->getAbTestForm(
             $request,
-            $formFactory,
             'page',
             AbTestPropertiesType::class,
             'page_abtest_settings',
             'page',
-            '@MauticPage/AbTest/form.html.twig',
-            ['@MauticPage/AbTest/form.html.twig', 'MauticPageBundle:FormTheme\Page']
+            'MauticPageBundle:AbTest:form.html.php',
+            ['MauticPageBundle:AbTest:form.html.php', 'MauticPageBundle:FormTheme\Page']
         );
     }
 
     /**
      * @return \Symfony\Component\HttpFoundation\JsonResponse
      */
-    public function pageListAction(Request $request)
+    protected function pageListAction(Request $request)
     {
         $filter    = InputHelper::clean($request->query->get('filter'));
-        $pageModel = $this->getModel('page.page');
-        \assert($pageModel instanceof PageModel);
-        $results   = $pageModel->getLookupResults('page', $filter);
+        $results   = $this->getModel('page.page')->getLookupResults('page', $filter);
         $dataArray = [];
 
         foreach ($results as $r) {
@@ -58,11 +53,11 @@ class AjaxController extends CommonAjaxController
     /**
      * @return \Symfony\Component\HttpFoundation\JsonResponse
      */
-    public function setBuilderContentAction(Request $request)
+    protected function setBuilderContentAction(Request $request)
     {
         $dataArray = ['success' => 0];
         $entityId  = InputHelper::clean($request->request->get('entity'));
-        $session   = $request->getSession();
+        $session   = $this->get('session');
 
         if (!empty($entityId)) {
             $sessionVar = 'mautic.pagebuilder.'.$entityId.'.content';

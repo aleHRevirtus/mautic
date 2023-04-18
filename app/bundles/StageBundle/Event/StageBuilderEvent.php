@@ -2,9 +2,9 @@
 
 namespace Mautic\StageBundle\Event;
 
+use Symfony\Component\EventDispatcher\Event;
 use Symfony\Component\Process\Exception\InvalidArgumentException;
-use Symfony\Contracts\EventDispatcher\Event;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 /**
  * Class StageBuilderEvent.
@@ -17,10 +17,13 @@ class StageBuilderEvent extends Event
     private $actions = [];
 
     /**
-     * @var TranslatorInterface
+     * @var Translator
      */
     private $translator;
 
+    /**
+     * @param Translator $translator
+     */
     public function __construct(TranslatorInterface $translator)
     {
         $this->translator = $translator;
@@ -34,7 +37,7 @@ class StageBuilderEvent extends Event
      *                       'label'           => (required) what to display in the list
      *                       'description'     => (optional) short description of event
      *                       'template'        => (optional) template to use for the action's HTML in the stage builder
-     *                       i.e AcmeMyBundle:StageAction:theaction.html.twig
+     *                       i.e AcmeMyBundle:StageAction:theaction.html.php
      *                       'formType'        => (optional) name of the form type SERVICE for the action; will use a default form with stage change only
      *                       'formTypeOptions' => (optional) array of options to pass to formType
      *                       'callback'        => (optional) callback function that will be passed when the action is triggered; return true to

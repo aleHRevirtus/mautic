@@ -88,4 +88,12 @@ class RoleType extends AbstractType
             'permissionsConfig' => [],
         ]);
     }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getBlockPrefix()
+    {
+        return 'role';
+    }
 }

@@ -10,9 +10,6 @@ use Mautic\PageBundle\Entity\Trackable;
 use Mautic\PageBundle\Event\UntrackableUrlsEvent;
 use Mautic\PageBundle\PageEvents;
 
-/**
- * @extends AbstractCommonModel<Trackable>
- */
 class TrackableModel extends AbstractCommonModel
 {
     /**
@@ -217,8 +214,8 @@ class TrackableModel extends AbstractCommonModel
     public function getDoNotTrackList($content = null)
     {
         $event = $this->dispatcher->dispatch(
-            new UntrackableUrlsEvent($content),
-            PageEvents::REDIRECT_DO_NOT_TRACK
+            PageEvents::REDIRECT_DO_NOT_TRACK,
+            new UntrackableUrlsEvent($content)
         );
 
         return $event->getDoNotTrackList();
@@ -302,9 +299,7 @@ class TrackableModel extends AbstractCommonModel
         $content          = str_ireplace($firstPassSearch, $firstPassReplace, $content);
 
         // Sort longer to shorter strings to ensure that URLs that share the same base are appropriately replaced
-        uksort($this->contentReplacements['second_pass'], function ($a, $b) {
-            return strlen($b) - strlen($a);
-        });
+        krsort($this->contentReplacements['second_pass']);
 
         if ('html' == $type) {
             // For HTML, replace only the links; leaving the link text (if a URL) intact
@@ -563,7 +558,7 @@ class TrackableModel extends AbstractCommonModel
             || (isset($urlParts['scheme'])
                 && !in_array(
                     $urlParts['scheme'],
-                    ['http', 'https', 'ftp', 'ftps', 'mailto']
+                    ['http', 'https', 'ftp', 'ftps']
                 ))) {
             return false;
         }
@@ -790,7 +785,7 @@ class TrackableModel extends AbstractCommonModel
 
             // Combine the new elements into a string and return it
             return
-                ((isset($url['scheme'])) ? 'mailto' == $url['scheme'] ? $url['scheme'].':' : $url['scheme'].'://' : '')
+                ((isset($url['scheme'])) ? $url['scheme'].'://' : '')
                 .((isset($url['user'])) ? $url['user'].((isset($url['pass'])) ? ':'.$url['pass'] : '').'@' : '')
                 .((isset($url['host'])) ? $url['host'] : '')
                 .((isset($url['port'])) ? ':'.$url['port'] : '')

@@ -19,12 +19,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 class WebhookFunctionalTest extends MauticMysqlTestCase
 {
-    protected $useCleanupRollback = false;
-
     protected function setUp(): void
     {
-        parent::setUp();
-
         $this->setUpSymfony(
             $this->configParams +
             [
@@ -38,8 +34,10 @@ class WebhookFunctionalTest extends MauticMysqlTestCase
     /**
      * Clean up after the tests.
      */
-    protected function beforeTearDown(): void
+    protected function tearDown(): void
     {
+        parent::tearDown();
+
         $this->truncateTables('leads', 'webhooks', 'webhook_queue', 'webhook_events');
     }
 

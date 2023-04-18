@@ -9,7 +9,7 @@ use PHPUnit\Framework\TestCase;
 
 class EntityResultHelperTest extends TestCase
 {
-    public const NEW_TITLE = 'Callback Title';
+    const NEW_TITLE = 'Callback Title';
 
     public function testGetArrayEntities()
     {

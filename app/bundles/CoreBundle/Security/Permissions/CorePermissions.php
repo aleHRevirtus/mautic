@@ -8,12 +8,13 @@ use Mautic\CoreBundle\Security\Exception\PermissionBadFormatException;
 use Mautic\CoreBundle\Security\Exception\PermissionNotFoundException;
 use Mautic\UserBundle\Entity\Permission;
 use Mautic\UserBundle\Entity\User;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\Translator;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class CorePermissions
 {
     /**
-     * @var TranslatorInterface
+     * @var Translator
      */
     private $translator;
 
@@ -440,7 +441,7 @@ class CorePermissions
     }
 
     /**
-     * @return TranslatorInterface
+     * @return \Symfony\Bundle\FrameworkBundle\Translation\Translator
      */
     protected function getTranslator()
     {

@@ -7,7 +7,6 @@ use Mautic\CampaignBundle\Model\CampaignModel;
 use Mautic\CoreBundle\Helper\Chart\ChartQuery;
 use Mautic\CoreBundle\Helper\Chart\LineChart;
 use Mautic\CoreBundle\Helper\Chart\PieChart;
-use Mautic\CoreBundle\Translation\Translator;
 use Mautic\LeadBundle\Model\CompanyModel;
 use Mautic\LeadBundle\Model\CompanyReportData;
 use Mautic\LeadBundle\Model\LeadModel;
@@ -19,19 +18,20 @@ use Mautic\ReportBundle\Event\ReportGraphEvent;
 use Mautic\ReportBundle\ReportEvents;
 use Mautic\StageBundle\Model\StageModel;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class ReportSubscriber implements EventSubscriberInterface
 {
-    public const CONTEXT_LEADS                     = 'leads';
-    public const CONTEXT_LEAD_POINT_LOG            = 'lead.pointlog';
-    public const CONTEXT_CONTACT_ATTRIBUTION_MULTI = 'contact.attribution.multi';
-    public const CONTEXT_CONTACT_ATTRIBUTION_FIRST = 'contact.attribution.first';
-    public const CONTEXT_CONTACT_ATTRIBUTION_LAST  = 'contact.attribution.last';
-    public const CONTEXT_CONTACT_FREQUENCYRULES    = 'contact.frequencyrules';
-    public const CONTEXT_CONTACT_MESSAGE_FREQUENCY = 'contact.message.frequency';
-    public const CONTEXT_COMPANIES                 = 'companies';
+    const CONTEXT_LEADS                     = 'leads';
+    const CONTEXT_LEAD_POINT_LOG            = 'lead.pointlog';
+    const CONTEXT_CONTACT_ATTRIBUTION_MULTI = 'contact.attribution.multi';
+    const CONTEXT_CONTACT_ATTRIBUTION_FIRST = 'contact.attribution.first';
+    const CONTEXT_CONTACT_ATTRIBUTION_LAST  = 'contact.attribution.last';
+    const CONTEXT_CONTACT_FREQUENCYRULES    = 'contact.frequencyrules';
+    const CONTEXT_CONTACT_MESSAGE_FREQUENCY = 'contact.message.frequency';
+    const CONTEXT_COMPANIES                 = 'companies';
 
-    public const GROUP_CONTACTS = 'contacts';
+    const GROUP_CONTACTS = 'contacts';
 
     private $leadContexts = [
         self::CONTEXT_LEADS,
@@ -89,7 +89,7 @@ class ReportSubscriber implements EventSubscriberInterface
     private $companyReportData;
 
     /**
-     * @var Translator
+     * @var TranslatorInterface
      */
     private $translator;
 
@@ -101,7 +101,7 @@ class ReportSubscriber implements EventSubscriberInterface
         CompanyModel $companyModel,
         CompanyReportData $companyReportData,
         FieldsBuilder $fieldsBuilder,
-        Translator $translator
+        TranslatorInterface $translator
     ) {
         $this->leadModel         = $leadModel;
         $this->stageModel        = $stageModel;
@@ -148,9 +148,35 @@ class ReportSubscriber implements EventSubscriberInterface
                 $companyColumns
             );
 
-            if ($event->checkContext([self::CONTEXT_CONTACT_FREQUENCYRULES])) {
-                $this->injectFrequencyReportData($event, $columns, $filters);
+            if ($event->checkContext([self::CONTEXT_LEADS])) {
+                $stageColumns = [
+                    'l.stage_id'           => [
+                        'label' => 'mautic.lead.report.attribution.stage_id',
+                        'type'  => 'int',
+                        'link'  => 'mautic_stage_action',
+                    ],
+                    's.name'               => [
+                        'alias' => 'stage_name',
+                        'label' => 'mautic.lead.report.attribution.stage_name',
+                        'type'  => 'string',
+                    ],
+                    's.date_added' => [
+                        'alias'   => 'stage_date_added',
+                        'label'   => 'mautic.lead.report.attribution.stage_date_added',
+                        'type'    => 'string',
+                        'formula' => '(SELECT MAX(stage_log.date_added) FROM '.MAUTIC_TABLE_PREFIX.'lead_stages_change_log stage_log WHERE stage_log.stage_id = l.stage_id AND stage_log.lead_id = l.id)',
+                    ],
+                ];
+                $columns      = array_merge($columns, $stageColumns);
             }
+
+            $data = [
+                'display_name' => 'mautic.lead.leads',
+                'columns'      => $columns,
+                'filters'      => $filters,
+            ];
+
+            $event->addTable(self::CONTEXT_LEADS, $data, self::GROUP_CONTACTS);
 
             $attributionTypes = [
                 self::CONTEXT_CONTACT_ATTRIBUTION_MULTI,
@@ -178,34 +204,9 @@ class ReportSubscriber implements EventSubscriberInterface
                 }
             }
 
-            if ($event->checkContext([self::CONTEXT_LEADS])) {
-                $stageColumns = [
-                    'l.stage_id'           => [
-                        'label' => 'mautic.lead.report.attribution.stage_id',
-                        'type'  => 'int',
-                    ],
-                    'ss.name'               => [
-                        'alias' => 'stage_name',
-                        'label' => 'mautic.lead.report.attribution.stage_name',
-                        'type'  => 'string',
-                    ],
-                    'ss.date_added' => [
-                        'alias'   => 'stage_date_added',
-                        'label'   => 'mautic.lead.report.attribution.stage_date_added',
-                        'type'    => 'string',
-                        'formula' => '(SELECT MAX(stage_log.date_added) FROM '.MAUTIC_TABLE_PREFIX.'lead_stages_change_log stage_log WHERE stage_log.stage_id = l.stage_id AND stage_log.lead_id = l.id)',
-                    ],
-                ];
-                $columns      = array_merge($columns, $stageColumns);
+            if ($event->checkContext([self::CONTEXT_CONTACT_FREQUENCYRULES])) {
+                $this->injectFrequencyReportData($event, $columns, $filters);
             }
-
-            $data = [
-                'display_name' => 'mautic.lead.leads',
-                'columns'      => $columns,
-                'filters'      => $filters,
-            ];
-
-            $event->addTable(self::CONTEXT_LEADS, $data, self::GROUP_CONTACTS);
         }
 
         if ($event->checkContext($this->companyContexts)) {
@@ -253,8 +254,8 @@ class ReportSubscriber implements EventSubscriberInterface
                     $event->addLeadIpAddressLeftJoin($qb);
                 }
 
-                if ($event->usesColumn('ss.name')) {
-                    $qb->leftJoin('l', MAUTIC_TABLE_PREFIX.'stages', 'ss', 'ss.id = l.stage_id');
+                if ($event->hasColumn(['s.name']) || $event->hasFilter(['s.name'])) {
+                    $qb->leftJoin('l', MAUTIC_TABLE_PREFIX.'stages', 's', 's.id = l.stage_id');
                 }
 
                 if ($event->hasFilter('s.leadlist_id')) {
@@ -279,7 +280,7 @@ class ReportSubscriber implements EventSubscriberInterface
                     $event->addLeadIpAddressLeftJoin($qb);
                 }
 
-                if ($event->usesColumn('s.leadlist_id')) {
+                if ($event->hasFilter('s.leadlist_id')) {
                     $qb->join('l', MAUTIC_TABLE_PREFIX.'lead_lists_leads', 's', 's.lead_id = l.id AND s.manually_removed = 0');
                 }
 
@@ -297,10 +298,6 @@ class ReportSubscriber implements EventSubscriberInterface
                     $event->addLeadIpAddressLeftJoin($qb);
                 }
 
-                if ($event->usesColumn('s.leadlist_id')) {
-                    $qb->join('l', MAUTIC_TABLE_PREFIX.'lead_lists_leads', 's', 's.lead_id = l.id AND s.manually_removed = 0');
-                }
-
                 break;
 
             case self::CONTEXT_CONTACT_ATTRIBUTION_MULTI:
@@ -310,7 +307,7 @@ class ReportSubscriber implements EventSubscriberInterface
                 $event->applyDateFilters($qb, 'attribution_date', 'l', true);
                 $qb->from(MAUTIC_TABLE_PREFIX.'leads', 'l')
                     ->join('l', MAUTIC_TABLE_PREFIX.'campaign_lead_event_log', 'log', 'l.id = log.lead_id')
-                    ->leftJoin('l', MAUTIC_TABLE_PREFIX.'stages', 'ss', 'l.stage_id = ss.id')
+                    ->leftJoin('l', MAUTIC_TABLE_PREFIX.'stages', 's', 'l.stage_id = s.id')
                     ->join('log', MAUTIC_TABLE_PREFIX.'campaign_events', 'e', 'log.event_id = e.id')
                     ->join('log', MAUTIC_TABLE_PREFIX.'campaigns', 'c', 'log.campaign_id = c.id')
                     ->andWhere(
@@ -333,10 +330,6 @@ class ReportSubscriber implements EventSubscriberInterface
 
                 if ($event->usesColumn(['cat.id', 'cat.title'])) {
                     $event->addCategoryLeftJoin($qb, 'c', 'cat');
-                }
-
-                if ($event->usesColumn('s.leadlist_id')) {
-                    $qb->join('l', MAUTIC_TABLE_PREFIX.'lead_lists_leads', 's', 's.lead_id = l.id AND s.manually_removed = 0');
                 }
 
                 $subQ = clone $qb;
@@ -456,8 +449,8 @@ class ReportSubscriber implements EventSubscriberInterface
                     $groupBy = str_replace('mautic.lead.graph.pie.attribution_', '', $g);
                     switch ($groupBy) {
                         case 'stages':
-                            $attributionQb->select('CONCAT_WS(\':\', ss.id, ss.name) as slice, l.attribution as contact_attribution')
-                                ->groupBy('l.id, ss.id');
+                            $attributionQb->select('CONCAT_WS(\':\', s.id, s.name) as slice, l.attribution as contact_attribution')
+                                ->groupBy('l.id, s.id');
                             break;
                         case 'campaigns':
                             $attributionQb->select(
@@ -792,8 +785,9 @@ class ReportSubscriber implements EventSubscriberInterface
             'l.stage_id' => [
                 'label' => 'mautic.lead.report.attribution.stage_id',
                 'type'  => 'int',
+                'link'  => 'mautic_stage_action',
             ],
-            'ss.name' => [
+            's.name' => [
                 'alias' => 'stage_name',
                 'label' => 'mautic.lead.report.attribution.stage_name',
                 'type'  => 'string',

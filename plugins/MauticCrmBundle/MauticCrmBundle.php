@@ -7,6 +7,9 @@ use Mautic\CoreBundle\Factory\MauticFactory;
 use Mautic\PluginBundle\Bundle\PluginBundleBase;
 use Mautic\PluginBundle\Entity\Plugin;
 
+/**
+ * Class MauticCrmBundle.
+ */
 class MauticCrmBundle extends PluginBundleBase
 {
     public static function onPluginInstall(Plugin $plugin, MauticFactory $factory, $metadata = null, $installedSchema = null)

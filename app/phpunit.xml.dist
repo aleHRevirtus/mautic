@@ -58,10 +58,8 @@
   </php>
   <listeners>
     <listener class="\Mautic\CoreBundle\Test\Listeners\CleanupListener" />
-    <listener class="\Mautic\CoreBundle\Test\Listeners\SeparateProcessListener" />
   </listeners>
   <extensions>
     <extension class="\Mautic\CoreBundle\Test\Hooks\MauticExtension" />
-    <extension class="\Mautic\CoreBundle\Test\Hooks\SlowTestExtension" />
   </extensions>
 </phpunit>

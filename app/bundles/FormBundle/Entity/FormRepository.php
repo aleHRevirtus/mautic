@@ -6,7 +6,7 @@ use Doctrine\ORM\Query\Expr\Join;
 use Mautic\CoreBundle\Entity\CommonRepository;
 
 /**
- * @extends CommonRepository<Form>
+ * FormRepository.
  */
 class FormRepository extends CommonRepository
 {
@@ -201,14 +201,6 @@ class FormRepository extends CommonRepository
     public function getResultsTableName($formId, $formAlias)
     {
         return MAUTIC_TABLE_PREFIX.'form_results_'.$formId.'_'.$formAlias;
-    }
-
-    public function getFormTableIdViaResults(string $resultsTableName): ?string
-    {
-        $regexp = '/.*'.MAUTIC_TABLE_PREFIX.'form_results_([0-9]+)_(.*)/i';
-        preg_match($regexp, $resultsTableName, $matches);
-
-        return $matches[1] ?? null;
     }
 
     /**

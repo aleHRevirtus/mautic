@@ -75,7 +75,7 @@ class CampaignBuilderEventTest extends CampaignTestAbstract
             'label'       => 'mautic.form.campaign.event.field_value',
             'description' => 'mautic.form.campaign.event.field_value_descr',
             'formType'    => CampaignEventFormFieldValueType::class,
-            'formTheme'   => '@MauticForm/FormTheme/FieldValueCondition/_campaignevent_form_field_value_widget.html.twig',
+            'formTheme'   => 'MauticFormBundle:FormTheme\FieldValueCondition',
             'eventName'   => 'mautic.form.on_campaign_trigger_condition',
         ];
         $event = $this->initEvent();

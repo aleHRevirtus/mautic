@@ -10,7 +10,7 @@ use Psr\Cache\InvalidArgumentException as Psr6CacheInterface;
 use Symfony\Component\Cache\Adapter\TagAwareAdapterInterface;
 use Symfony\Component\Cache\CacheItem;
 use Symfony\Component\Cache\Exception\InvalidArgumentException;
-use Symfony\Component\Cache\Psr16Cache;
+use Symfony\Component\Cache\Simple\Psr6Cache;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -19,7 +19,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 final class CacheProvider implements CacheProviderInterface
 {
     /**
-     * @var Psr16Cache|null
+     * @var Psr6Cache
      */
     private $psr16;
 
@@ -54,10 +54,10 @@ final class CacheProvider implements CacheProviderInterface
         return $adaptor;
     }
 
-    public function getSimpleCache(): Psr16Cache
+    public function getSimpleCache(): Psr6Cache
     {
         if (is_null($this->psr16)) {
-            $this->psr16 = new Psr16Cache($this->getCacheAdapter());
+            $this->psr16 = new Psr6Cache($this->getCacheAdapter());
         }
 
         return $this->psr16;
@@ -93,9 +93,9 @@ final class CacheProvider implements CacheProviderInterface
         return $this->getCacheAdapter()->hasItem($key);
     }
 
-    public function clear(string $prefix = ''): bool
+    public function clear(): bool
     {
-        return $this->getCacheAdapter()->clear($prefix);
+        return $this->getCacheAdapter()->clear();
     }
 
     public function deleteItem($key): bool

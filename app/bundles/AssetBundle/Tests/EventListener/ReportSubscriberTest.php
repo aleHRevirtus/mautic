@@ -7,7 +7,6 @@ namespace Mautic\AssetBundle\Tests\EventListener;
 use Mautic\AssetBundle\Entity\DownloadRepository;
 use Mautic\AssetBundle\EventListener\ReportSubscriber;
 use Mautic\ChannelBundle\Helper\ChannelListHelper;
-use Mautic\CoreBundle\Translation\Translator;
 use Mautic\LeadBundle\Model\CompanyReportData;
 use Mautic\LeadBundle\Segment\Query\QueryBuilder;
 use Mautic\ReportBundle\Entity\Report;
@@ -15,13 +14,12 @@ use Mautic\ReportBundle\Event\ReportBuilderEvent;
 use Mautic\ReportBundle\Event\ReportGeneratorEvent;
 use Mautic\ReportBundle\Helper\ReportHelper;
 use PHPUnit\Framework\Assert;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class ReportSubscriberTest extends \PHPUnit\Framework\TestCase
 {
     /**
-     * @var ChannelListHelper
+     * @var ChannelListHelper|\PHPUnit\Framework\MockObject\MockObject
      */
     private $channelListHelper;
 
@@ -40,16 +38,10 @@ class ReportSubscriberTest extends \PHPUnit\Framework\TestCase
      */
     private $queryBuilder;
 
-    /**
-     * @var ReportHelper
-     */
-    private $reportHelper;
-
     public function setUp(): void
     {
         $this->queryBuilder       = $this->createMock(QueryBuilder::class);
-        $this->channelListHelper  = new ChannelListHelper($this->createMock(EventDispatcherInterface::class), $this->createMock(Translator::class));
-        $this->reportHelper       = new ReportHelper();
+        $this->channelListHelper  = $this->createMock(ChannelListHelper::class);
         $this->companyReportData  = $this->createMock(CompanyReportData::class);
         $this->downloadRepository = $this->createMock(DownloadRepository::class);
     }
@@ -104,7 +96,19 @@ class ReportSubscriberTest extends \PHPUnit\Framework\TestCase
             }
         };
 
-        $event = new ReportBuilderEvent($this->createTranslatorMock(), $this->channelListHelper, ReportSubscriber::CONTEXT_ASSET_DOWNLOAD, [], $this->reportHelper);
+        $channelListHelper = new class() extends ChannelListHelper {
+            public function __construct()
+            {
+            }
+        };
+
+        $reportHelper = new class() extends ReportHelper {
+            public function __construct()
+            {
+            }
+        };
+
+        $event = new ReportBuilderEvent($this->createTranslatorMock(), $channelListHelper, ReportSubscriber::CONTEXT_ASSET_DOWNLOAD, [], $reportHelper);
 
         $reportSubscriber = new ReportSubscriber($companyReportData, $downloadRepository);
 
@@ -155,9 +159,28 @@ class ReportSubscriberTest extends \PHPUnit\Framework\TestCase
             /**
              * @param array<int|string> $parameters
              */
-            public function trans($id, array $parameters = [], string $domain = null, string $locale = null): string
+            public function trans($id, array $parameters = [], $domain = null, $locale = null): string
             {
                 return '[trans]'.$id.'[/trans]';
+            }
+
+            /**
+             * @param array<int|string> $parameters
+             *
+             * @return string
+             */
+            public function transChoice($id, $number, array $parameters = [], $domain = null, $locale = null)
+            {
+                return '[trans]'.$id.'[/trans]';
+            }
+
+            public function setLocale($locale): void
+            {
+            }
+
+            public function getLocale()
+            {
+                return '';
             }
         };
     }

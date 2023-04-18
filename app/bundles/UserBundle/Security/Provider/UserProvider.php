@@ -18,6 +18,9 @@ use Symfony\Component\Security\Core\Exception\UsernameNotFoundException;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Core\User\UserProviderInterface;
 
+/**
+ * Class UserProvider.
+ */
 class UserProvider implements UserProviderInterface
 {
     /**
@@ -114,7 +117,8 @@ class UserProvider implements UserProviderInterface
      */
     public function supportsClass($class)
     {
-        return User::class === $class || is_subclass_of($class, User::class);
+        return $this->userRepository->getClassName() === $class
+        || is_subclass_of($class, $this->userRepository->getClassName());
     }
 
     /**
@@ -171,13 +175,13 @@ class UserProvider implements UserProviderInterface
         $event = new UserEvent($user, $isNew);
 
         if ($this->dispatcher->hasListeners(UserEvents::USER_PRE_SAVE)) {
-            $event = $this->dispatcher->dispatch($event, UserEvents::USER_PRE_SAVE);
+            $event = $this->dispatcher->dispatch(UserEvents::USER_PRE_SAVE, $event);
         }
 
         $this->userRepository->saveEntity($user);
 
         if ($this->dispatcher->hasListeners(UserEvents::USER_POST_SAVE)) {
-            $this->dispatcher->dispatch($event, UserEvents::USER_POST_SAVE);
+            $this->dispatcher->dispatch(UserEvents::USER_POST_SAVE, $event);
         }
 
         return $user;

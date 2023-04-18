@@ -3,8 +3,6 @@
 namespace Mautic\CoreBundle\Controller;
 
 use Mautic\CoreBundle\Helper\InputHelper;
-use Mautic\CoreBundle\Helper\PathsHelper;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -12,8 +10,8 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class FileController extends AjaxController
 {
-    public const EDITOR_FROALA   = 'froala';
-    public const EDITOR_CKEDITOR = 'ckeditor';
+    const EDITOR_FROALA   = 'froala';
+    const EDITOR_CKEDITOR = 'ckeditor';
 
     protected $imageMimes = [
         'image/gif',
@@ -34,16 +32,16 @@ class FileController extends AjaxController
      *
      * @return \Symfony\Component\HttpFoundation\JsonResponse
      */
-    public function uploadAction(Request $request, PathsHelper $pathsHelper)
+    public function uploadAction()
     {
-        $editor   = $request->get('editor', 'froala');
-        $mediaDir = $this->getMediaAbsolutePath($pathsHelper);
+        $editor   = $this->request->get('editor', 'froala');
+        $mediaDir = $this->getMediaAbsolutePath();
         if (!isset($this->response['error'])) {
-            foreach ($request->files as $file) {
+            foreach ($this->request->files as $file) {
                 if (in_array($file->getMimeType(), $this->imageMimes)) {
                     $fileName = md5(uniqid()).'.'.$file->guessExtension();
                     $file->move($mediaDir, $fileName);
-                    $this->successfulResponse($request, $fileName, $editor);
+                    $this->successfulResponse($fileName, $editor);
                 } else {
                     $this->failureResponse($editor);
                 }
@@ -58,14 +56,14 @@ class FileController extends AjaxController
      *
      * @return \Symfony\Component\HttpFoundation\JsonResponse
      */
-    public function listAction(Request $request, PathsHelper $pathsHelper)
+    public function listAction()
     {
-        $fnames = scandir($this->getMediaAbsolutePath($pathsHelper));
+        $fnames = scandir($this->getMediaAbsolutePath());
 
         if ($fnames) {
             foreach ($fnames as $name) {
-                $imagePath = $this->getMediaAbsolutePath($pathsHelper).'/'.$name;
-                $imageUrl  = $this->getMediaUrl($request).'/'.$name;
+                $imagePath = $this->getMediaAbsolutePath().'/'.$name;
+                $imageUrl  = $this->getMediaUrl().'/'.$name;
                 if (!is_dir($name) && in_array(mime_content_type($imagePath), $this->imageMimes)) {
                     $this->response[] = [
                         'url'   => $imageUrl,
@@ -86,11 +84,11 @@ class FileController extends AjaxController
      *
      * @return \Symfony\Component\HttpFoundation\JsonResponse
      */
-    public function deleteAction(Request $request, PathsHelper $pathsHelper)
+    public function deleteAction()
     {
-        $src       = InputHelper::clean($request->request->get('src'));
+        $src       = InputHelper::clean($this->request->request->get('src'));
         $response  = ['deleted' => false];
-        $imagePath = $this->getMediaAbsolutePath($pathsHelper).'/'.basename($src);
+        $imagePath = $this->getMediaAbsolutePath().'/'.basename($src);
 
         if (!file_exists($imagePath)) {
             $this->response['error'] = 'File does not exist';
@@ -111,9 +109,9 @@ class FileController extends AjaxController
      *
      * @return string
      */
-    public function getMediaAbsolutePath(PathsHelper $pathsHelper)
+    public function getMediaAbsolutePath()
     {
-        $mediaDir = realpath($pathsHelper->getSystemPath('images', true));
+        $mediaDir = realpath($this->get('mautic.helper.paths')->getSystemPath('images', true));
 
         if (false === $mediaDir) {
             $this->response['error'] = 'Media dir does not exist';
@@ -133,17 +131,17 @@ class FileController extends AjaxController
      *
      * @return string
      */
-    public function getMediaUrl(Request $request)
+    public function getMediaUrl()
     {
-        return $request->getScheme().'://'
-            .$request->getHttpHost()
-            .$request->getBasePath().'/'
+        return $this->request->getScheme().'://'
+            .$this->request->getHttpHost()
+            .$this->request->getBasePath().'/'
             .$this->coreParametersHelper->get('image_path');
     }
 
-    private function successfulResponse(Request $request, string $fileName, string $editor): void
+    private function successfulResponse(string $fileName, string $editor): void
     {
-        $filePath = $this->getMediaUrl($request).'/'.$fileName;
+        $filePath = $this->getMediaUrl().'/'.$fileName;
         if (self::EDITOR_CKEDITOR === $editor) {
             $this->response['uploaded'] = true;
             $this->response['url']      = $filePath;

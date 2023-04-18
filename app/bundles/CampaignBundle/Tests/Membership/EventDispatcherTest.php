@@ -26,7 +26,7 @@ class EventDispatcherTest extends \PHPUnit\Framework\TestCase
     {
         $this->eventDispatcher->expects($this->once())
             ->method('dispatch')
-            ->with($this->isInstanceOf(CampaignLeadChangeEvent::class), CampaignEvents::CAMPAIGN_ON_LEADCHANGE);
+            ->with(CampaignEvents::CAMPAIGN_ON_LEADCHANGE, $this->isInstanceOf(CampaignLeadChangeEvent::class));
 
         $this->getDispatcher()->dispatchMembershipChange(new Lead(), new Campaign(), Adder::NAME);
     }
@@ -35,7 +35,7 @@ class EventDispatcherTest extends \PHPUnit\Framework\TestCase
     {
         $this->eventDispatcher->expects($this->once())
             ->method('dispatch')
-            ->with($this->isInstanceOf(CampaignLeadChangeEvent::class), CampaignEvents::LEAD_CAMPAIGN_BATCH_CHANGE);
+            ->with(CampaignEvents::LEAD_CAMPAIGN_BATCH_CHANGE, $this->isInstanceOf(CampaignLeadChangeEvent::class));
 
         $this->getDispatcher()->dispatchBatchMembershipChange([new Lead()], new Campaign(), Adder::NAME);
     }

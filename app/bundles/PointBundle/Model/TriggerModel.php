@@ -15,13 +15,9 @@ use Mautic\PointBundle\Entity\TriggerEvent;
 use Mautic\PointBundle\Event as Events;
 use Mautic\PointBundle\Form\Type\TriggerType;
 use Mautic\PointBundle\PointEvents;
-use Symfony\Component\Form\FormFactoryInterface;
+use Symfony\Component\EventDispatcher\Event;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
-use Symfony\Contracts\EventDispatcher\Event;
 
-/**
- * @extends CommonFormModel<Trigger>
- */
 class TriggerModel extends CommonFormModel
 {
     protected $triggers = [];
@@ -100,7 +96,7 @@ class TriggerModel extends CommonFormModel
      *
      * @throws MethodNotAllowedHttpException
      */
-    public function createForm($entity, FormFactoryInterface $formFactory, $action = null, $options = [])
+    public function createForm($entity, $formFactory, $action = null, $options = [])
     {
         if (!$entity instanceof Trigger) {
             throw new MethodNotAllowedHttpException(['Trigger']);
@@ -229,7 +225,7 @@ class TriggerModel extends CommonFormModel
                 $event = new Events\TriggerEvent($entity, $isNew);
             }
 
-            $this->dispatcher->dispatch($event, $name);
+            $this->dispatcher->dispatch($name, $event);
 
             return $event;
         }
@@ -284,7 +280,7 @@ class TriggerModel extends CommonFormModel
             //build them
             $events = [];
             $event  = new Events\TriggerBuilderEvent($this->translator);
-            $this->dispatcher->dispatch($event, PointEvents::TRIGGER_ON_BUILD);
+            $this->dispatcher->dispatch(PointEvents::TRIGGER_ON_BUILD, $event);
             $events = $event->getEvents();
         }
 
@@ -354,7 +350,7 @@ class TriggerModel extends CommonFormModel
 
             $triggerExecutedEvent = new Events\TriggerExecutedEvent($triggerEvent, $lead);
 
-            $this->dispatcher->dispatch($triggerExecutedEvent, $settings['eventName']);
+            $this->dispatcher->dispatch($settings['eventName'], $triggerExecutedEvent);
 
             return $triggerExecutedEvent->getResult();
         }

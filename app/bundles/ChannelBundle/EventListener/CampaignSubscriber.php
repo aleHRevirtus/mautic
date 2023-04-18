@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 namespace Mautic\ChannelBundle\EventListener;
 
 use Doctrine\Common\Collections\ArrayCollection;
@@ -20,29 +18,58 @@ use Mautic\ChannelBundle\Model\MessageModel;
 use Mautic\ChannelBundle\PreferenceBuilder\PreferenceBuilder;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class CampaignSubscriber implements EventSubscriberInterface
 {
-    private MessageModel $messageModel;
-
-    private ActionDispatcher $actionDispatcher;
-
-    private EventCollector $eventCollector;
-
-    private LoggerInterface $logger;
-
-    private TranslatorInterface $translator;
-
-    private ?Event $pseudoEvent;
-
-    private ?ArrayCollection $mmLogs;
+    /**
+     * @var MessageModel
+     */
+    private $messageModel;
 
     /**
-     * @var mixed[]
+     * @var ActionDispatcher
      */
-    private array $messageChannels = [];
+    private $actionDispatcher;
 
+    /**
+     * @var EventCollector
+     */
+    private $eventCollector;
+
+    /**
+     * @var LoggerInterface
+     */
+    private $logger;
+
+    /**
+     * @var TranslatorInterface
+     */
+    private $translator;
+
+    /**
+     * @var Event
+     */
+    private $pseudoEvent;
+
+    /**
+     * @var PendingEvent
+     */
+    private $pendingEvent;
+
+    /**
+     * @var ArrayCollection
+     */
+    private $mmLogs;
+
+    /**
+     * @var array
+     */
+    private $messageChannels = [];
+
+    /**
+     * CampaignSubscriber constructor.
+     */
     public function __construct(
         MessageModel $messageModel,
         ActionDispatcher $actionDispatcher,
@@ -68,7 +95,7 @@ class CampaignSubscriber implements EventSubscriberInterface
         ];
     }
 
-    public function onCampaignBuild(CampaignBuilderEvent $event): void
+    public function onCampaignBuild(CampaignBuilderEvent $event)
     {
         $channels  = $this->messageModel->getChannels();
         $decisions = [];
@@ -83,6 +110,7 @@ class CampaignSubscriber implements EventSubscriberInterface
             'description'            => 'mautic.channel.message.send.marketing.message.descr',
             'batchEventName'         => ChannelEvents::ON_CAMPAIGN_BATCH_ACTION,
             'formType'               => MessageSendType::class,
+            'formTheme'              => 'MauticChannelBundle:FormTheme\MessageSend',
             'channel'                => 'channel.message',
             'channelIdField'         => 'marketingMessage',
             'connectionRestrictions' => [
@@ -90,7 +118,7 @@ class CampaignSubscriber implements EventSubscriberInterface
                     'decision' => $decisions,
                 ],
             ],
-            'timelineTemplate'       => '@MauticChannel/SubscribedEvents\Timeline/index.html.twig',
+            'timelineTemplate'       => 'MauticChannelBundle:SubscribedEvents\Timeline:index.html.php',
             'timelineTemplateVars'   => [
                 'messageSettings' => $channels,
             ],
@@ -105,7 +133,8 @@ class CampaignSubscriber implements EventSubscriberInterface
      */
     public function onCampaignTriggerAction(PendingEvent $pendingEvent)
     {
-        $this->pseudoEvent = clone $pendingEvent->getEvent();
+        $this->pendingEvent = $pendingEvent;
+        $this->pseudoEvent  = clone $pendingEvent->getEvent();
         $this->pseudoEvent->setCampaign($pendingEvent->getEvent()->getCampaign());
 
         $this->mmLogs    = $pendingEvent->getPending();
@@ -145,7 +174,7 @@ class CampaignSubscriber implements EventSubscriberInterface
 
                 $successfullyExecuted = $this->sendChannelMessage($channelLogs, $channel, $this->messageChannels[$id][$channel]);
 
-                $this->passExecutedLogs($pendingEvent, $successfullyExecuted, $preferenceBuilder);
+                $this->passExecutedLogs($successfullyExecuted, $preferenceBuilder);
             }
             ++$priority;
         }
@@ -197,7 +226,7 @@ class CampaignSubscriber implements EventSubscriberInterface
         return $success;
     }
 
-    private function passExecutedLogs(PendingEvent $pendingEvent, ArrayCollection $logs, PreferenceBuilder $channelPreferences): void
+    private function passExecutedLogs(ArrayCollection $logs, PreferenceBuilder $channelPreferences)
     {
         /** @var LeadEventLog $log */
         foreach ($logs as $log) {
@@ -205,18 +234,19 @@ class CampaignSubscriber implements EventSubscriberInterface
             $channelPreferences->removeLogFromAllChannels($log);
 
             // Find the Marketing Message log and pass it
-            $mmLog = $pendingEvent->findLogByContactId($log->getLead()->getId());
+            $mmLog = $this->pendingEvent->findLogByContactId($log->getLead()->getId());
 
             // Pass these for the MM campaign event
-            $pendingEvent->pass($mmLog);
+            $this->pendingEvent->pass($mmLog);
         }
     }
 
-    /**
-     * @param ArrayCollection<int,LeadEventLog> $success
-     */
-    private function removePsuedoFailures(ArrayCollection $success): void
+    private function removePsuedoFailures(ArrayCollection $success)
     {
+        /**
+         * @var int
+         * @var LeadEventLog $log
+         */
         foreach ($success as $key => $log) {
             if (!empty($log->getMetadata()['failed'])) {
                 $success->remove($key);
@@ -224,7 +254,10 @@ class CampaignSubscriber implements EventSubscriberInterface
         }
     }
 
-    private function recordChannelMetadata(PendingEvent $pendingEvent, string $channel): void
+    /**
+     * @param $channel
+     */
+    private function recordChannelMetadata(PendingEvent $pendingEvent, $channel)
     {
         /** @var LeadEventLog $log */
         foreach ($this->mmLogs as $log) {

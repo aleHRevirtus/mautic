@@ -12,7 +12,7 @@ use Mautic\PointBundle\Entity\LeadPointLogRepository;
 use Mautic\PointBundle\Entity\LeadTriggerLogRepository;
 use Mautic\PointBundle\Model\TriggerModel;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class LeadSubscriber implements EventSubscriberInterface
 {

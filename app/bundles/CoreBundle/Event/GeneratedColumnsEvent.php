@@ -6,7 +6,7 @@ namespace Mautic\CoreBundle\Event;
 
 use Mautic\CoreBundle\Doctrine\GeneratedColumn\GeneratedColumn;
 use Mautic\CoreBundle\Doctrine\GeneratedColumn\GeneratedColumns;
-use Symfony\Contracts\EventDispatcher\Event;
+use Symfony\Component\EventDispatcher\Event;
 
 class GeneratedColumnsEvent extends Event
 {

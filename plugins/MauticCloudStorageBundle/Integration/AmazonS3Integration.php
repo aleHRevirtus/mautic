@@ -85,17 +85,6 @@ class AmazonS3Integration extends CloudStorageIntegration
                     'required' => false,
                 ]
             );
-
-            $builder->add(
-                'endpoint',
-                TextType::class,
-                [
-                    'label'    => 'mautic.integration.Amazon.endpoint',
-                    'attr'     => ['class'   => 'form-control'],
-                    'data'     => empty($data['endpoint']) ? null : $data['endpoint'],
-                    'required' => false,
-                ]
-            );
         }
     }
 
@@ -109,19 +98,16 @@ class AmazonS3Integration extends CloudStorageIntegration
         if (!$this->adapter || !$this->fileSystem) {
             $keys = $this->getDecryptedApiKeys();
 
-            $s3Args = [
-                'version'     => 'latest',
-                'region'      => (empty($keys['region'])) ? 'us-east-1' : $keys['region'],
-                'credentials' => [
-                    'key'    => $keys['client_id'],
-                    'secret' => $keys['client_secret'],
-                ],
-            ];
-            if (!empty($keys['endpoint'])) {
-                $s3Args['endpoint'] = $keys['endpoint'];
-            }
-
-            $service = new S3Client($s3Args);
+            $service = new S3Client(
+                [
+                    'version'     => 'latest',
+                    'region'      => (empty($keys['region'])) ? 'us-east-1' : $keys['region'],
+                    'credentials' => [
+                        'key'    => $keys['client_id'],
+                        'secret' => $keys['client_secret'],
+                    ],
+                ]
+            );
 
             $this->adapter    = new AwsS3($service, $keys['bucket']);
             $decorated        = new Filesystem($this->adapter);

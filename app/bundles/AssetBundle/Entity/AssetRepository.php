@@ -8,7 +8,7 @@ use Doctrine\ORM\Tools\Pagination\Paginator;
 use Mautic\CoreBundle\Entity\CommonRepository;
 
 /**
- * @extends CommonRepository<Asset>
+ * Class AssetRepository.
  */
 class AssetRepository extends CommonRepository
 {
@@ -142,7 +142,7 @@ class AssetRepository extends CommonRepository
     }
 
     /**
-     * @return array<array<string>>
+     * @return string
      */
     protected function getDefaultOrder()
     {

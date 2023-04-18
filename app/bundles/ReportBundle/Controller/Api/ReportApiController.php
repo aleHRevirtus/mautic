@@ -6,31 +6,28 @@ use DateTimeImmutable;
 use DateTimeZone;
 use Mautic\ApiBundle\Controller\CommonApiController;
 use Mautic\ReportBundle\Entity\Report;
-use Mautic\ReportBundle\Model\ReportModel;
-use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Event\ControllerEvent;
+use Symfony\Component\HttpKernel\Event\FilterControllerEvent;
 
-/**
- * @extends CommonApiController<Report>
- */
 class ReportApiController extends CommonApiController
 {
     /**
-     * @var ReportModel|null
+     * @var FormFactoryInterface
      */
-    protected $model = null;
+    private $formFactory;
 
-    public function initialize(ControllerEvent $event)
+    /**
+     * {@inheritdoc}
+     */
+    public function initialize(FilterControllerEvent $event)
     {
-        $reportModel = $this->getModel('report');
-        \assert($reportModel instanceof ReportModel);
-
-        $this->model            = $reportModel;
+        $this->model            = $this->getModel('report');
         $this->entityClass      = Report::class;
         $this->entityNameOne    = 'report';
         $this->entityNameMulti  = 'reports';
         $this->serializerGroups = ['reportList', 'reportDetails'];
+        $this->formFactory      = $this->container->get('form.factory');
 
         parent::initialize($event);
     }
@@ -42,7 +39,7 @@ class ReportApiController extends CommonApiController
      *
      * @return \Symfony\Component\HttpFoundation\Response
      */
-    public function getReportAction(Request $request, $id)
+    public function getReportAction($id)
     {
         $entity = $this->model->getEntity($id);
 
@@ -50,7 +47,7 @@ class ReportApiController extends CommonApiController
             return $this->notFound();
         }
 
-        $reportData = $this->model->getReportData($entity, $this->formFactory, $this->getOptionsFromRequest($request));
+        $reportData = $this->model->getReportData($entity, $this->formFactory, $this->getOptionsFromRequest());
 
         // Unset keys that we don't need to send back
         foreach (['graphs', 'contentTemplate', 'columns'] as $key) {
@@ -68,25 +65,25 @@ class ReportApiController extends CommonApiController
      *
      * @return array
      */
-    private function getOptionsFromRequest(Request $request)
+    private function getOptionsFromRequest()
     {
         $options = ['paginate'=> false, 'ignoreGraphData' => true];
 
-        if ($request->query->has('dateFrom')) {
-            $options['dateFrom'] = new DateTimeImmutable($request->query->get('dateFrom'), new DateTimeZone('UTC'));
+        if ($this->request->query->has('dateFrom')) {
+            $options['dateFrom'] = new DateTimeImmutable($this->request->query->get('dateFrom'), new DateTimeZone('UTC'));
         }
 
-        if ($request->query->has('dateTo')) {
-            $options['dateTo']   = new DateTimeImmutable($request->query->get('dateTo'), new DateTimeZone('UTC'));
+        if ($this->request->query->has('dateTo')) {
+            $options['dateTo']   = new DateTimeImmutable($this->request->query->get('dateTo'), new DateTimeZone('UTC'));
         }
 
-        if ($request->query->has('page')) {
-            $options['page']     = $request->query->getInt('page');
+        if ($this->request->query->has('page')) {
+            $options['page']     = $this->request->query->getInt('page');
             $options['paginate'] = true;
         }
 
-        if ($request->query->has('limit')) {
-            $options['limit']    = $request->query->getInt('limit');
+        if ($this->request->query->has('limit')) {
+            $options['limit']    = $this->request->query->getInt('limit');
             $options['paginate'] = true;
         }
 

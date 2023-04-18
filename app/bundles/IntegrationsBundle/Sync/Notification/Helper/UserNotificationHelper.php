@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace Mautic\IntegrationsBundle\Sync\Notification\Helper;
 
-use DateTime;
-use Doctrine\ORM\ORMException;
-use Mautic\IntegrationsBundle\Sync\Exception\ObjectNotSupportedException;
 use Mautic\IntegrationsBundle\Sync\Notification\Writer;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class UserNotificationHelper
 {
@@ -17,19 +15,52 @@ class UserNotificationHelper
     private $writer;
 
     /**
-     * @var UserNotificationBuilder
+     * @var UserHelper
      */
-    private $userNotificationBuilder;
+    private $userHelper;
 
-    public function __construct(Writer $writer, UserNotificationBuilder $userNotificationBuilder)
-    {
-        $this->writer                  = $writer;
-        $this->userNotificationBuilder = $userNotificationBuilder;
+    /**
+     * @var OwnerProvider
+     */
+    private $ownerProvider;
+
+    /**
+     * @var RouteHelper
+     */
+    private $routeHelper;
+
+    /**
+     * @var TranslatorInterface
+     */
+    private $translator;
+
+    /**
+     * @var string
+     */
+    private $integrationDisplayName;
+
+    /**
+     * @var string
+     */
+    private $objectDisplayName;
+
+    public function __construct(
+        Writer $writer,
+        UserHelper $userHelper,
+        OwnerProvider $ownerProvider,
+        RouteHelper $routeHelper,
+        TranslatorInterface $translator
+    ) {
+        $this->writer        = $writer;
+        $this->userHelper    = $userHelper;
+        $this->ownerProvider = $ownerProvider;
+        $this->routeHelper   = $routeHelper;
+        $this->translator    = $translator;
     }
 
     /**
-     * @throws ORMException
-     * @throws ObjectNotSupportedException
+     * @throws \Doctrine\ORM\ORMException
+     * @throws \Mautic\IntegrationsBundle\Sync\Exception\ObjectNotSupportedException
      */
     public function writeNotification(
         string $message,
@@ -37,21 +68,46 @@ class UserNotificationHelper
         string $objectDisplayName,
         string $mauticObject,
         int $id,
-        string $linkText,
-        string $deduplicateValue = null,
-        DateTime $deduplicateDateTimeFrom = null
+        string $linkText
     ): void {
-        $link    = $this->userNotificationBuilder->buildLink($mauticObject, $id, $linkText);
-        $userIds = $this->userNotificationBuilder->getUserIds($mauticObject, $id);
+        $this->integrationDisplayName = $integrationDisplayName;
+        $this->objectDisplayName      = $objectDisplayName;
+        $link                         = $this->routeHelper->getLink($mauticObject, $id, $linkText);
+        $owners                       = $this->ownerProvider->getOwnersForObjectIds($mauticObject, [$id]);
 
-        foreach ($userIds as $userId) {
-            $this->writer->writeUserNotification(
-                $this->userNotificationBuilder->formatHeader($integrationDisplayName, $objectDisplayName),
-                $this->userNotificationBuilder->formatMessage($message, $link),
-                $userId,
-                $deduplicateValue,
-                $deduplicateDateTimeFrom
-            );
+        if (!empty($owners[0]['owner_id'])) {
+            $this->writeMessage($message, $link, (int) $owners[0]['owner_id']);
+
+            return;
         }
+
+        $adminUsers = $this->userHelper->getAdminUsers();
+        foreach ($adminUsers as $userId) {
+            $this->writeMessage($message, $link, $userId);
+        }
+    }
+
+    /**
+     * @throws \Doctrine\ORM\ORMException
+     */
+    private function writeMessage(string $message, string $link, int $userId): void
+    {
+        $this->writer->writeUserNotification(
+            $this->translator->trans(
+                'mautic.integration.sync.user_notification.header',
+                [
+                    '%integration%' => $this->integrationDisplayName,
+                    '%object%'      => $this->objectDisplayName,
+                ]
+            ),
+            $this->translator->trans(
+                'mautic.integration.sync.user_notification.sync_error',
+                [
+                    '%name%'    => $link,
+                    '%message%' => $message,
+                ]
+            ),
+            $userId
+        );
     }
 }

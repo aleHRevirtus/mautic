@@ -160,6 +160,7 @@ class SendEmailToUserTest extends \PHPUnit\Framework\TestCase
         $this->dispatcher->expects($this->once())
             ->method('dispatch')
             ->with(
+                EmailEvents::ON_EMAIL_ADDRESS_TOKEN_REPLACEMENT,
                 $this->callback(
                     function (TokenReplacementEvent $event) use ($lead) {
                         Assert::assertSame('{contactfield=active-field}', $event->getContent());
@@ -170,8 +171,7 @@ class SendEmailToUserTest extends \PHPUnit\Framework\TestCase
 
                         return true;
                     }
-                ),
-                EmailEvents::ON_EMAIL_ADDRESS_TOKEN_REPLACEMENT,
+                )
             );
 
         $this->emailValidator->expects($this->exactly(4))

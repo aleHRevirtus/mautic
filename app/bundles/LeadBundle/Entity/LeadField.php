@@ -773,16 +773,11 @@ class LeadField extends FormEntity
     public function setColumnWasCreated()
     {
         $this->columnIsNotCreated = false;
-        $this->setIsPublished($this->getOriginalIsPublishedValue());
+        $this->setIsPublished($this->originalIsPublishedValue);
     }
 
     public function disablePublishChange()
     {
         return 'email' === $this->getAlias() || $this->getColumnIsNotCreated();
-    }
-
-    public function getOriginalIsPublishedValue(): bool
-    {
-        return (bool) $this->originalIsPublishedValue;
     }
 }

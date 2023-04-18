@@ -4,16 +4,13 @@ declare(strict_types=1);
 
 namespace Mautic\IntegrationsBundle\Sync\SyncProcess;
 
-use Mautic\IntegrationsBundle\Event\CompletedSyncIterationEvent;
 use Mautic\IntegrationsBundle\Event\SyncEvent;
 use Mautic\IntegrationsBundle\Exception\IntegrationNotFoundException;
 use Mautic\IntegrationsBundle\IntegrationEvents;
 use Mautic\IntegrationsBundle\Sync\DAO\Mapping\MappingManualDAO;
 use Mautic\IntegrationsBundle\Sync\DAO\Sync\InputOptionsDAO;
 use Mautic\IntegrationsBundle\Sync\DAO\Sync\ObjectIdsDAO;
-use Mautic\IntegrationsBundle\Sync\DAO\Sync\Order\ObjectMappingsDAO;
 use Mautic\IntegrationsBundle\Sync\DAO\Sync\Order\OrderDAO;
-use Mautic\IntegrationsBundle\Sync\DAO\Sync\Order\OrderResultsDAO;
 use Mautic\IntegrationsBundle\Sync\DAO\Sync\Report\ReportDAO;
 use Mautic\IntegrationsBundle\Sync\Exception\HandlerNotSupportedException;
 use Mautic\IntegrationsBundle\Sync\Helper\MappingHelper;
@@ -25,7 +22,7 @@ use Mautic\IntegrationsBundle\Sync\SyncDataExchange\MauticSyncDataExchange;
 use Mautic\IntegrationsBundle\Sync\SyncDataExchange\SyncDataExchangeInterface;
 use Mautic\IntegrationsBundle\Sync\SyncProcess\Direction\Integration\IntegrationSyncProcess;
 use Mautic\IntegrationsBundle\Sync\SyncProcess\Direction\Internal\MauticSyncProcess;
-use Mautic\IntegrationsBundle\Sync\SyncService\SyncServiceInterface;
+use Mautic\IntegrationsBundle\Sync\SyncService\SyncService;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 class SyncProcess
@@ -91,7 +88,7 @@ class SyncProcess
     private $syncIteration;
 
     /**
-     * @var SyncServiceInterface
+     * @var SyncService
      */
     private $syncService;
 
@@ -107,7 +104,7 @@ class SyncProcess
         SyncDataExchangeInterface $internalSyncDataExchange,
         SyncDataExchangeInterface $integrationSyncDataExchange,
         InputOptionsDAO $inputOptionsDAO,
-        SyncServiceInterface $syncService
+        SyncService $syncService
     ) {
         $this->syncDateHelper              = $syncDateHelper;
         $this->mappingHelper               = $mappingHelper;
@@ -145,15 +142,15 @@ class SyncProcess
 
         // Tell listeners sync is done
         $this->eventDispatcher->dispatch(
-            new SyncEvent($this->inputOptionsDAO),
-            IntegrationEvents::INTEGRATION_POST_EXECUTE
+            IntegrationEvents::INTEGRATION_POST_EXECUTE,
+            new SyncEvent($this->mappingManualDAO->getIntegration(), $this->inputOptionsDAO->getStartDateTime(), $this->inputOptionsDAO->getEndDateTime())
         );
     }
 
     private function executeIntegrationSync(): void
     {
         $this->syncIteration = 1;
-        while (true) {
+        do {
             DebugLogger::log(
                 $this->mappingManualDAO->getIntegration(),
                 sprintf('Integration to Mautic; syncing iteration %s', $this->syncIteration),
@@ -178,7 +175,7 @@ class SyncProcess
             $this->manageRelations($syncReport);
 
             // Convert the integrations' report into an "order" or instructions for Mautic
-            $syncOrder = $this->mauticSyncProcess->getSyncOrder($syncReport);
+            $syncOrder = $this->mauticSyncProcess->getSyncOrder($syncReport, $this->inputOptionsDAO->isFirstTimeSync(), $this->mappingManualDAO);
             if (!$syncOrder->shouldSync()) {
                 DebugLogger::log(
                     $this->mappingManualDAO->getIntegration(),
@@ -199,15 +196,7 @@ class SyncProcess
             );
 
             // Execute the sync instructions
-            $objectMappings = $this->internalSyncDataExchange->executeSyncOrder($syncOrder);
-
-            // Dispatch an event to allow subscribers to take action after this batch of objects has been synced to Mautic
-            $orderResults = $this->getOrderResultsForIntegrationSync($syncOrder, $objectMappings);
-            $this->eventDispatcher->dispatch(
-                new CompletedSyncIterationEvent($orderResults, $this->syncIteration, $this->inputOptionsDAO, $this->mappingManualDAO),
-                IntegrationEvents::INTEGRATION_BATCH_SYNC_COMPLETED_INTEGRATION_TO_MAUTIC
-            );
-            unset($orderResults);
+            $this->internalSyncDataExchange->executeSyncOrder($syncOrder);
 
             if ($this->shouldStopIntegrationSync()) {
                 break;
@@ -215,20 +204,20 @@ class SyncProcess
 
             // Fetch the next iteration/batch
             ++$this->syncIteration;
-        }
+        } while (true);
     }
 
     private function executeInternalSync(): void
     {
         $this->syncIteration = 1;
-        while (true) {
+        do {
             DebugLogger::log(
                 $this->mappingManualDAO->getIntegration(),
                 sprintf('Mautic to integration; syncing iteration %s', $this->syncIteration),
                 __CLASS__.':'.__FUNCTION__
             );
 
-            $syncReport = $this->mauticSyncProcess->getSyncReport($this->syncIteration);
+            $syncReport = $this->mauticSyncProcess->getSyncReport($this->syncIteration, $this->inputOptionsDAO);
 
             if (!$syncReport->shouldSync()) {
                 DebugLogger::log(
@@ -241,7 +230,7 @@ class SyncProcess
             }
 
             // Convert the internal report into an "order" or instructions for the integration
-            $syncOrder = $this->integrationSyncProcess->getSyncOrder($syncReport);
+            $syncOrder = $this->integrationSyncProcess->getSyncOrder($syncReport, $this->inputOptionsDAO->isFirstTimeSync(), $this->mappingManualDAO);
 
             if (!$syncOrder->shouldSync()) {
                 DebugLogger::log(
@@ -271,17 +260,9 @@ class SyncProcess
             // Save mappings and cleanup
             $this->finalizeSync($syncOrder);
 
-            // Dispatch an event to allow subscribers to take action after this batch of objects has been synced to the integration
-            $orderResults = $this->getOrderResultsForInternalSync($syncOrder);
-            $this->eventDispatcher->dispatch(
-                new CompletedSyncIterationEvent($orderResults, $this->syncIteration, $this->inputOptionsDAO, $this->mappingManualDAO),
-                IntegrationEvents::INTEGRATION_BATCH_SYNC_COMPLETED_MAUTIC_TO_INTEGRATION
-            );
-            unset($orderResults);
-
             // Fetch the next iteration/batch
             ++$this->syncIteration;
-        }
+        } while (true);
     }
 
     private function manageRelations(ReportDAO $syncReport): void
@@ -370,46 +351,5 @@ class SyncProcess
 
         // Cleanup field tracking for successfully synced objects
         $this->internalSyncDataExchange->cleanupProcessedObjects($syncOrder->getSuccessfullySyncedObjects());
-    }
-
-    private function getOrderResultsForIntegrationSync(OrderDAO $syncOrder, ObjectMappingsDAO $objectMappings): OrderResultsDAO
-    {
-        // New objects were processed by OrderExecutioner
-        $newObjectMappings = $objectMappings->getNewMappings();
-
-        // Updated objects were processed by OrderExecutioner
-        $updatedObjectMappings = $objectMappings->getUpdatedMappings();
-
-        // Remapped objects
-        $remappedObjects = $syncOrder->getRemappedObjects();
-
-        // Deleted objects
-        $deletedObjects = $syncOrder->getDeletedObjects();
-
-        return new OrderResultsDAO($newObjectMappings, $updatedObjectMappings, $remappedObjects, $deletedObjects);
-    }
-
-    private function getOrderResultsForInternalSync(OrderDAO $syncOrder): OrderResultsDAO
-    {
-        // New object mappings
-        $newObjectMappings = $syncOrder->getObjectMappings();
-
-        // Updated object mappings
-        $updatedObjectMappings = [];
-        foreach ($syncOrder->getUpdatedObjectMappings() as $updatedObjectMapping) {
-            if (!$updatedObjectMapping->getObjectMapping()) {
-                continue;
-            }
-
-            $updatedObjectMappings[] = $updatedObjectMapping->getObjectMapping();
-        }
-
-        // Remapped objects
-        $remappedObjects = $syncOrder->getRemappedObjects();
-
-        // Deleted objects
-        $deletedObjects = $syncOrder->getDeletedObjects();
-
-        return new OrderResultsDAO($newObjectMappings, $updatedObjectMappings, $remappedObjects, $deletedObjects);
     }
 }

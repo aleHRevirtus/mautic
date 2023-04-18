@@ -13,7 +13,7 @@ use Mautic\StageBundle\Model\StageModel;
 use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\MockObject\MockObject;
 use Symfony\Component\Form\FormBuilderInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class EmailTypeTest extends \PHPUnit\Framework\TestCase
 {

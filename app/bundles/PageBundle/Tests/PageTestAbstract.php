@@ -9,7 +9,6 @@ use Mautic\CoreBundle\Helper\IpLookupHelper;
 use Mautic\CoreBundle\Helper\UrlHelper;
 use Mautic\CoreBundle\Helper\UserHelper;
 use Mautic\CoreBundle\Translation\Translator;
-use Mautic\LeadBundle\Helper\ContactRequestHelper;
 use Mautic\LeadBundle\Model\CompanyModel;
 use Mautic\LeadBundle\Model\FieldModel;
 use Mautic\LeadBundle\Model\LeadModel;
@@ -21,24 +20,18 @@ use Mautic\PageBundle\Model\PageModel;
 use Mautic\PageBundle\Model\RedirectModel;
 use Mautic\PageBundle\Model\TrackableModel;
 use Mautic\QueueBundle\Queue\QueueService;
-use PHPUnit\Framework\MockObject\MockObject;
-use PHPUnit\Framework\TestCase;
-use Symfony\Bundle\FrameworkBundle\Routing\Router;
+use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 
-class PageTestAbstract extends TestCase
+class PageTestAbstract extends WebTestCase
 {
     protected static $mockId   = 123;
     protected static $mockName = 'Mock test name';
-    protected string $mockTrackingId;
-
-    /**
-     * @var Router|MockObject
-     */
-    protected $router;
+    protected $mockTrackingId;
 
     protected function setUp(): void
     {
+        self::bootKernel();
         $this->mockTrackingId = hash('sha1', uniqid(mt_rand(), true));
     }
 
@@ -52,7 +45,7 @@ class PageTestAbstract extends TestCase
             ->disableOriginalConstructor()
             ->getMock();
 
-        $this->router = $this->createMock(Router::class);
+        $router = self::$container->get('router');
 
         $ipLookupHelper = $this
             ->getMockBuilder(IpLookupHelper::class)
@@ -116,9 +109,6 @@ class PageTestAbstract extends TestCase
 
         $contactTracker = $this->createMock(ContactTracker::class);
 
-        /** @var ContactRequestHelper&MockObject $contactRequestHelper */
-        $contactRequestHelper = $this->createMock(ContactRequestHelper::class);
-
         $contactTracker->expects($this
             ->any())
             ->method('getContact')
@@ -163,14 +153,13 @@ class PageTestAbstract extends TestCase
             $companyModel,
             $deviceTrackerMock,
             $contactTracker,
-            $coreParametersHelper,
-            $contactRequestHelper
+            $coreParametersHelper
         );
 
         $pageModel->setDispatcher($dispatcher);
         $pageModel->setTranslator($translator);
         $pageModel->setEntityManager($entityManager);
-        $pageModel->setRouter($this->router);
+        $pageModel->setRouter($router);
         $pageModel->setUserHelper($userHelper);
 
         return $pageModel;

@@ -5,7 +5,7 @@ namespace Mautic\PluginBundle\Entity;
 use Mautic\CoreBundle\Entity\CommonRepository;
 
 /**
- * @extends CommonRepository<Integration>
+ * IntegrationRepository.
  */
 class IntegrationRepository extends CommonRepository
 {

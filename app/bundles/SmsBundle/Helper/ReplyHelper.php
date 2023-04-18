@@ -5,6 +5,7 @@ namespace Mautic\SmsBundle\Helper;
 use Mautic\LeadBundle\Entity\Lead;
 use Mautic\LeadBundle\Tracker\ContactTracker;
 use Mautic\SmsBundle\Callback\CallbackInterface;
+use Mautic\SmsBundle\Callback\ResponseInterface;
 use Mautic\SmsBundle\Event\ReplyEvent;
 use Mautic\SmsBundle\Exception\NumberNotFoundException;
 use Mautic\SmsBundle\SmsEvents;
@@ -58,7 +59,7 @@ class ReplyHelper
     public function handleRequest(CallbackInterface $handler, Request $request)
     {
         // Set the default response
-        $response = new Response();
+        $response = $this->getDefaultResponse($handler);
 
         try {
             $message  = $handler->getMessage($request);
@@ -105,8 +106,28 @@ class ReplyHelper
     {
         $replyEvent = new ReplyEvent($contact, trim($message));
 
-        $this->eventDispatcher->dispatch($replyEvent, SmsEvents::ON_REPLY);
+        $this->eventDispatcher->dispatch(SmsEvents::ON_REPLY, $replyEvent);
 
         return $replyEvent->getResponse();
+    }
+
+    /**
+     * @return Response
+     *
+     * @throws \Exception
+     */
+    private function getDefaultResponse(CallbackInterface $handler)
+    {
+        if ($handler instanceof ResponseInterface) {
+            $response = $handler->getResponse();
+
+            if (!$response instanceof Response) {
+                throw new \Exception('getResponse must return a Symfony\Component\HttpFoundation\Response object');
+            }
+
+            return $response;
+        }
+
+        return new Response();
     }
 }

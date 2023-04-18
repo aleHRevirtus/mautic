@@ -46,4 +46,12 @@ class ReportSettingsType extends AbstractType
             ]
         );
     }
+
+    /**
+     * @return string
+     */
+    public function getBlockPrefix()
+    {
+        return 'report_settings';
+    }
 }

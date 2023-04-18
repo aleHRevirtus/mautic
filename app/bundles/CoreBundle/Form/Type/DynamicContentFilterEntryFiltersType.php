@@ -10,7 +10,7 @@ use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
 use Symfony\Component\OptionsResolver\OptionsResolver;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 /**
  * Class DynamicContentFilterEntryFiltersType.
@@ -89,5 +89,13 @@ class DynamicContentFilterEntryFiltersType extends AbstractType
                 'error_bubbling' => false,
             ]
         );
+    }
+
+    /**
+     * @return string
+     */
+    public function getBlockPrefix()
+    {
+        return 'dynamic_content_filter_entry_filters';
     }
 }

@@ -49,4 +49,12 @@ class CompanyMergeType extends AbstractType
             ['main_entity']
         );
     }
+
+    /**
+     * @return string
+     */
+    public function getBlockPrefix()
+    {
+        return 'company_merge';
+    }
 }

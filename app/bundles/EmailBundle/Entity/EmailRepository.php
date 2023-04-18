@@ -10,9 +10,6 @@ use Mautic\ChannelBundle\Entity\MessageQueue;
 use Mautic\CoreBundle\Entity\CommonRepository;
 use Mautic\LeadBundle\Entity\DoNotContact;
 
-/**
- * @extends CommonRepository<Email>
- */
 class EmailRepository extends CommonRepository
 {
     /**
@@ -476,7 +473,7 @@ class EmailRepository extends CommonRepository
     }
 
     /**
-     * @return array<array<string>>
+     * @return string
      */
     protected function getDefaultOrder()
     {

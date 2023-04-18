@@ -2,24 +2,28 @@
 
 namespace Mautic\ApiBundle\Controller\oAuth2;
 
-use FOS\OAuthServerBundle\Event\PreAuthorizationEvent;
+use FOS\OAuthServerBundle\Event\OAuthEvent;
 use FOS\OAuthServerBundle\Form\Handler\AuthorizeFormHandler;
 use FOS\OAuthServerBundle\Model\ClientManagerInterface;
 use OAuth2\OAuth2;
+use Symfony\Bundle\FrameworkBundle\Templating\EngineInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Form\Form;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
-use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\Security\Core\User\UserInterface;
-use Twig\Environment;
 
 class AuthorizeController extends \FOS\OAuthServerBundle\Controller\AuthorizeController
 {
+    /**
+     * @var SessionInterface
+     */
+    private $session;
+
     /**
      * @var Form
      */
@@ -36,9 +40,9 @@ class AuthorizeController extends \FOS\OAuthServerBundle\Controller\AuthorizeCon
     private $oAuth2Server;
 
     /**
-     * @var Environment
+     * @var EngineInterface
      */
-    private $twig;
+    private $templating;
 
     /**
      * @var TokenStorageInterface
@@ -58,17 +62,19 @@ class AuthorizeController extends \FOS\OAuthServerBundle\Controller\AuthorizeCon
         Form $authorizeForm,
         AuthorizeFormHandler $authorizeFormHandler,
         OAuth2 $oAuth2Server,
+        EngineInterface $templating,
         TokenStorageInterface $tokenStorage,
         UrlGeneratorInterface $router,
         ClientManagerInterface $clientManager,
         EventDispatcherInterface $eventDispatcher,
-        Environment $twig,
-        SessionInterface $session = null
+        SessionInterface $session = null,
+        $templateEngineType = 'php'
     ) {
+        $this->session              = $session;
         $this->authorizeForm        = $authorizeForm;
         $this->authorizeFormHandler = $authorizeFormHandler;
         $this->oAuth2Server         = $oAuth2Server;
-        $this->twig                 = $twig;
+        $this->templating           = $templating;
         $this->tokenStorage         = $tokenStorage;
         $this->eventDispatcher      = $eventDispatcher;
 
@@ -77,12 +83,13 @@ class AuthorizeController extends \FOS\OAuthServerBundle\Controller\AuthorizeCon
             $authorizeForm,
             $authorizeFormHandler,
             $oAuth2Server,
+            $templating,
             $tokenStorage,
             $router,
             $clientManager,
             $eventDispatcher,
-            $twig,
-            $session
+            $session,
+            $templateEngineType
         );
     }
 
@@ -100,13 +107,16 @@ class AuthorizeController extends \FOS\OAuthServerBundle\Controller\AuthorizeCon
             throw new AccessDeniedException('This user does not have access to this section.');
         }
 
-        if (true === $request->getSession()->get('_fos_oauth_server.ensure_logout')) {
-            $request->getSession()->invalidate(600);
-            $request->getSession()->set('_fos_oauth_server.ensure_logout', true);
+        if (true === $this->session->get('_fos_oauth_server.ensure_logout')) {
+            $this->session->invalidate(600);
+            $this->session->set('_fos_oauth_server.ensure_logout', true);
         }
 
-        $event = $this->eventDispatcher->dispatch(
-            new PreAuthorizationEvent($user, $this->getClient())
+        $event = new OAuthEvent($user, $this->getClient());
+
+        $this->eventDispatcher->dispatch(
+            OAuthEvent::PRE_AUTHORIZATION_PROCESS,
+            $event
         );
 
         if ($event->isAuthorizedClient()) {
@@ -119,14 +129,12 @@ class AuthorizeController extends \FOS\OAuthServerBundle\Controller\AuthorizeCon
             return $this->processSuccess($user, $this->authorizeFormHandler, $request);
         }
 
-        $contents =  $this->twig->render(
-            '@MauticApi/Authorize/oAuth2/authorize.html.twig',
+        return $this->templating->renderResponse(
+            'MauticApiBundle:Authorize:oAuth2/authorize.html.php',
             [
                 'form'   => $this->authorizeForm->createView(),
                 'client' => $this->getClient(),
             ]
         );
-
-        return new Response($contents);
     }
 }

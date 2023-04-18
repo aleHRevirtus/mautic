@@ -3,22 +3,20 @@
 namespace Mautic\DynamicContentBundle\Controller\Api;
 
 use Mautic\ApiBundle\Controller\CommonApiController;
-use Mautic\DynamicContentBundle\Entity\DynamicContent;
-use Mautic\DynamicContentBundle\Model\DynamicContentModel;
-use Symfony\Component\HttpKernel\Event\ControllerEvent;
+use Symfony\Component\HttpKernel\Event\FilterControllerEvent;
 
 /**
- * @extends CommonApiController<DynamicContent>
+ * Class DynamicContentApiController.
  */
 class DynamicContentApiController extends CommonApiController
 {
-    public function initialize(ControllerEvent $event)
+    /**
+     * {@inheritdoc}
+     */
+    public function initialize(FilterControllerEvent $event)
     {
-        $dynamicContentModel = $this->getModel('dynamicContent');
-        \assert($dynamicContentModel instanceof DynamicContentModel);
-
-        $this->model           = $dynamicContentModel;
-        $this->entityClass     = DynamicContent::class;
+        $this->model           = $this->getModel('dynamicContent');
+        $this->entityClass     = 'Mautic\DynamicContentBundle\Entity\DynamicContent';
         $this->entityNameOne   = 'dynamicContent';
         $this->entityNameMulti = 'dynamicContents';
 

@@ -4,7 +4,7 @@ namespace Mautic\LeadBundle\Event;
 
 use Mautic\CategoryBundle\Entity\Category;
 use Mautic\LeadBundle\Entity\Lead;
-use Symfony\Contracts\EventDispatcher\Event;
+use Symfony\Component\EventDispatcher\Event;
 
 /**
  * Class CategoryChangeEvent.

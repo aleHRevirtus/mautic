@@ -4,44 +4,35 @@ declare(strict_types=1);
 
 namespace MauticPlugin\MauticCrmBundle\Command;
 
-use Mautic\CoreBundle\Translation\Translator;
+use Mautic\CoreBundle\Templating\Helper\TranslatorHelper;
 use Mautic\PluginBundle\Helper\IntegrationHelper;
 use MauticPlugin\MauticCrmBundle\Api\PipedriveApi;
-use MauticPlugin\MauticCrmBundle\Integration\Pipedrive\Import\AbstractImport;
-use MauticPlugin\MauticCrmBundle\Integration\Pipedrive\Import\CompanyImport;
-use MauticPlugin\MauticCrmBundle\Integration\Pipedrive\Import\LeadImport;
-use MauticPlugin\MauticCrmBundle\Integration\Pipedrive\Import\OwnerImport;
 use MauticPlugin\MauticCrmBundle\Integration\PipedriveIntegration;
-use Symfony\Component\Console\Command\Command;
+use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
-class FetchPipedriveDataCommand extends Command
+class FetchPipedriveDataCommand extends ContainerAwareCommand
 {
+    private SymfonyStyle $io;
     private IntegrationHelper $integrationHelper;
-    private Translator $translator;
-    private OwnerImport $ownerImport;
-    private CompanyImport $companyImport;
-    private LeadImport $leadImport;
+    private TranslatorHelper $translatorHelper;
 
     public function __construct(
         IntegrationHelper $integrationHelper,
-        Translator $translator,
-        OwnerImport $ownerImport,
-        CompanyImport $companyImport,
-        LeadImport $leadImport
+        TranslatorHelper $translatorHelper
     ) {
         $this->integrationHelper = $integrationHelper;
-        $this->translator        = $translator;
-        $this->ownerImport       = $ownerImport;
-        $this->companyImport     = $companyImport;
-        $this->leadImport        = $leadImport;
+        $this->translatorHelper  = $translatorHelper;
 
         parent::__construct();
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function configure()
     {
         $this->setName('mautic:integration:pipedrive:fetch')
@@ -56,18 +47,22 @@ class FetchPipedriveDataCommand extends Command
         parent::configure();
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    /**
+     * {@inheritdoc}
+     */
+    protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $io = new SymfonyStyle($input, $output);
+        $container = $this->getContainer();
+        $this->io  = new SymfonyStyle($input, $output);
 
         /** @var PipedriveIntegration $integrationObject */
         $integrationObject = $this->integrationHelper
             ->getIntegrationObject(PipedriveIntegration::INTEGRATION_NAME);
 
         if (!$integrationObject || !$integrationObject->getIntegrationSettings()->getIsPublished()) {
-            $io->note('Pipedrive integration is disabled.');
+            $this->io->note('Pipedrive integration is disabled.');
 
-            return 0;
+            return;
         }
 
         $types = [
@@ -80,8 +75,8 @@ class FetchPipedriveDataCommand extends Command
         }
 
         if ($input->getOption('restart')) {
-            $io->note(
-                $this->translator->trans(
+            $this->io->note(
+                $this->translatorHelper->trans(
                     'mautic.plugin.config.integration.restarted',
                     ['%integration%' => $integrationObject->getName()]
                 )
@@ -90,17 +85,23 @@ class FetchPipedriveDataCommand extends Command
         }
 
         foreach ($types as $type => $endPoint) {
-            $this->getData($type, $endPoint, $integrationObject, $io);
+            $this->getData($type, $endPoint, $integrationObject);
         }
 
-        $io->success('Execution time: '.number_format(microtime(true) - $_SERVER['REQUEST_TIME_FLOAT'], 3));
-
-        return 0;
+        $this->io->success('Execution time: '.number_format(microtime(true) - $_SERVER['REQUEST_TIME_FLOAT'], 3));
     }
 
-    private function getData(string $type, string $endPoint, PipedriveIntegration $integrationObject, SymfonyStyle $io)
+    /**
+     * @param                      $type
+     * @param                      $endPoint
+     * @param PipedriveIntegration $integrationObject
+     */
+    private function getData($type, $endPoint, $integrationObject)
     {
-        $io->title('Pulling '.$type);
+        $container  = $this->getContainer();
+        $translator = $container->get('templating.helper.translator');
+
+        $this->io->title('Pulling '.$type);
         $start = 0;
         $limit = 500;
 
@@ -109,7 +110,7 @@ class FetchPipedriveDataCommand extends Command
                 'start' => $start,
                 'limit' => $limit,
             ];
-            $service = $this->getIntegrationService($type);
+            $service = $container->get('mautic_integration.pipedrive.import.'.$type);
             $service->setIntegration($integrationObject);
 
             try {
@@ -118,29 +119,15 @@ class FetchPipedriveDataCommand extends Command
                 return;
             }
 
-            $io->text('Pulled '.$result['processed']);
-            $io->note('Using '.memory_get_peak_usage(true) / 1000000 .' megabytes of ram.');
+            $this->io->text('Pulled '.$result['processed']);
+            $this->io->note('Using '.memory_get_peak_usage(true) / 1000000 .' megabytes of ram.');
 
             if (!$result['more_items_in_collection']) {
                 return;
             }
 
             $start += $limit;
-            $io->text('Pulling more...');
-        }
-    }
-
-    private function getIntegrationService(string $type): AbstractImport
-    {
-        switch ($type) {
-            case 'owner':
-                return $this->ownerImport;
-            case 'lead':
-                return $this->leadImport;
-            case 'company':
-                return $this->companyImport;
-            default:
-                throw new \Exception("Unknown type {$type}");
+            $this->io->text('Pulling more...');
         }
     }
 }

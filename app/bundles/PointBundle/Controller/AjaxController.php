@@ -6,7 +6,6 @@ use Mautic\CoreBundle\Controller\AjaxController as CommonAjaxController;
 use Mautic\CoreBundle\Helper\InputHelper;
 use Mautic\PointBundle\Form\Type\GenericPointSettingsType;
 use Mautic\PointBundle\Form\Type\PointActionType;
-use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -17,10 +16,10 @@ class AjaxController extends CommonAjaxController
     /**
      * @return \Symfony\Component\HttpFoundation\JsonResponse
      */
-    public function reorderTriggerEventsAction(Request $request)
+    protected function reorderTriggerEventsAction(Request $request)
     {
         $dataArray   = ['success' => 0];
-        $session     = $request->getSession();
+        $session     = $this->get('session');
         $triggerId   = InputHelper::clean($request->request->get('triggerId'));
         $sessionName = 'mautic.point.'.$triggerId.'.triggerevents.modified';
         $order       = InputHelper::clean($request->request->get('triggerEvent'));
@@ -37,7 +36,7 @@ class AjaxController extends CommonAjaxController
     /**
      * @return \Symfony\Component\HttpFoundation\JsonResponse
      */
-    public function getActionFormAction(Request $request, FormFactoryInterface $formFactory)
+    protected function getActionFormAction(Request $request)
     {
         $dataArray = [
             'success' => 0,
@@ -52,17 +51,16 @@ class AjaxController extends CommonAjaxController
             $actions = $model->getPointActions();
 
             if (isset($actions['actions'][$type])) {
-                $themes = ['@MauticPoint/FormTheme/Action/_pointaction_properties_row.html.twig'];
+                $themes = ['MauticPointBundle:FormTheme\Action'];
                 if (!empty($actions['actions'][$type]['formTheme'])) {
                     $themes[] = $actions['actions'][$type]['formTheme'];
                 }
 
                 $formType        = (!empty($actions['actions'][$type]['formType'])) ? $actions['actions'][$type]['formType'] : GenericPointSettingsType::class;
                 $formTypeOptions = (!empty($actions['actions'][$type]['formTypeOptions'])) ? $actions['actions'][$type]['formTypeOptions'] : [];
-                $form            = $formFactory->create(PointActionType::class, [], ['formType' => $formType, 'formTypeOptions' => $formTypeOptions]);
-                $html            = $this->renderView('@MauticPoint/Point/actionform.html.twig', [
-                    'form'       => $form->createView(),
-                    'formThemes' => $themes,
+                $form            = $this->get('form.factory')->create(PointActionType::class, [], ['formType' => $formType, 'formTypeOptions' => $formTypeOptions]);
+                $html            = $this->renderView('MauticPointBundle:Point:actionform.html.php', [
+                    'form' => $this->setFormTheme($form, 'MauticPointBundle:Point:actionform.html.php', $themes),
                 ]);
 
                 //replace pointaction with point

@@ -13,132 +13,132 @@ class Mailbox
     /**
      * Return all mails matching the rest of the criteria.
      */
-    public const CRITERIA_ALL = 'ALL';
+    const CRITERIA_ALL = 'ALL';
 
     /**
      * Match mails with the \\ANSWERED flag set.
      */
-    public const CRITERIA_ANSWERED = 'ANSWERED';
+    const CRITERIA_ANSWERED = 'ANSWERED';
 
     /**
      * CRITERIA_BCC "string" - match mails with "string" in the Bcc: field.
      */
-    public const CRITERIA_BCC = 'BCC';
+    const CRITERIA_BCC = 'BCC';
 
     /**
      * CRITERIA_BEFORE "date" - match mails with Date: before "date".
      */
-    public const CRITERIA_BEFORE = 'BEFORE';
+    const CRITERIA_BEFORE = 'BEFORE';
 
     /**
      * CRITERIA_BODY "string" - match mails with "string" in the body of the mail.
      */
-    public const CRITERIA_BODY = 'BODY';
+    const CRITERIA_BODY = 'BODY';
 
     /**
      * CRITERIA_CC "string" - match mails with "string" in the Cc: field.
      */
-    public const CRITERIA_CC = 'CC';
+    const CRITERIA_CC = 'CC';
 
     /**
      * Match deleted mails.
      */
-    public const CRITERIA_DELETED = 'DELETED';
+    const CRITERIA_DELETED = 'DELETED';
 
     /**
      * Match mails with the \\FLAGGED (sometimes referred to as Important or Urgent) flag set.
      */
-    public const CRITERIA_FLAGGED = 'FLAGGED';
+    const CRITERIA_FLAGGED = 'FLAGGED';
 
     /**
      * CRITERIA_FROM "string" - match mails with "string" in the From: field.
      */
-    public const CRITERIA_FROM = 'FROM';
+    const CRITERIA_FROM = 'FROM';
 
     /**
      *  CRITERIA_KEYWORD "string" - match mails with "string" as a keyword.
      */
-    public const CRITERIA_KEYWORD = 'KEYWORD';
+    const CRITERIA_KEYWORD = 'KEYWORD';
 
     /**
      * Match new mails.
      */
-    public const CRITERIA_NEW = 'NEW';
+    const CRITERIA_NEW = 'NEW';
 
     /**
      * Match old mails.
      */
-    public const CRITERIA_OLD = 'OLD';
+    const CRITERIA_OLD = 'OLD';
 
     /**
      * CRITERIA_ON "date" - match mails with Date: matching "date".
      */
-    public const CRITERIA_ON = 'ON';
+    const CRITERIA_ON = 'ON';
 
     /**
      * Match mails with the \\RECENT flag set.
      */
-    public const CRITERIA_RECENT = 'RECENT';
+    const CRITERIA_RECENT = 'RECENT';
 
     /**
      * Match mails that have been read (the \\SEEN flag is set).
      */
-    public const CRITERIA_SEEN = 'SEEN';
+    const CRITERIA_SEEN = 'SEEN';
 
     /**
      * CRITERIA_SINCE "date" - match mails with Date: after "date".
      */
-    public const CRITERIA_SINCE = 'SINCE';
+    const CRITERIA_SINCE = 'SINCE';
 
     /**
      *  CRITERIA_SUBJECT "string" - match mails with "string" in the Subject:.
      */
-    public const CRITERIA_SUBJECT = 'SUBJECT';
+    const CRITERIA_SUBJECT = 'SUBJECT';
 
     /**
      * CRITERIA_TEXT "string" - match mails with text "string".
      */
-    public const CRITERIA_TEXT = 'TEXT';
+    const CRITERIA_TEXT = 'TEXT';
 
     /**
      * CRITERIA_TO "string" - match mails with "string" in the To:.
      */
-    public const CRITERIA_TO = 'TO';
+    const CRITERIA_TO = 'TO';
 
     /**
      *  Get messages since a specific UID. Eg. UID 2:* will return all messages with UID 2 and above (IMAP includes the given UID).
      */
-    public const CRITERIA_UID = 'UID';
+    const CRITERIA_UID = 'UID';
 
     /**
      *  Match mails that have not been answered.
      */
-    public const CRITERIA_UNANSWERED = 'UNANSWERED';
+    const CRITERIA_UNANSWERED = 'UNANSWERED';
 
     /**
      * Match mails that are not deleted.
      */
-    public const CRITERIA_UNDELETED = 'UNDELETED';
+    const CRITERIA_UNDELETED = 'UNDELETED';
 
     /**
      * Match mails that are not flagged.
      */
-    public const CRITERIA_UNFLAGGED = 'UNFLAGGED';
+    const CRITERIA_UNFLAGGED = 'UNFLAGGED';
 
     /**
      * CRITERIA_UNKEYWORD "string" - match mails that do not have the keyword "string".
      */
-    public const CRITERIA_UNKEYWORD = 'UNKEYWORD';
+    const CRITERIA_UNKEYWORD = 'UNKEYWORD';
 
     /**
      * Match mails which have not been read yet.
      */
-    public const CRITERIA_UNSEEN = 'UNSEEN';
+    const CRITERIA_UNSEEN = 'UNSEEN';
 
     /**
      * Match mails which have not been read yet - alias of CRITERIA_UNSEEN.
      */
-    public const CRITERIA_UNREAD = 'UNSEEN';
+    const CRITERIA_UNREAD = 'UNSEEN';
 
     protected $imapPath;
     protected $imapFullPath;
@@ -948,11 +948,6 @@ class Mailbox
         $attachmentId = $partStructure->ifid
             ? trim($partStructure->id, ' <>')
             : (isset($params['filename']) || isset($params['name']) ? mt_rand().mt_rand() : null);
-
-        // ignore contentId on body when mail isn't multipart (https://github.com/barbushin/php-imap/issues/71)
-        if (!$partNum && TYPETEXT === $partStructure->type) {
-            $attachmentId = null;
-        }
 
         if ($attachmentId) {
             if (isset($this->settings['use_attachments']) && $this->settings['use_attachments']) {

@@ -4,7 +4,6 @@ namespace Mautic\EmailBundle\Tests\MonitoredEmail\Processor;
 
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\EntityNotFoundException;
-use Mautic\CoreBundle\Helper\EmailAddressHelper;
 use Mautic\EmailBundle\EmailEvents;
 use Mautic\EmailBundle\Entity\Email;
 use Mautic\EmailBundle\Entity\EmailReply;
@@ -23,8 +22,6 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 class ReplyTest extends \PHPUnit\Framework\TestCase
 {
-    private EmailAddressHelper $emailAddressHelper;
-
     private $statRepo;
     private $contactFinder;
     private $leadModel;
@@ -41,22 +38,20 @@ class ReplyTest extends \PHPUnit\Framework\TestCase
     {
         parent::setUp();
 
-        $this->statRepo           = $this->createMock(StatRepository::class);
-        $this->contactFinder      = $this->createMock(ContactFinder::class);
-        $this->leadModel          = $this->createMock(LeadModel::class);
-        $this->leadModel          = $this->createMock(LeadModel::class);
-        $this->dispatcher         = $this->createMock(EventDispatcherInterface::class);
-        $this->logger             = $this->createMock(Logger::class);
-        $this->contactTracker     = $this->createMock(ContactTracker::class);
-        $this->emailAddressHelper = new EmailAddressHelper();
-        $this->processor          = new Reply(
+        $this->statRepo       = $this->createMock(StatRepository::class);
+        $this->contactFinder  = $this->createMock(ContactFinder::class);
+        $this->leadModel      = $this->createMock(LeadModel::class);
+        $this->leadModel      = $this->createMock(LeadModel::class);
+        $this->dispatcher     = $this->createMock(EventDispatcherInterface::class);
+        $this->logger         = $this->createMock(Logger::class);
+        $this->contactTracker = $this->createMock(ContactTracker::class);
+        $this->processor      = new Reply(
             $this->statRepo,
             $this->contactFinder,
             $this->leadModel,
             $this->dispatcher,
             $this->logger,
-            $this->contactTracker,
-            $this->emailAddressHelper
+            $this->contactTracker
         );
     }
 
@@ -178,7 +173,7 @@ BODY;
 
         $this->dispatcher->expects($this->once())
             ->method('dispatch')
-            ->with($this->isInstanceOf(EmailReplyEvent::class), EmailEvents::EMAIL_ON_REPLY);
+            ->with(EmailEvents::EMAIL_ON_REPLY, $this->isInstanceOf(EmailReplyEvent::class));
 
         $this->processor->createReplyByHash($trackingHash, 'api-msg1d');
     }

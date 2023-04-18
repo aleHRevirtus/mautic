@@ -16,7 +16,7 @@ class UpdateFieldController extends CommonController
     public function updateAction(Request $request, string $integration, string $object, string $field)
     {
         // Clear the session of previously stored fields in case it got stuck
-        $session       = $request->getSession();
+        $session       = $this->get('session');
         $updatedFields = $session->get(sprintf('%s-fields', $integration), []);
 
         if (!isset($updatedFields[$object])) {

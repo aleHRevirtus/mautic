@@ -76,7 +76,7 @@ class CampaignSubscriber implements EventSubscriberInterface
             'label'       => 'mautic.form.campaign.event.field_value',
             'description' => 'mautic.form.campaign.event.field_value_descr',
             'formType'    => CampaignEventFormFieldValueType::class,
-            'formTheme'   => '@MauticForm/FormTheme/FieldValueCondition/_campaignevent_form_field_value_widget.html.twig',
+            'formTheme'   => 'MauticFormBundle:FormTheme\FieldValueCondition',
             'eventName'   => FormEvents::ON_CAMPAIGN_TRIGGER_CONDITION,
         ];
         $event->addCondition('form.field_value', $trigger);

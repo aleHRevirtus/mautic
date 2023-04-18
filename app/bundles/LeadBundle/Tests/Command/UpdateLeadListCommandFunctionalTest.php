@@ -13,13 +13,6 @@ use PHPUnit\Framework\Assert;
 
 final class UpdateLeadListCommandFunctionalTest extends MauticMysqlTestCase
 {
-    public function testFailWhenSegmentDoesNotExist(): void
-    {
-        $output = $this->runCommand(UpdateLeadListsCommand::NAME, ['--list-id' => 999999], null, 1);
-
-        Assert::assertStringContainsString('Segment #999999 does not exist', $output);
-    }
-
     /**
      * @dataProvider provider
      */
@@ -57,11 +50,11 @@ final class UpdateLeadListCommandFunctionalTest extends MauticMysqlTestCase
 
         Assert::assertEquals($longTimeAgo, $segment->getLastBuiltDate());
 
-        $output = $this->runCommand(UpdateLeadListsCommand::NAME, $getCommandParams($segment));
+        $this->runCommand(UpdateLeadListsCommand::NAME, $getCommandParams($segment));
 
         /** @var LeadList $segment */
         $segment = $this->em->find(LeadList::class, $segment->getId());
-        $assert($segment, $output);
+        $assert($segment);
 
         /** @var LeadListRepository $leadListRepository */
         $leadListRepository = $this->em->getRepository(LeadList::class);
@@ -87,40 +80,32 @@ final class UpdateLeadListCommandFunctionalTest extends MauticMysqlTestCase
                     new \DateTime('2000-01-01 00:00:00'),
                     $segment->getLastBuiltDate()
                 );
-                Assert::assertNotNull($segment->getLastBuiltTime());
             },
         ];
 
         // Test that it will work when we select a specific segment too.
-        // Also testing the timing option = 0.
         yield [
             function (LeadList $segment): array {
                 return ['--list-id' => $segment->getId()];
             },
-            function (LeadList $segment, string $output): void {
+            function (LeadList $segment): void {
                 Assert::assertGreaterThan(
                     new \DateTime('2000-01-01 00:00:00'),
                     $segment->getLastBuiltDate()
                 );
-                Assert::assertNotNull($segment->getLastBuiltTime());
-                Assert::assertStringNotContainsString('Total time:', $output);
             },
         ];
 
         // But the last built date will not update if we limit how many contacts to process.
-        // Also testing the timing option = 1.
         yield [
             function (): array {
-                return ['--max-contacts' => 1, '--timing' => 1];
+                return ['--max-contacts' => 1];
             },
-            function (LeadList $segment, string $output): void {
+            function (LeadList $segment): void {
                 Assert::assertEquals(
                     new \DateTime('2000-01-01 00:00:00'),
                     $segment->getLastBuiltDate()
                 );
-                Assert::assertNull($segment->getLastBuiltTime());
-                Assert::assertStringContainsString('Total time:', $output);
-                Assert::assertStringContainsString('seconds', $output);
             },
         ];
     }

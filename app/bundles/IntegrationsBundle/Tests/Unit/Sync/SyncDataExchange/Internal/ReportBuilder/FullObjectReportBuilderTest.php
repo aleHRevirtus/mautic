@@ -82,6 +82,7 @@ class FullObjectReportBuilderTest extends TestCase
         $this->dispatcher->expects($this->once())
             ->method('dispatch')
             ->with(
+                IntegrationEvents::INTEGRATION_FIND_INTERNAL_RECORDS,
                 $this->callback(function (InternalObjectFindEvent $event) use ($internalObject, $fromDateTime, $toDateTime) {
                     $this->assertSame($internalObject, $event->getObject());
                     $this->assertSame($fromDateTime, $event->getDateRange()->getFromDate());
@@ -99,8 +100,7 @@ class FullObjectReportBuilderTest extends TestCase
                     ]);
 
                     return true;
-                }),
-                IntegrationEvents::INTEGRATION_FIND_INTERNAL_RECORDS
+                })
             );
 
         $report  = $this->reportBuilder->buildReport($requestDAO);
@@ -136,6 +136,7 @@ class FullObjectReportBuilderTest extends TestCase
         $this->dispatcher->expects($this->once())
             ->method('dispatch')
             ->with(
+                IntegrationEvents::INTEGRATION_FIND_INTERNAL_RECORDS,
                 $this->callback(function (InternalObjectFindEvent $event) use ($internalObject, $fromDateTime, $toDateTime) {
                     $this->assertSame($internalObject, $event->getObject());
                     $this->assertSame($fromDateTime, $event->getDateRange()->getFromDate());
@@ -153,8 +154,7 @@ class FullObjectReportBuilderTest extends TestCase
                     ]);
 
                     return true;
-                }),
-                IntegrationEvents::INTEGRATION_FIND_INTERNAL_RECORDS
+                })
             );
 
         $report  = $this->reportBuilder->buildReport($requestDAO);

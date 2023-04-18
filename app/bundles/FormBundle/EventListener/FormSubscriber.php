@@ -19,7 +19,7 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Routing\RouterInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class FormSubscriber implements EventSubscriberInterface
 {
@@ -113,7 +113,7 @@ class FormSubscriber implements EventSubscriberInterface
             'label'              => 'mautic.form.action.sendemail',
             'description'        => 'mautic.form.action.sendemail.descr',
             'formType'           => SubmitActionEmailType::class,
-            'formTheme'          => '@MauticForm/FormTheme/FormAction/_formaction_properties_row.html.twig',
+            'formTheme'          => 'MauticFormBundle:FormTheme\SubmitAction',
             'formTypeCleanMasks' => [
                 'message' => 'html',
             ],
@@ -126,7 +126,7 @@ class FormSubscriber implements EventSubscriberInterface
             'label'              => 'mautic.form.action.repost',
             'description'        => 'mautic.form.action.repost.descr',
             'formType'           => SubmitActionRepostType::class,
-            'formTheme'          => '@MauticForm/FormTheme/SubmitAction/_submit_action_repost_widget.html.twig',
+            'formTheme'          => 'MauticFormBundle:FormTheme\SubmitAction',
             'formTypeCleanMasks' => [
                 'post_url'             => 'url',
                 'failure_email'        => 'string',

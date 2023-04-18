@@ -7,11 +7,8 @@ use Mautic\CoreBundle\Controller\FormController;
 use Mautic\CoreBundle\Exception\SchemaException;
 use Mautic\LeadBundle\Entity\LeadField;
 use Mautic\LeadBundle\Field\Exception\AbortColumnCreateException;
-use Mautic\LeadBundle\Helper\FieldAliasHelper;
 use Mautic\LeadBundle\Model\FieldModel;
 use Symfony\Component\Form\FormError;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
 
 class FieldController extends FormController
 {
@@ -22,12 +19,12 @@ class FieldController extends FormController
      *
      * @return array|\Symfony\Component\HttpFoundation\JsonResponse|\Symfony\Component\HttpFoundation\RedirectResponse|\Symfony\Component\HttpFoundation\Response
      */
-    public function indexAction(Request $request, $page = 1)
+    public function indexAction($page = 1)
     {
         //set some permissions
-        $permissions = $this->security->isGranted(['lead:fields:view', 'lead:fields:full'], 'RETURN_ARRAY');
+        $permissions = $this->get('mautic.security')->isGranted(['lead:fields:view', 'lead:fields:full'], 'RETURN_ARRAY');
 
-        $session = $request->getSession();
+        $session = $this->get('session');
 
         if (!$permissions['lead:fields:view'] && !$permissions['lead:fields:full']) {
             return $this->accessDenied();
@@ -36,12 +33,12 @@ class FieldController extends FormController
         $this->setListFilters();
 
         $limit  = $session->get('mautic.leadfield.limit', $this->coreParametersHelper->get('default_pagelimit'));
-        $search = $request->get('search', $session->get('mautic.leadfield.filter', ''));
+        $search = $this->request->get('search', $session->get('mautic.leadfield.filter', ''));
         $session->set('mautic.leadfilter.filter', $search);
 
         //do some default filtering
-        $orderBy    = $request->getSession()->get('mautic.leadfilter.orderby', 'f.order');
-        $orderByDir = $request->getSession()->get('mautic.leadfilter.orderbydir', 'ASC');
+        $orderBy    = $this->get('session')->get('mautic.leadfilter.orderby', 'f.order');
+        $orderByDir = $this->get('session')->get('mautic.leadfilter.orderbydir', 'ASC');
 
         $start = (1 === $page) ? 0 : (($page - 1) * $limit);
         if ($start < 0) {
@@ -75,7 +72,7 @@ class FieldController extends FormController
             return $this->postActionRedirect([
                 'returnUrl'       => $returnUrl,
                 'viewParameters'  => ['page' => $lastPage],
-                'contentTemplate' => 'Mautic\LeadBundle\Controller\FieldController::indexAction',
+                'contentTemplate' => 'MauticLeadBundle:Field:index',
                 'passthroughVars' => [
                     'activeLink'    => '#mautic_contactfield_index',
                     'mauticContent' => 'leadfield',
@@ -86,7 +83,7 @@ class FieldController extends FormController
         //set what page currently on so that we can return here after form submission/cancellation
         $session->set('mautic.leadfield.page', $page);
 
-        $tmpl = $request->isXmlHttpRequest() ? $request->get('tmpl', 'index') : 'index';
+        $tmpl = $this->request->isXmlHttpRequest() ? $this->request->get('tmpl', 'index') : 'index';
 
         return $this->delegateView([
             'viewParameters' => [
@@ -98,7 +95,7 @@ class FieldController extends FormController
                 'limit'       => $limit,
                 'page'        => $page,
             ],
-            'contentTemplate' => '@MauticLead/Field/list.html.twig',
+            'contentTemplate' => 'MauticLeadBundle:Field:list.html.php',
             'passthroughVars' => [
                 'activeLink'    => '#mautic_contactfield_index',
                 'route'         => $this->generateUrl('mautic_contactfield_index', ['page' => $page]),
@@ -112,9 +109,9 @@ class FieldController extends FormController
      *
      * @return \Symfony\Component\HttpFoundation\JsonResponse|\Symfony\Component\HttpFoundation\RedirectResponse|\Symfony\Component\HttpFoundation\Response
      */
-    public function newAction(Request $request)
+    public function newAction()
     {
-        if (!$this->security->isGranted('lead:fields:full')) {
+        if (!$this->get('mautic.security')->isGranted('lead:fields:full')) {
             return $this->accessDenied();
         }
 
@@ -126,21 +123,21 @@ class FieldController extends FormController
         $returnUrl = $this->generateUrl('mautic_contactfield_index');
         $action    = $this->generateUrl('mautic_contactfield_action', ['objectAction' => 'new']);
         //get the user form factory
-        $form = $model->createForm($field, $this->formFactory, $action);
+        $form = $model->createForm($field, $this->get('form.factory'), $action);
 
         ///Check for a submitted form and process it
-        if ('POST' === $request->getMethod()) {
+        if ('POST' == $this->request->getMethod()) {
             $valid = false;
             if (!$cancelled = $this->isFormCancelled($form)) {
                 if ($valid = $this->isFormValid($form)) {
-                    $requestData = $request->request->all();
-                    if (isset($requestData['leadfield']['properties'])) {
-                        $result = $model->setFieldProperties($field, $requestData['leadfield']['properties']);
+                    $request = $this->request->request->all();
+                    if (isset($request['leadfield']['properties'])) {
+                        $result = $model->setFieldProperties($field, $request['leadfield']['properties']);
                         if (true !== $result) {
                             //set the error
                             $form->get('properties')->addError(
                                 new FormError(
-                                    $this->translator->trans($result, [], 'validators')
+                                    $this->get('translator')->trans($result, [], 'validators')
                                 )
                             );
                             $valid = false;
@@ -155,7 +152,7 @@ class FieldController extends FormController
                         } catch (DBALException $ee) {
                             $flashMessage = $ee->getMessage();
                         } catch (AbortColumnCreateException $e) {
-                            $flashMessage = $this->translator->trans('mautic.lead.field.pushed_to_background');
+                            $flashMessage = $this->get('translator')->trans('mautic.lead.field.pushed_to_background');
                         } catch (SchemaException $e) {
                             $flashMessage = $e->getMessage();
                             $form['alias']->addError(new FormError($e->getMessage()));
@@ -163,12 +160,12 @@ class FieldController extends FormController
                         } catch (\Exception $e) {
                             $form['alias']->addError(
                                     new FormError(
-                                        $this->translator->trans('mautic.lead.field.failed', ['%error%' => $e->getMessage()], 'validators')
+                                        $this->get('translator')->trans('mautic.lead.field.failed', ['%error%' => $e->getMessage()], 'validators')
                                     )
                                 );
                             $valid = false;
                         }
-                        $this->addFlashMessage(
+                        $this->addFlash(
                                 $flashMessage,
                                 [
                                     '%name%'      => $field->getLabel(),
@@ -186,11 +183,11 @@ class FieldController extends FormController
                 }
             }
 
-            if ($cancelled || ($valid && $this->getFormButton($form, ['buttons', 'save'])->isClicked())) {
+            if ($cancelled || ($valid && $form->get('buttons')->get('save')->isClicked())) {
                 return $this->postActionRedirect(
                     [
                         'returnUrl'       => $returnUrl,
-                        'contentTemplate' => 'Mautic\LeadBundle\Controller\FieldController::indexAction',
+                        'contentTemplate' => 'MauticLeadBundle:Field:index',
                         'passthroughVars' => [
                             'activeLink'    => '#mautic_contactfield_index',
                             'mauticContent' => 'leadfield',
@@ -198,11 +195,11 @@ class FieldController extends FormController
                     ]
                 );
             } elseif ($valid && !$cancelled) {
-                return $this->editAction($request, $field->getId(), true);
+                return $this->editAction($field->getId(), true);
             } elseif (!$valid) {
                 // some bug in Symfony prevents repopulating list options on errors
                 $field   = $form->getData();
-                $newForm = $model->createForm($field, $this->formFactory, $action);
+                $newForm = $model->createForm($field, $this->get('form.factory'), $action);
                 $this->copyErrorsRecursively($form, $newForm);
                 $form = $newForm;
             }
@@ -213,7 +210,7 @@ class FieldController extends FormController
                 'viewParameters' => [
                     'form' => $form->createView(),
                 ],
-                'contentTemplate' => '@MauticLead/Field/form.html.twig',
+                'contentTemplate' => 'MauticLeadBundle:Field:form.html.php',
                 'passthroughVars' => [
                     'activeLink'    => '#mautic_contactfield_index',
                     'route'         => $this->generateUrl('mautic_contactfield_action', ['objectAction' => 'new']),
@@ -231,9 +228,9 @@ class FieldController extends FormController
      *
      * @return array|\Symfony\Component\HttpFoundation\JsonResponse|\Symfony\Component\HttpFoundation\RedirectResponse|\Symfony\Component\HttpFoundation\Response
      */
-    public function editAction(Request $request, $objectId, $ignorePost = false)
+    public function editAction($objectId, $ignorePost = false)
     {
-        if (!$this->security->isGranted('lead:fields:full')) {
+        if (!$this->get('mautic.security')->isGranted('lead:fields:full')) {
             return $this->accessDenied();
         }
 
@@ -246,7 +243,7 @@ class FieldController extends FormController
 
         $postActionVars = [
             'returnUrl'       => $returnUrl,
-            'contentTemplate' => 'Mautic\LeadBundle\Controller\FieldController::indexAction',
+            'contentTemplate' => 'MauticLeadBundle:Field:index',
             'passthroughVars' => [
                 'activeLink'    => '#mautic_contactfield_index',
                 'mauticContent' => 'leadfield',
@@ -271,20 +268,20 @@ class FieldController extends FormController
         }
 
         $action = $this->generateUrl('mautic_contactfield_action', ['objectAction' => 'edit', 'objectId' => $objectId]);
-        $form   = $model->createForm($field, $this->formFactory, $action);
+        $form   = $model->createForm($field, $this->get('form.factory'), $action);
 
         ///Check for a submitted form and process it
-        if (!$ignorePost && 'POST' === $request->getMethod()) {
+        if (!$ignorePost && 'POST' == $this->request->getMethod()) {
             $valid = false;
             if (!$cancelled = $this->isFormCancelled($form)) {
                 if ($valid = $this->isFormValid($form)) {
-                    $requestData = $request->request->all();
-                    if (isset($requestData['leadfield']['properties'])) {
-                        $result = $model->setFieldProperties($field, $requestData['leadfield']['properties']);
+                    $request = $this->request->request->all();
+                    if (isset($request['leadfield']['properties'])) {
+                        $result = $model->setFieldProperties($field, $request['leadfield']['properties']);
                         if (true !== $result) {
                             //set the error
                             $form->get('properties')->addError(new FormError(
-                                $this->translator->trans($result, [], 'validators')
+                                $this->get('translator')->trans($result, [], 'validators')
                             ));
                             $valid = false;
                         }
@@ -292,9 +289,9 @@ class FieldController extends FormController
 
                     if ($valid) {
                         //form is valid so process the data
-                        $model->saveEntity($field, $this->getFormButton($form, ['buttons', 'save'])->isClicked());
+                        $model->saveEntity($field, $form->get('buttons')->get('save')->isClicked());
 
-                        $this->addFlashMessage('mautic.core.notice.updated', [
+                        $this->addFlash('mautic.core.notice.updated', [
                             '%name%'      => $field->getLabel(),
                             '%menu_link%' => 'mautic_contactfield_index',
                             '%url%'       => $this->generateUrl('mautic_contactfield_action', [
@@ -309,22 +306,22 @@ class FieldController extends FormController
                 $model->unlockEntity($field);
             }
 
-            if ($cancelled || ($valid && $this->getFormButton($form, ['buttons', 'save'])->isClicked())) {
+            if ($cancelled || ($valid && $form->get('buttons')->get('save')->isClicked())) {
                 return $this->postActionRedirect(
                     array_merge($postActionVars, [
                             'viewParameters'  => ['objectId' => $field->getId()],
-                            'contentTemplate' => 'Mautic\LeadBundle\Controller\FieldController::indexAction',
+                            'contentTemplate' => 'MauticLeadBundle:Field:index',
                         ]
                     )
                 );
             } elseif ($valid) {
                 // Rebuild the form with new action so that apply doesn't keep creating a clone
                 $action = $this->generateUrl('mautic_contactfield_action', ['objectAction' => 'edit', 'objectId' => $field->getId()]);
-                $form   = $model->createForm($field, $this->formFactory, $action);
+                $form   = $model->createForm($field, $this->get('form.factory'), $action);
             } else {
                 // some bug in Symfony prevents repopulating list options on errors
                 $field   = $form->getData();
-                $newForm = $model->createForm($field, $this->formFactory, $action);
+                $newForm = $model->createForm($field, $this->get('form.factory'), $action);
                 $this->copyErrorsRecursively($form, $newForm);
                 $form = $newForm;
             }
@@ -337,7 +334,7 @@ class FieldController extends FormController
             'viewParameters' => [
                 'form' => $form->createView(),
             ],
-            'contentTemplate' => '@MauticLead/Field/form.html.twig',
+            'contentTemplate' => 'MauticLeadBundle:Field:form.html.php',
             'passthroughVars' => [
                 'activeLink'    => '#mautic_contactfield_index',
                 'route'         => $action,
@@ -353,26 +350,25 @@ class FieldController extends FormController
      *
      * @return \Symfony\Component\HttpFoundation\RedirectResponse
      */
-    public function cloneAction(Request $request, FieldAliasHelper $fieldAliasHelper, $objectId)
+    public function cloneAction($objectId)
     {
-        $model = $this->getModel('lead.field');
-        \assert($model instanceof FieldModel);
+        $model  = $this->getModel('lead.field');
         $entity = $model->getEntity($objectId);
 
         if (null != $entity) {
-            if (!$this->security->isGranted('lead:fields:full')) {
+            if (!$this->get('mautic.security')->isGranted('lead:fields:full')) {
                 return $this->accessDenied();
             }
 
             $clone = clone $entity;
             $clone->setIsPublished(false);
             $clone->setIsFixed(false);
-            $fieldAliasHelper->makeAliasUnique($clone);
+            $this->get('mautic.helper.field.alias')->makeAliasUnique($clone);
             $model->saveEntity($clone);
             $objectId = $clone->getId();
         }
 
-        return $this->editAction($request, $objectId);
+        return $this->editAction($objectId);
     }
 
     /**
@@ -380,11 +376,11 @@ class FieldController extends FormController
      *
      * @param $objectId
      *
-     * @return Response
+     * @return \Symfony\Component\HttpFoundation\JsonResponse|\Symfony\Component\HttpFoundation\RedirectResponse
      */
-    public function deleteAction(Request $request, $objectId)
+    public function deleteAction($objectId)
     {
-        if (!$this->security->isGranted('lead:fields:full')) {
+        if (!$this->get('mautic.security')->isGranted('lead:fields:full')) {
             return $this->accessDenied();
         }
 
@@ -393,14 +389,14 @@ class FieldController extends FormController
 
         $postActionVars = [
             'returnUrl'       => $returnUrl,
-            'contentTemplate' => 'Mautic\LeadBundle\Controller\FieldController::indexAction',
+            'contentTemplate' => 'MauticLeadBundle:Field:index',
             'passthroughVars' => [
                 'activeLink'    => '#mautic_contactfield_index',
                 'mauticContent' => 'lead',
             ],
         ];
 
-        if ('POST' === $request->getMethod()) {
+        if ('POST' == $this->request->getMethod()) {
             /** @var FieldModel $model */
             $model = $this->getModel('lead.field');
             $field = $model->getEntity($objectId);
@@ -458,11 +454,11 @@ class FieldController extends FormController
     /**
      * Deletes a group of entities.
      *
-     * @return Response
+     * @return \Symfony\Component\HttpFoundation\JsonResponse|\Symfony\Component\HttpFoundation\RedirectResponse
      */
-    public function batchDeleteAction(Request $request)
+    public function batchDeleteAction()
     {
-        if (!$this->security->isGranted('lead:fields:full')) {
+        if (!$this->get('mautic.security')->isGranted('lead:fields:full')) {
             return $this->accessDenied();
         }
 
@@ -471,17 +467,17 @@ class FieldController extends FormController
 
         $postActionVars = [
             'returnUrl'       => $returnUrl,
-            'contentTemplate' => 'Mautic\LeadBundle\Controller\FieldController::indexAction',
+            'contentTemplate' => 'MauticLeadBundle:Field:index',
             'passthroughVars' => [
                 'activeLink'    => '#mautic_contactfield_index',
                 'mauticContent' => 'lead',
             ],
         ];
 
-        if ('POST' === $request->getMethod()) {
+        if ('POST' == $this->request->getMethod()) {
             /** @var FieldModel $model */
             $model     = $this->getModel('lead.field');
-            $ids       = json_decode($request->query->get('ids', '{}'));
+            $ids       = json_decode($this->request->query->get('ids', '{}'));
             $deleteIds = [];
 
             // Loop over the IDs to perform access checks pre-delete

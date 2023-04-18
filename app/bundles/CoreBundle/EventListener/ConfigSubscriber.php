@@ -41,7 +41,7 @@ class ConfigSubscriber implements EventSubscriberInterface
             'bundle'     => 'CoreBundle',
             'formType'   => ConfigType::class,
             'formAlias'  => 'coreconfig',
-            'formTheme'  => '@MauticCore/FormTheme/Config/config_layout.html.twig',
+            'formTheme'  => 'MauticCoreBundle:FormTheme\Config',
             'parameters' => $coreParams,
         ]);
     }

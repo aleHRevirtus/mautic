@@ -8,7 +8,6 @@ use Mautic\LeadBundle\Entity\Lead;
 use Mautic\LeadBundle\Model\LeadModel;
 use MauticPlugin\MauticCitrixBundle\CitrixEvents;
 use MauticPlugin\MauticCitrixBundle\Entity\CitrixEvent;
-use MauticPlugin\MauticCitrixBundle\Entity\CitrixEventRepository;
 use MauticPlugin\MauticCitrixBundle\Entity\CitrixEventTypes;
 use MauticPlugin\MauticCitrixBundle\Event\CitrixEventUpdateEvent;
 use MauticPlugin\MauticCitrixBundle\Helper\CitrixHelper;
@@ -16,7 +15,7 @@ use MauticPlugin\MauticCitrixBundle\Helper\CitrixProducts;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
- * @extends FormModel<CitrixEvent>
+ * Class CitrixModel.
  */
 class CitrixModel extends FormModel
 {
@@ -30,6 +29,9 @@ class CitrixModel extends FormModel
      */
     protected $eventModel;
 
+    /**
+     * CitrixModel constructor.
+     */
     public function __construct(LeadModel $leadModel, EventModel $eventModel)
     {
         $this->leadModel  = $leadModel;
@@ -39,14 +41,11 @@ class CitrixModel extends FormModel
     /**
      * {@inheritdoc}
      *
-     * @return CitrixEventRepository
+     * @return \MauticPlugin\MauticCitrixBundle\Entity\CitrixEventRepository
      */
     public function getRepository()
     {
-        $result = $this->em->getRepository(CitrixEvent::class);
-        \assert($result instanceof CitrixEventRepository);
-
-        return $result;
+        return $this->em->getRepository('MauticCitrixBundle:CitrixEvent');
     }
 
     /**
@@ -237,12 +236,12 @@ class CitrixModel extends FormModel
     }
 
     /**
-     * @param mixed                $product
-     * @param mixed                $productId
-     * @param mixed                $eventName
-     * @param mixed                $eventDesc
-     * @param int                  $count
-     * @param OutputInterface|null $output
+     * @param      $product
+     * @param      $productId
+     * @param      $eventName
+     * @param      $eventDesc
+     * @param int  $count
+     * @param null $output
      */
     public function syncEvent($product, $productId, $eventName, $eventDesc, &$count = 0, $output = null)
     {
@@ -398,7 +397,7 @@ class CitrixModel extends FormModel
             foreach ($newEntities as $entity) {
                 if ($this->dispatcher->hasListeners(CitrixEvents::ON_CITRIX_EVENT_UPDATE)) {
                     $citrixEvent = new CitrixEventUpdateEvent($product, $eventName, $eventDesc, $eventType, $entity->getLead());
-                    $this->dispatcher->dispatch($citrixEvent, CitrixEvents::ON_CITRIX_EVENT_UPDATE);
+                    $this->dispatcher->dispatch(CitrixEvents::ON_CITRIX_EVENT_UPDATE, $citrixEvent);
                     unset($citrixEvent);
                 }
             }

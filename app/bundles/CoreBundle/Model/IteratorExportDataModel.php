@@ -13,23 +13,16 @@ class IteratorExportDataModel implements \Iterator
     private $total;
     private $data;
     private $totalResult;
-    private bool $skipOrdering;
 
-    /**
-     * @param AbstractCommonModel<T> $model
-     * @param array<mixed>           $args
-     * @template T of object
-     */
-    public function __construct(AbstractCommonModel $model, array $args, callable $callback, bool $skipOrdering = false)
+    public function __construct(AbstractCommonModel $model, $args, callable $callback)
     {
-        $this->model        = $model;
-        $this->args         = $args;
-        $this->callback     = $callback;
-        $this->position     = 0;
-        $this->total        = 0;
-        $this->totalResult  = 0;
-        $this->data         = 0;
-        $this->skipOrdering = $skipOrdering;
+        $this->model       = $model;
+        $this->args        = $args;
+        $this->callback    = $callback;
+        $this->position    = 0;
+        $this->total       = 0;
+        $this->totalResult = 0;
+        $this->data        = 0;
     }
 
     /**
@@ -52,12 +45,15 @@ class IteratorExportDataModel implements \Iterator
      * @see http://php.net/manual/en/iterator.next.php
      * @since 5.0.0
      */
-    public function next(): void
+    public function next()
     {
         ++$this->position;
-
         if ($this->position === $this->totalResult) {
-            $this->getDataForExport();
+            $data              = new DataExporterHelper();
+            $this->data        = $data->getDataForExport($this->total, $this->model, $this->args, $this->callback);
+            $this->totalResult = $this->data ? count($this->data) : 0;
+            $this->total       = $this->total + $this->totalResult;
+            $this->position    = 0;
         }
     }
 
@@ -100,23 +96,12 @@ class IteratorExportDataModel implements \Iterator
      * @see http://php.net/manual/en/iterator.rewind.php
      * @since 5.0.0
      */
-    public function rewind(): void
+    public function rewind()
     {
-        $this->getDataForExport();
-    }
-
-    private function getDataForExport(): void
-    {
-        $data       = new DataExporterHelper();
-        $this->data = $data->getDataForExport(
-            $this->total,
-            $this->model,
-            $this->args,
-            $this->callback,
-            $this->skipOrdering
-        );
+        $data              = new DataExporterHelper();
+        $this->data        = $data->getDataForExport($this->total, $this->model, $this->args, $this->callback);
         $this->totalResult = $this->data ? count($this->data) : 0;
-        $this->total += $this->totalResult;
-        $this->position = 0;
+        $this->total       = $this->total + $this->totalResult;
+        $this->position    = 0;
     }
 }

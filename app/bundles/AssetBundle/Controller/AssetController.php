@@ -2,29 +2,25 @@
 
 namespace Mautic\AssetBundle\Controller;
 
-use Mautic\AssetBundle\Model\AssetModel;
 use Mautic\CoreBundle\Controller\FormController;
 use Mautic\CoreBundle\Form\Type\DateRangeType;
-use Mautic\CoreBundle\Helper\CoreParametersHelper;
 use Mautic\CoreBundle\Helper\FileHelper;
-use Mautic\CoreBundle\Model\AuditLogModel;
-use Oneup\UploaderBundle\Templating\Helper\UploaderHelper;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class AssetController extends FormController
 {
     /**
+     * @param int $page
+     *
      * @return JsonResponse|\Symfony\Component\HttpFoundation\Response
      */
-    public function indexAction(Request $request, CoreParametersHelper $parametersHelper, int $page = 1)
+    public function indexAction($page = 1)
     {
-        $assetModel = $this->getModel('asset');
-        \assert($assetModel instanceof AssetModel);
+        $model = $this->getModel('asset');
 
         //set some permissions
-        $permissions = $this->security->isGranted([
+        $permissions = $this->get('mautic.security')->isGranted([
             'asset:assets:viewown',
             'asset:assets:viewother',
             'asset:assets:create',
@@ -43,14 +39,14 @@ class AssetController extends FormController
         $this->setListFilters();
 
         //set limits
-        $limit = $request->getSession()->get('mautic.asset.limit', $parametersHelper->get('default_assetlimit'));
+        $limit = $this->get('session')->get('mautic.asset.limit', $this->get('mautic.helper.core_parameters')->get('default_assetlimit'));
         $start = (1 === $page) ? 0 : (($page - 1) * $limit);
         if ($start < 0) {
             $start = 0;
         }
 
-        $search = $request->get('search', $request->getSession()->get('mautic.asset.filter', ''));
-        $request->getSession()->set('mautic.asset.filter', $search);
+        $search = $this->request->get('search', $this->get('session')->get('mautic.asset.filter', ''));
+        $this->get('session')->set('mautic.asset.filter', $search);
 
         $filter = ['string' => $search, 'force' => []];
 
@@ -59,10 +55,10 @@ class AssetController extends FormController
                 ['column' => 'a.createdBy', 'expr' => 'eq', 'value' => $this->user->getId()];
         }
 
-        $orderBy    = $request->getSession()->get('mautic.asset.orderby', 'a.dateModified');
-        $orderByDir = $request->getSession()->get('mautic.asset.orderbydir', $this->getDefaultOrderDirection());
+        $orderBy    = $this->get('session')->get('mautic.asset.orderby', 'a.dateModified');
+        $orderByDir = $this->get('session')->get('mautic.asset.orderbydir', $this->getDefaultOrderDirection());
 
-        $assets = $assetModel->getEntities(
+        $assets = $model->getEntities(
             [
                 'start'      => $start,
                 'limit'      => $limit,
@@ -80,13 +76,13 @@ class AssetController extends FormController
             } else {
                 $lastPage = (ceil($count / $limit)) ?: 1;
             }
-            $request->getSession()->set('mautic.asset.asset', $lastPage);
+            $this->get('session')->set('mautic.asset.asset', $lastPage);
             $returnUrl = $this->generateUrl('mautic_asset_index', ['page' => $lastPage]);
 
             return $this->postActionRedirect([
                 'returnUrl'       => $returnUrl,
                 'viewParameters'  => ['asset' => $lastPage],
-                'contentTemplate' => 'Mautic\AssetBundle\Controller\AssetController::indexAction',
+                'contentTemplate' => 'MauticAssetBundle:Asset:index',
                 'passthroughVars' => [
                     'activeLink'    => '#mautic_asset_index',
                     'mauticContent' => 'asset',
@@ -95,12 +91,12 @@ class AssetController extends FormController
         }
 
         //set what asset currently on so that we can return here after form submission/cancellation
-        $request->getSession()->set('mautic.asset.page', $page);
+        $this->get('session')->set('mautic.asset.page', $page);
 
-        $tmpl = $request->isXmlHttpRequest() ? $request->get('tmpl', 'index') : 'index';
+        $tmpl = $this->request->isXmlHttpRequest() ? $this->request->get('tmpl', 'index') : 'index';
 
         //retrieve a list of categories
-        $categories = $assetModel->getLookupResults('category', '', 0);
+        $categories = $this->getModel('asset')->getLookupResults('category', '', 0);
 
         return $this->delegateView([
             'viewParameters' => [
@@ -109,12 +105,12 @@ class AssetController extends FormController
                 'categories'  => $categories,
                 'limit'       => $limit,
                 'permissions' => $permissions,
-                'model'       => $assetModel,
+                'model'       => $model,
                 'tmpl'        => $tmpl,
                 'page'        => $page,
-                'security'    => $this->security,
+                'security'    => $this->get('mautic.security'),
             ],
-            'contentTemplate' => '@MauticAsset/Asset/list.html.twig',
+            'contentTemplate' => 'MauticAssetBundle:Asset:list.html.php',
             'passthroughVars' => [
                 'activeLink'    => '#mautic_asset_index',
                 'mauticContent' => 'asset',
@@ -130,21 +126,21 @@ class AssetController extends FormController
      *
      * @return JsonResponse|\Symfony\Component\HttpFoundation\Response
      */
-    public function viewAction(Request $request, $objectId)
+    public function viewAction($objectId)
     {
         $model       = $this->getModel('asset');
-        \assert($model instanceof AssetModel);
+        $security    = $this->get('mautic.security');
         $activeAsset = $model->getEntity($objectId);
 
         //set the asset we came from
-        $page = $request->getSession()->get('mautic.asset.page', 1);
+        $page = $this->get('session')->get('mautic.asset.page', 1);
 
-        $tmpl = $request->isXmlHttpRequest() ? $request->get('tmpl', 'details') : 'details';
+        $tmpl = $this->request->isXmlHttpRequest() ? $this->request->get('tmpl', 'details') : 'details';
 
         // Init the date range filter form
-        $dateRangeValues = $request->get('daterange', []);
+        $dateRangeValues = $this->request->get('daterange', []);
         $action          = $this->generateUrl('mautic_asset_action', ['objectAction' => 'view', 'objectId' => $objectId]);
-        $dateRangeForm   = $this->formFactory->create(DateRangeType::class, $dateRangeValues, ['action' => $action]);
+        $dateRangeForm   = $this->get('form.factory')->create(DateRangeType::class, $dateRangeValues, ['action' => $action]);
 
         if (null === $activeAsset) {
             //set the return URL
@@ -153,7 +149,7 @@ class AssetController extends FormController
             return $this->postActionRedirect([
                 'returnUrl'       => $returnUrl,
                 'viewParameters'  => ['page' => $page],
-                'contentTemplate' => 'Mautic\AssetBundle\Controller\AssetController::indexAction',
+                'contentTemplate' => 'MauticAssetBundle:Asset:index',
                 'passthroughVars' => [
                     'activeLink'    => '#mautic_asset_index',
                     'mauticContent' => 'asset',
@@ -166,21 +162,19 @@ class AssetController extends FormController
                     ],
                 ],
             ]);
-        } elseif (!$this->security->hasEntityAccess('asset:assets:viewown', 'asset:assets:viewother', $activeAsset->getCreatedBy())) {
+        } elseif (!$this->get('mautic.security')->hasEntityAccess('asset:assets:viewown', 'asset:assets:viewother', $activeAsset->getCreatedBy())) {
             return $this->accessDenied();
         }
 
         // Audit Log
-        $auditLogModel = $this->getModel('core.auditlog');
-        \assert($auditLogModel instanceof AuditLogModel);
-        $logs          = $auditLogModel->getLogForObject('asset', $activeAsset->getId(), $activeAsset->getDateAdded());
+        $logs = $this->getModel('core.auditlog')->getLogForObject('asset', $activeAsset->getId(), $activeAsset->getDateAdded());
 
         return $this->delegateView([
             'returnUrl'      => $action,
             'viewParameters' => [
                 'activeAsset' => $activeAsset,
                 'tmpl'        => $tmpl,
-                'permissions' => $this->security->isGranted([
+                'permissions' => $security->isGranted([
                     'asset:assets:viewown',
                     'asset:assets:viewother',
                     'asset:assets:create',
@@ -204,12 +198,12 @@ class AssetController extends FormController
                         ),
                     ],
                 ],
-                'security'         => $this->security,
+                'security'         => $security,
                 'assetDownloadUrl' => $model->generateUrl($activeAsset, true),
                 'logs'             => $logs,
                 'dateRangeForm'    => $dateRangeForm->createView(),
             ],
-            'contentTemplate' => '@MauticAsset/Asset/'.$tmpl.'.html.twig',
+            'contentTemplate' => 'MauticAssetBundle:Asset:'.$tmpl.'.html.php',
             'passthroughVars' => [
                 'activeLink'    => '#mautic_asset_index',
                 'mauticContent' => 'asset',
@@ -224,25 +218,23 @@ class AssetController extends FormController
      *
      * @return JsonResponse|\Symfony\Component\HttpFoundation\Response
      */
-    public function previewAction(Request $request, $objectId)
+    public function previewAction($objectId)
     {
         /** @var \Mautic\AssetBundle\Model\AssetModel $model */
         $model       = $this->getModel('asset');
         $activeAsset = $model->getEntity($objectId);
 
-        if (null === $activeAsset || !$this->security->hasEntityAccess('asset:assets:viewown', 'asset:assets:viewother', $activeAsset->getCreatedBy())) {
+        if (null === $activeAsset || !$this->get('mautic.security')->hasEntityAccess('asset:assets:viewown', 'asset:assets:viewother', $activeAsset->getCreatedBy())) {
             return $this->modalAccessDenied();
         }
 
-        $download = $request->query->get('download', 0);
-
-        // Display the file directly in the browser by default
-        $stream   = $request->query->get('stream', '1');
+        $download = $this->request->query->get('download', 0);
+        $stream   = $this->request->query->get('stream', 0);
 
         if ('1' === $download || '1' === $stream) {
             try {
                 //set the uploadDir
-                $activeAsset->setUploadDir($this->coreParametersHelper->get('upload_dir'));
+                $activeAsset->setUploadDir($this->get('mautic.helper.core_parameters')->get('upload_dir'));
                 $contents = $activeAsset->getFileContents();
             } catch (\Exception $e) {
                 return $this->notFound();
@@ -263,7 +255,7 @@ class AssetController extends FormController
                 'activeAsset'      => $activeAsset,
                 'assetDownloadUrl' => $model->generateUrl($activeAsset),
             ],
-            'contentTemplate' => '@MauticAsset/Asset/preview.html.twig',
+            'contentTemplate' => 'MauticAssetBundle:Asset:preview.html.php',
             'passthroughVars' => [
                 'route' => false,
             ],
@@ -275,7 +267,7 @@ class AssetController extends FormController
      *
      * @return \Symfony\Component\HttpFoundation\RedirectResponse|\Symfony\Component\HttpFoundation\Response
      */
-    public function newAction(Request $request, CoreParametersHelper $parametersHelper, UploaderHelper $uploaderHelper, $entity = null)
+    public function newAction($entity = null)
     {
         /** @var \Mautic\AssetBundle\Model\AssetModel $model */
         $model = $this->getModel('asset');
@@ -285,29 +277,29 @@ class AssetController extends FormController
             $entity = $model->getEntity();
         }
 
-        $entity->setMaxSize(FileHelper::convertMegabytesToBytes($this->coreParametersHelper->get('max_size')));
+        $entity->setMaxSize(FileHelper::convertMegabytesToBytes($this->get('mautic.helper.core_parameters')->get('max_size')));
 
-        $method  = $request->getMethod();
-        $session = $request->getSession();
+        $method  = $this->request->getMethod();
+        $session = $this->get('session');
 
-        if (!$this->security->isGranted('asset:assets:create')) {
+        if (!$this->get('mautic.security')->isGranted('asset:assets:create')) {
             return $this->accessDenied();
         }
 
         $maxSize    = $model->getMaxUploadSize();
-        $extensions = '.'.implode(', .', $this->coreParametersHelper->get('allowed_extensions'));
+        $extensions = '.'.implode(', .', $this->get('mautic.helper.core_parameters')->get('allowed_extensions'));
 
-        $maxSizeError = $this->translator->trans('mautic.asset.asset.error.file.size', [
+        $maxSizeError = $this->get('translator')->trans('mautic.asset.asset.error.file.size', [
             '%fileSize%' => '{{filesize}}',
             '%maxSize%'  => '{{maxFilesize}}',
         ], 'validators');
 
-        $extensionError = $this->translator->trans('mautic.asset.asset.error.file.extension.js', [
+        $extensionError = $this->get('translator')->trans('mautic.asset.asset.error.file.extension.js', [
             '%extensions%' => $extensions,
         ], 'validators');
 
         // Create temporary asset ID
-        $asset  = $request->request->get('asset', []);
+        $asset  = $this->request->request->get('asset', []);
         $tempId = 'POST' === $method ? ($asset['tempId'] ?? '') : uniqid('tmp_');
         $entity->setTempId($tempId);
 
@@ -315,17 +307,19 @@ class AssetController extends FormController
         $page   = $session->get('mautic.asset.page', 1);
         $action = $this->generateUrl('mautic_asset_action', ['objectAction' => 'new']);
 
+        // Get upload folder
+        $uploaderHelper = $this->container->get('oneup_uploader.templating.uploader_helper');
         $uploadEndpoint = $uploaderHelper->endpoint('asset');
 
         //create the form
-        $form = $model->createForm($entity, $this->formFactory, $action);
+        $form = $model->createForm($entity, $this->get('form.factory'), $action);
 
         ///Check for a submitted form and process it
         if ('POST' == $method) {
             $valid = false;
             if (!$cancelled = $this->isFormCancelled($form)) {
                 if ($valid = $this->isFormValid($form)) {
-                    $entity->setUploadDir($parametersHelper->get('upload_dir'));
+                    $entity->setUploadDir($this->get('mautic.helper.core_parameters')->get('upload_dir'));
                     $entity->preUpload();
                     $entity->upload();
                     $entity->setDateModified(new \DateTime());
@@ -333,9 +327,9 @@ class AssetController extends FormController
                     $model->saveEntity($entity);
 
                     //remove the asset from request
-                    $request->files->remove('asset');
+                    $this->request->files->remove('asset');
 
-                    $this->addFlashMessage('mautic.core.notice.created', [
+                    $this->addFlash('mautic.core.notice.created', [
                         '%name%'      => $entity->getTitle(),
                         '%menu_link%' => 'mautic_asset_index',
                         '%url%'       => $this->generateUrl('mautic_asset_action', [
@@ -344,9 +338,9 @@ class AssetController extends FormController
                         ]),
                     ]);
 
-                    if (!$this->getFormButton($form, ['buttons', 'save'])->isClicked()) {
+                    if (!$form->get('buttons')->get('save')->isClicked()) {
                         //return edit view so that all the session stuff is loaded
-                        return $this->editAction($request, $uploaderHelper, $entity->getId(), true);
+                        return $this->editAction($entity->getId(), true);
                     }
 
                     $viewParameters = [
@@ -354,15 +348,15 @@ class AssetController extends FormController
                         'objectId'     => $entity->getId(),
                     ];
                     $returnUrl = $this->generateUrl('mautic_asset_action', $viewParameters);
-                    $template  = 'Mautic\AssetBundle\Controller\AssetController::viewAction';
+                    $template  = 'MauticAssetBundle:Asset:view';
                 }
             } else {
                 $viewParameters = ['page' => $page];
                 $returnUrl      = $this->generateUrl('mautic_asset_index', $viewParameters);
-                $template       = 'Mautic\AssetBundle\Controller\AssetController::indexAction';
+                $template       = 'MauticAssetBundle:Asset:index';
             }
 
-            if ($cancelled || ($valid && $this->getFormButton($form, ['buttons', 'save'])->isClicked())) {
+            if ($cancelled || ($valid && $form->get('buttons')->get('save')->isClicked())) {
                 return $this->postActionRedirect([
                     'returnUrl'       => $returnUrl,
                     'viewParameters'  => $viewParameters,
@@ -394,7 +388,7 @@ class AssetController extends FormController
                 'extensions'       => $extensions,
                 'extensionError'   => $extensionError,
             ],
-            'contentTemplate' => '@MauticAsset/Asset/form.html.twig',
+            'contentTemplate' => 'MauticAssetBundle:Asset:form.html.php',
             'passthroughVars' => [
                 'activeLink'    => '#mautic_asset_index',
                 'mauticContent' => 'asset',
@@ -413,38 +407,40 @@ class AssetController extends FormController
      *
      * @return JsonResponse|\Symfony\Component\HttpFoundation\RedirectResponse|\Symfony\Component\HttpFoundation\Response
      */
-    public function editAction(Request $request, UploaderHelper $uploaderHelper, $objectId, $ignorePost = false)
+    public function editAction($objectId, $ignorePost = false)
     {
         /** @var \Mautic\AssetBundle\Model\AssetModel $model */
         $model  = $this->getModel('asset');
         $entity = $model->getEntity($objectId);
 
-        $entity->setMaxSize(FileHelper::convertMegabytesToBytes($this->coreParametersHelper->get('max_size')));
+        $entity->setMaxSize(FileHelper::convertMegabytesToBytes($this->get('mautic.helper.core_parameters')->get('max_size')));
 
-        $session    = $request->getSession();
+        $session    = $this->get('session');
         $page       = $session->get('mautic.asset.page', 1);
-        $method     = $request->getMethod();
+        $method     = $this->request->getMethod();
         $maxSize    = $model->getMaxUploadSize();
-        $extensions = '.'.implode(', .', $this->coreParametersHelper->get('allowed_extensions'));
+        $extensions = '.'.implode(', .', $this->get('mautic.helper.core_parameters')->get('allowed_extensions'));
 
-        $maxSizeError = $this->translator->trans('mautic.asset.asset.error.file.size', [
+        $maxSizeError = $this->get('translator')->trans('mautic.asset.asset.error.file.size', [
             '%fileSize%' => '{{filesize}}',
             '%maxSize%'  => '{{maxFilesize}}',
         ], 'validators');
 
-        $extensionError = $this->translator->trans('mautic.asset.asset.error.file.extension.js', [
+        $extensionError = $this->get('translator')->trans('mautic.asset.asset.error.file.extension.js', [
             '%extensions%' => $extensions,
         ], 'validators');
 
         //set the return URL
         $returnUrl = $this->generateUrl('mautic_asset_index', ['page' => $page]);
 
+        // Get upload folder
+        $uploaderHelper = $this->container->get('oneup_uploader.templating.uploader_helper');
         $uploadEndpoint = $uploaderHelper->endpoint('asset');
 
         $postActionVars = [
             'returnUrl'       => $returnUrl,
             'viewParameters'  => ['page' => $page],
-            'contentTemplate' => 'Mautic\AssetBundle\Controller\AssetController::indexAction',
+            'contentTemplate' => 'MauticAssetBundle:Asset:index',
             'passthroughVars' => [
                 'activeLink'    => 'mautic_asset_index',
                 'mauticContent' => 'asset',
@@ -464,7 +460,7 @@ class AssetController extends FormController
                     ],
                 ])
             );
-        } elseif (!$this->security->hasEntityAccess(
+        } elseif (!$this->get('mautic.security')->hasEntityAccess(
             'asset:assets:viewown', 'asset:assets:viewother', $entity->getCreatedBy()
         )
         ) {
@@ -475,30 +471,30 @@ class AssetController extends FormController
         }
 
         // Create temporary asset ID
-        $asset  = $request->request->get('asset', []);
+        $asset  = $this->request->request->get('asset', []);
         $tempId = 'POST' === $method ? ($asset['tempId'] ?? '') : uniqid('tmp_');
         $entity->setTempId($tempId);
 
         //Create the form
         $action = $this->generateUrl('mautic_asset_action', ['objectAction' => 'edit', 'objectId' => $objectId]);
-        $form   = $model->createForm($entity, $this->formFactory, $action);
+        $form   = $model->createForm($entity, $this->get('form.factory'), $action);
 
         ///Check for a submitted form and process it
         if (!$ignorePost && 'POST' == $method) {
             $valid = false;
             if (!$cancelled = $this->isFormCancelled($form)) {
                 if ($valid = $this->isFormValid($form)) {
-                    $entity->setUploadDir($this->coreParametersHelper->get('upload_dir'));
+                    $entity->setUploadDir($this->get('mautic.helper.core_parameters')->get('upload_dir'));
                     $entity->preUpload();
                     $entity->upload();
 
                     //form is valid so process the data
-                    $model->saveEntity($entity, $this->getFormButton($form, ['buttons', 'save'])->isClicked());
+                    $model->saveEntity($entity, $form->get('buttons')->get('save')->isClicked());
 
                     //remove the asset from request
-                    $request->files->remove('asset');
+                    $this->request->files->remove('asset');
 
-                    $this->addFlashMessage('mautic.core.notice.updated', [
+                    $this->addFlash('mautic.core.notice.updated', [
                         '%name%'      => $entity->getTitle(),
                         '%menu_link%' => 'mautic_asset_index',
                         '%url%'       => $this->generateUrl('mautic_asset_action', [
@@ -512,7 +508,7 @@ class AssetController extends FormController
                         'objectId'     => $entity->getId(),
                     ]);
                     $viewParams = ['objectId' => $entity->getId()];
-                    $template   = 'Mautic\AssetBundle\Controller\AssetController::viewAction';
+                    $template   = 'MauticAssetBundle:Asset:view';
                 }
             } else {
                 //clear any modified content
@@ -522,10 +518,10 @@ class AssetController extends FormController
 
                 $returnUrl  = $this->generateUrl('mautic_asset_index', ['page' => $page]);
                 $viewParams = ['page' => $page];
-                $template   = 'Mautic\AssetBundle\Controller\AssetController::indexAction';
+                $template   = 'MauticAssetBundle:Asset:index';
             }
 
-            if ($cancelled || ($valid && $this->getFormButton($form, ['buttons', 'save'])->isClicked())) {
+            if ($cancelled || ($valid && $form->get('buttons')->get('save')->isClicked())) {
                 return $this->postActionRedirect(
                     array_merge($postActionVars, [
                         'returnUrl'       => $returnUrl,
@@ -558,7 +554,7 @@ class AssetController extends FormController
                 'extensions'       => $extensions,
                 'extensionError'   => $extensionError,
             ],
-            'contentTemplate' => '@MauticAsset/Asset/form.html.twig',
+            'contentTemplate' => 'MauticAssetBundle:Asset:form.html.php',
             'passthroughVars' => [
                 'activeLink'    => '#mautic_asset_index',
                 'mauticContent' => 'asset',
@@ -577,16 +573,15 @@ class AssetController extends FormController
      *
      * @return JsonResponse|\Symfony\Component\HttpFoundation\RedirectResponse|Response
      */
-    public function cloneAction(Request $request, CoreParametersHelper $parametersHelper, UploaderHelper $uploaderHelper, $objectId)
+    public function cloneAction($objectId)
     {
         /** @var \Mautic\AssetBundle\Model\AssetModel $model */
         $model  = $this->getModel('asset');
         $entity = $model->getEntity($objectId);
-        $clone  = null;
 
         if (null != $entity) {
-            if (!$this->security->isGranted('asset:assets:create') ||
-                !$this->security->hasEntityAccess(
+            if (!$this->get('mautic.security')->isGranted('asset:assets:create') ||
+                !$this->get('mautic.security')->hasEntityAccess(
                     'asset:assets:viewown', 'asset:assets:viewother', $entity->getCreatedBy()
                 )
             ) {
@@ -600,7 +595,7 @@ class AssetController extends FormController
             $clone->setIsPublished(false);
         }
 
-        return $this->newAction($request, $parametersHelper, $uploaderHelper, $clone);
+        return $this->newAction($clone);
     }
 
     /**
@@ -608,25 +603,25 @@ class AssetController extends FormController
      *
      * @param int $objectId
      *
-     * @return Response
+     * @return \Symfony\Component\HttpFoundation\JsonResponse|\Symfony\Component\HttpFoundation\RedirectResponse
      */
-    public function deleteAction(Request $request, $objectId)
+    public function deleteAction($objectId)
     {
-        $page      = $request->getSession()->get('mautic.asset.page', 1);
+        $page      = $this->get('session')->get('mautic.asset.page', 1);
         $returnUrl = $this->generateUrl('mautic_asset_index', ['page' => $page]);
         $flashes   = [];
 
         $postActionVars = [
             'returnUrl'       => $returnUrl,
             'viewParameters'  => ['page' => $page],
-            'contentTemplate' => 'Mautic\AssetBundle\Controller\AssetController::indexAction',
+            'contentTemplate' => 'MauticAssetBundle:Asset:index',
             'passthroughVars' => [
                 'activeLink'    => 'mautic_asset_index',
                 'mauticContent' => 'asset',
             ],
         ];
 
-        if ('POST' === $request->getMethod()) {
+        if ('POST' == $this->request->getMethod()) {
             /** @var \Mautic\AssetBundle\Model\AssetModel $model */
             $model  = $this->getModel('asset');
             $entity = $model->getEntity($objectId);
@@ -637,7 +632,7 @@ class AssetController extends FormController
                     'msg'     => 'mautic.asset.asset.error.notfound',
                     'msgVars' => ['%id%' => $objectId],
                 ];
-            } elseif (!$this->security->hasEntityAccess(
+            } elseif (!$this->get('mautic.security')->hasEntityAccess(
                 'asset:assets:deleteown',
                 'asset:assets:deleteother',
                 $entity->getCreatedBy()
@@ -671,28 +666,28 @@ class AssetController extends FormController
     /**
      * Deletes a group of entities.
      *
-     * @return Response
+     * @return \Symfony\Component\HttpFoundation\JsonResponse|\Symfony\Component\HttpFoundation\RedirectResponse
      */
-    public function batchDeleteAction(Request $request)
+    public function batchDeleteAction()
     {
-        $page      = $request->getSession()->get('mautic.asset.page', 1);
+        $page      = $this->get('session')->get('mautic.asset.page', 1);
         $returnUrl = $this->generateUrl('mautic_asset_index', ['page' => $page]);
         $flashes   = [];
 
         $postActionVars = [
             'returnUrl'       => $returnUrl,
             'viewParameters'  => ['page' => $page],
-            'contentTemplate' => 'Mautic\AssetBundle\Controller\AssetController::indexAction',
+            'contentTemplate' => 'MauticAssetBundle:Asset:index',
             'passthroughVars' => [
                 'activeLink'    => 'mautic_asset_index',
                 'mauticContent' => 'asset',
             ],
         ];
 
-        if ('POST' === $request->getMethod()) {
+        if ('POST' == $this->request->getMethod()) {
             /** @var \Mautic\AssetBundle\Model\AssetModel $model */
             $model     = $this->getModel('asset');
-            $ids       = json_decode($request->query->get('ids', '{}'));
+            $ids       = json_decode($this->request->query->get('ids', '{}'));
             $deleteIds = [];
 
             // Loop over the IDs to perform access checks pre-delete
@@ -705,7 +700,7 @@ class AssetController extends FormController
                         'msg'     => 'mautic.asset.asset.error.notfound',
                         'msgVars' => ['%id%' => $objectId],
                     ];
-                } elseif (!$this->security->hasEntityAccess(
+                } elseif (!$this->get('mautic.security')->hasEntityAccess(
                     'asset:assets:deleteown', 'asset:assets:deleteother', $entity->getCreatedBy()
                 )
                 ) {
@@ -743,7 +738,7 @@ class AssetController extends FormController
      *
      * @return \Symfony\Component\HttpFoundation\JsonResponse|\Symfony\Component\HttpFoundation\RedirectResponse
      */
-    public function remoteAction(Request $request)
+    public function remoteAction()
     {
         // Check for integrations to cloud providers
         /** @var \Mautic\PluginBundle\Helper\IntegrationHelper $integrationHelper */
@@ -751,18 +746,18 @@ class AssetController extends FormController
 
         $integrations = $integrationHelper->getIntegrationObjects(null, ['cloud_storage']);
 
-        $tmpl = $request->isXmlHttpRequest() ? $request->get('tmpl', 'index') : 'index';
+        $tmpl = $this->request->isXmlHttpRequest() ? $this->request->get('tmpl', 'index') : 'index';
 
         return $this->delegateView([
             'viewParameters' => [
                 'integrations' => $integrations,
                 'tmpl'         => $tmpl,
             ],
-            'contentTemplate' => '@MauticAsset/Remote/browse.html.twig',
+            'contentTemplate' => 'MauticAssetBundle:Remote:browse.html.php',
             'passthroughVars' => [
                 'activeLink'    => '#mautic_asset_index',
                 'mauticContent' => 'asset',
-                'route'         => $this->generateUrl('mautic_asset_index', ['page' => $request->getSession()->get('mautic.asset.page', 1)]),
+                'route'         => $this->generateUrl('mautic_asset_index', ['page' => $this->get('session')->get('mautic.asset.page', 1)]),
             ],
         ]);
     }

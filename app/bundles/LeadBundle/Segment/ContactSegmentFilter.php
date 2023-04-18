@@ -35,26 +35,16 @@ class ContactSegmentFilter
      */
     private $schemaCache;
 
-    /**
-     * @var array<string, mixed>
-     */
-    private $batchLimiters = [];
-
-    /**
-     * @param array<string, mixed> $batchLimiters
-     */
     public function __construct(
         ContactSegmentFilterCrate $contactSegmentFilterCrate,
         FilterDecoratorInterface $filterDecorator,
         TableSchemaColumnsCache $cache,
-        FilterQueryBuilderInterface $filterQueryBuilder,
-        array $batchLimiters = []
+        FilterQueryBuilderInterface $filterQueryBuilder
     ) {
         $this->contactSegmentFilterCrate = $contactSegmentFilterCrate;
         $this->filterDecorator           = $filterDecorator;
         $this->schemaCache               = $cache;
         $this->filterQueryBuilder        = $filterQueryBuilder;
-        $this->batchLimiters             = $batchLimiters;
     }
 
     /**
@@ -167,7 +157,10 @@ class ContactSegmentFilter
         return $this->filterQueryBuilder;
     }
 
-    public function applyQuery(QueryBuilder $queryBuilder): QueryBuilder
+    /**
+     * @return QueryBuilder
+     */
+    public function applyQuery(QueryBuilder $queryBuilder)
     {
         return $this->filterQueryBuilder->applyQuery($queryBuilder, $this);
     }
@@ -246,13 +239,5 @@ class ContactSegmentFilter
     public function doesColumnSupportEmptyValue(): bool
     {
         return !in_array($this->contactSegmentFilterCrate->getType(), ['date', 'datetime'], true);
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    public function getBatchLimiters(): array
-    {
-        return $this->batchLimiters;
     }
 }

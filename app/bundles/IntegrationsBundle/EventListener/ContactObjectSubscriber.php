@@ -14,17 +14,23 @@ use Mautic\IntegrationsBundle\IntegrationEvents;
 use Mautic\IntegrationsBundle\Sync\SyncDataExchange\Internal\Object\Contact;
 use Mautic\IntegrationsBundle\Sync\SyncDataExchange\Internal\ObjectHelper\ContactObjectHelper;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-use Symfony\Component\Routing\RouterInterface;
+use Symfony\Component\Routing\Router;
 
 class ContactObjectSubscriber implements EventSubscriberInterface
 {
-    private ContactObjectHelper $contactObjectHelper;
+    /**
+     * @var ContactObjectHelper
+     */
+    private $contactObjectHelper;
 
-    private RouterInterface $router;
+    /**
+     * @var Router
+     */
+    private $router;
 
     public function __construct(
         ContactObjectHelper $contactObjectHelper,
-        RouterInterface $router
+        Router $router
     ) {
         $this->contactObjectHelper = $contactObjectHelper;
         $this->router              = $router;

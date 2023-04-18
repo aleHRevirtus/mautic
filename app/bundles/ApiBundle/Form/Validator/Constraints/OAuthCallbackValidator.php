@@ -8,7 +8,7 @@ use Symfony\Component\Validator\ConstraintValidator;
 
 class OAuthCallbackValidator extends ConstraintValidator
 {
-    public const PATTERN = '~^[0-9a-z].*://(.*?)(:[0-9]+)?(/?|/\S+)$~ixu';
+    const PATTERN = '~^[0-9a-z].*://(.*?)(:[0-9]+)?(/?|/\S+)$~ixu';
 
     /**
      * @param mixed $value

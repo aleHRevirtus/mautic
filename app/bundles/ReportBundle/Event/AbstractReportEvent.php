@@ -3,7 +3,7 @@
 namespace Mautic\ReportBundle\Event;
 
 use Mautic\ReportBundle\Entity\Report;
-use Symfony\Contracts\EventDispatcher\Event;
+use Symfony\Component\EventDispatcher\Event;
 
 class AbstractReportEvent extends Event
 {
@@ -49,12 +49,8 @@ class AbstractReportEvent extends Event
         }
 
         if (is_array($context)) {
-            $res = array_filter($context, fn ($elem) => 0 === stripos($this->context, $elem));
-
-            return count($res) > 0;
+            return in_array($this->context, $context);
         } elseif ($this->context == $context) {
-            return true;
-        } elseif (0 === stripos($this->context, $context)) {
             return true;
         } else {
             return false;

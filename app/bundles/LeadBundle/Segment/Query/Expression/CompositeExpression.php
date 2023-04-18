@@ -17,12 +17,12 @@ class CompositeExpression implements \Countable
     /**
      * Constant that represents an AND composite expression.
      */
-    public const TYPE_AND = 'AND';
+    const TYPE_AND = 'AND';
 
     /**
      * Constant that represents an OR composite expression.
      */
-    public const TYPE_OR  = 'OR';
+    const TYPE_OR  = 'OR';
 
     /**
      * The instance type of composite expression.

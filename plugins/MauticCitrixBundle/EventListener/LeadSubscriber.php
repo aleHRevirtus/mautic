@@ -12,7 +12,7 @@ use MauticPlugin\MauticCitrixBundle\Helper\CitrixHelper;
 use MauticPlugin\MauticCitrixBundle\Helper\CitrixProducts;
 use MauticPlugin\MauticCitrixBundle\Model\CitrixModel;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class LeadSubscriber implements EventSubscriberInterface
 {
@@ -106,7 +106,7 @@ class LeadSubscriber implements EventSubscriberInterface
                                         'eventDesc' => $entity->getEventDesc(),
                                         'joinUrl'   => $entity->getJoinUrl(),
                                     ],
-                                    'contentTemplate' => '@MauticCitrix/SubscribedEvents\Timeline/citrix_event.html.twig',
+                                    'contentTemplate' => 'MauticCitrixBundle:SubscribedEvents\Timeline:citrix_event.html.php',
                                     'contactId'       => $citrixEvent['lead_id'],
                                 ]
                             );

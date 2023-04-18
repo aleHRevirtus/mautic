@@ -3,23 +3,21 @@
 namespace Mautic\CoreBundle\Model;
 
 use Doctrine\ORM\EntityManager;
+use Doctrine\ORM\Mapping\ClassMetadata;
 use Mautic\CoreBundle\Entity\CommonRepository;
-use Mautic\CoreBundle\Entity\FormEntity;
 use Mautic\CoreBundle\Helper\ClickthroughHelper;
 use Mautic\CoreBundle\Helper\CoreParametersHelper;
 use Mautic\CoreBundle\Helper\UserHelper;
 use Mautic\CoreBundle\Security\Permissions\CorePermissions;
-use Mautic\CoreBundle\Translation\Translator;
+use Monolog\Logger;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Routing\Router;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Intl\Locales;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
-/**
- * @template T of object
- */
-abstract class AbstractCommonModel implements MauticModelInterface
+abstract class AbstractCommonModel
 {
     /**
      * @var \Doctrine\ORM\EntityManager
@@ -42,7 +40,7 @@ abstract class AbstractCommonModel implements MauticModelInterface
     protected $router;
 
     /**
-     * @var Translator
+     * @var TranslatorInterface
      */
     protected $translator;
 
@@ -52,7 +50,7 @@ abstract class AbstractCommonModel implements MauticModelInterface
     protected $userHelper;
 
     /**
-     * @var LoggerInterface
+     * @var Logger
      */
     protected $logger;
 
@@ -61,32 +59,32 @@ abstract class AbstractCommonModel implements MauticModelInterface
      */
     protected $coreParametersHelper;
 
-    public function setEntityManager(EntityManager $em): void
+    public function setEntityManager(EntityManager $em)
     {
         $this->em = $em;
     }
 
-    public function setSecurity(CorePermissions $security): void
+    public function setSecurity(CorePermissions $security)
     {
         $this->security = $security;
     }
 
-    public function setDispatcher(EventDispatcherInterface $dispatcher): void
+    public function setDispatcher(EventDispatcherInterface $dispatcher)
     {
         $this->dispatcher = $dispatcher;
     }
 
-    public function setRouter(Router $router): void
+    public function setRouter(Router $router)
     {
         $this->router = $router;
     }
 
-    public function setTranslator(Translator $translator): void
+    public function setTranslator(TranslatorInterface $translator)
     {
         $this->translator = $translator;
     }
 
-    public function setLogger(LoggerInterface $logger): void
+    public function setLogger(LoggerInterface $logger)
     {
         $this->logger = $logger;
     }
@@ -94,7 +92,7 @@ abstract class AbstractCommonModel implements MauticModelInterface
     /**
      * Initialize the user parameter for use in locking procedures.
      */
-    public function setUserHelper(UserHelper $userHelper): void
+    public function setUserHelper(UserHelper $userHelper)
     {
         $this->userHelper = $userHelper;
     }
@@ -102,7 +100,7 @@ abstract class AbstractCommonModel implements MauticModelInterface
     /**
      * Initialize the CoreParameters parameter.
      */
-    public function setCoreParametersHelper(CoreParametersHelper $coreParametersHelper): void
+    public function setCoreParametersHelper(CoreParametersHelper $coreParametersHelper)
     {
         $this->coreParametersHelper = $coreParametersHelper;
     }
@@ -126,20 +124,20 @@ abstract class AbstractCommonModel implements MauticModelInterface
     {
         $repo = $this->getRepository();
 
-        return $repo->getSearchCommands();
+        return ($repo instanceof CommonRepository) ? $repo->getSearchCommands() : [];
     }
 
     /**
      * Retrieve the repository for an entity.
      *
-     * @return CommonRepository<T>
+     * @return \Mautic\CoreBundle\Entity\CommonRepository|bool
      */
     public function getRepository()
     {
         static $commonRepo;
 
         if (null === $commonRepo) {
-            $commonRepo = $this->em->getRepository(FormEntity::class);
+            $commonRepo = new CommonRepository($this->em, new ClassMetadata('MauticCoreBundle:FormEntity'));
         }
 
         return $commonRepo;
@@ -167,10 +165,14 @@ abstract class AbstractCommonModel implements MauticModelInterface
         //set the translator
         $repo = $this->getRepository();
 
-        $repo->setTranslator($this->translator);
-        $repo->setCurrentUser($this->userHelper->getUser());
+        if ($repo instanceof CommonRepository) {
+            $repo->setTranslator($this->translator);
+            $repo->setCurrentUser($this->userHelper->getUser());
 
-        return $repo->getEntities($args);
+            return $repo->getEntities($args);
+        }
+
+        return [];
     }
 
     /**
@@ -224,10 +226,11 @@ abstract class AbstractCommonModel implements MauticModelInterface
      * @param array $routeParams
      * @param bool  $absolute
      * @param array $clickthrough
+     * @param array $utmTags
      *
      * @return string
      */
-    public function buildUrl($route, $routeParams = [], $absolute = true, $clickthrough = [])
+    public function buildUrl($route, $routeParams = [], $absolute = true, $clickthrough = [], $utmTags = [])
     {
         $referenceType = ($absolute) ? UrlGeneratorInterface::ABSOLUTE_URL : UrlGeneratorInterface::ABSOLUTE_PATH;
         $url           = $this->router->generate($route, $routeParams, $referenceType);
@@ -313,15 +316,5 @@ abstract class AbstractCommonModel implements MauticModelInterface
      */
     public function getEntityByAlias($alias, $categoryAlias = null, $lang = null)
     {
-    }
-
-    /**
-     * @phpstan-param class-string<T> $class
-     *
-     * @return CommonRepository<T>
-     */
-    protected function getServiceRepository(string $class)
-    {
-        return $this->em->getRepository($class);
     }
 }

@@ -7,9 +7,6 @@ use Mautic\LeadBundle\Entity\Company;
 use Mautic\LeadBundle\Entity\Lead;
 use Mautic\UserBundle\Entity\User;
 use Mautic\UserBundle\Model\UserModel;
-use MauticPlugin\MauticClearbitBundle\Helper\LookupHelper;
-use Psr\Log\LoggerInterface;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class PublicController extends FormController
@@ -34,25 +31,27 @@ class PublicController extends FormController
      *
      * @throws \InvalidArgumentException
      */
-    public function callbackAction(Request $request, LoggerInterface $mauticLogger, LookupHelper $lookupHelper)
+    public function callbackAction()
     {
-        if (!$request->request->has('body') || !$request->request->has('id')
-            || !$request->request->has('type')
-            || !$request->request->has('status')
-            || 200 !== $request->request->get('status')
+        $logger = $this->get('monolog.logger.mautic');
+
+        if (!$this->request->request->has('body') || !$this->request->request->has('id')
+            || !$this->request->request->has('type')
+            || !$this->request->request->has('status')
+            || 200 !== $this->request->request->get('status')
         ) {
-            $mauticLogger->log('error', 'ERROR on Clearbit callback: Malformed request variables: '.json_encode($request->request->all(), JSON_PRETTY_PRINT));
+            $logger->log('error', 'ERROR on Clearbit callback: Malformed request variables: '.json_encode($this->request->request->all(), JSON_PRETTY_PRINT));
 
             return new Response('ERROR');
         }
 
         /** @var array $result */
-        $result           = $request->request->get('body', []);
-        $oid              = $request->request->get('id');
-        $validatedRequest = $lookupHelper->validateRequest($oid, $request->request->get('type'));
+        $result           = $this->request->request->get('body', []);
+        $oid              = $this->request->request->get('id');
+        $validatedRequest = $this->get('mautic.plugin.clearbit.lookup_helper')->validateRequest($oid, $this->request->request->get('type'));
 
         if (!$validatedRequest || !is_array($result)) {
-            $mauticLogger->log('error', 'ERROR on Clearbit callback: Wrong body or id in request: id='.$oid.' body='.json_encode($result, JSON_PRETTY_PRINT));
+            $logger->log('error', 'ERROR on Clearbit callback: Wrong body or id in request: id='.$oid.' body='.json_encode($result, JSON_PRETTY_PRINT));
 
             return new Response('ERROR');
         }
@@ -60,13 +59,13 @@ class PublicController extends FormController
         $notify = $validatedRequest['notify'];
 
         try {
-            if ('person' === $request->request->get('type')) {
+            if ('person' === $this->request->request->get('type')) {
                 /** @var \Mautic\LeadBundle\Model\LeadModel $model */
                 $model = $this->getModel('lead');
                 /** @var Lead $lead */
                 $lead       = $validatedRequest['entity'];
                 $currFields = $lead->getFields(true);
-                $mauticLogger->log('debug', 'CURRFIELDS: '.var_export($currFields, true));
+                $logger->log('debug', 'CURRFIELDS: '.var_export($currFields, true));
 
                 $loc = [];
                 if (array_key_exists('geo', $result)) {
@@ -143,7 +142,7 @@ class PublicController extends FormController
                     $data['country'] = $loc['country'];
                 }
 
-                $mauticLogger->log('debug', 'SETTING FIELDS: '.print_r($data, true));
+                $logger->log('debug', 'SETTING FIELDS: '.print_r($data, true));
 
                 // Unset the nonce so that it's not used again
                 $socialCache = $lead->getSocialCache();
@@ -168,7 +167,7 @@ class PublicController extends FormController
             } else {
                 /******************  COMPANY STUFF  *********************/
 
-                if ('company' === $request->request->get('type', [], true)) {
+                if ('company' === $this->request->request->get('type', [], true)) {
                     /** @var \Mautic\LeadBundle\Model\CompanyModel $model */
                     $model = $this->getModel('lead.company');
                     /** @var Company $company */
@@ -233,7 +232,7 @@ class PublicController extends FormController
                         $data['companystate'] = $loc['state'];
                     }
 
-                    $mauticLogger->log('debug', 'SETTING FIELDS: '.print_r($data, true));
+                    $logger->log('debug', 'SETTING FIELDS: '.print_r($data, true));
 
                     // Unset the nonce so that it's not used again
                     $socialCache = $company->getSocialCache();
@@ -258,7 +257,7 @@ class PublicController extends FormController
                 }
             }
         } catch (\Exception $ex) {
-            $mauticLogger->log('error', 'ERROR on Clearbit callback: '.$ex->getMessage());
+            $logger->log('error', 'ERROR on Clearbit callback: '.$ex->getMessage());
             try {
                 if ($notify) {
                     /** @var UserModel $userModel */
@@ -276,7 +275,7 @@ class PublicController extends FormController
                     }
                 }
             } catch (\Exception $ex2) {
-                $mauticLogger->log('error', 'Clearbit: '.$ex2->getMessage());
+                $this->get('monolog.logger.mautic')->log('error', 'Clearbit: '.$ex2->getMessage());
             }
         }
 

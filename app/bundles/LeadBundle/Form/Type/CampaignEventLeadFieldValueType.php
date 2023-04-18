@@ -2,8 +2,6 @@
 
 namespace Mautic\LeadBundle\Form\Type;
 
-use Mautic\CoreBundle\Helper\ArrayHelper;
-use Mautic\CoreBundle\Translation\Translator;
 use Mautic\LeadBundle\Helper\FormFieldHelper;
 use Mautic\LeadBundle\Model\FieldModel;
 use Mautic\LeadBundle\Model\LeadModel;
@@ -13,12 +11,13 @@ use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
+use Symfony\Component\Translation\TranslatorInterface;
 use Symfony\Component\Validator\Constraints\NotBlank;
 
 class CampaignEventLeadFieldValueType extends AbstractType
 {
     /**
-     * @var Translator
+     * @var TranslatorInterface
      */
     protected $translator;
 
@@ -32,7 +31,7 @@ class CampaignEventLeadFieldValueType extends AbstractType
      */
     protected $fieldModel;
 
-    public function __construct(Translator $translator, LeadModel $leadModel, FieldModel $fieldModel)
+    public function __construct(TranslatorInterface $translator, LeadModel $leadModel, FieldModel $fieldModel)
     {
         $this->translator = $translator;
         $this->leadModel  = $leadModel;
@@ -101,10 +100,10 @@ class CampaignEventLeadFieldValueType extends AbstractType
                                 $fieldValues = FormFieldHelper::getCountryChoices();
                                 break;
                             case 'region':
-                                $fieldValues = ArrayHelper::flatten(FormFieldHelper::getRegionChoices());
+                                $fieldValues = FormFieldHelper::getRegionChoices();
                                 break;
                             case 'timezone':
-                                $fieldValues = ArrayHelper::flatten(FormFieldHelper::getTimezonesChoices());
+                                $fieldValues = FormFieldHelper::getTimezonesChoices();
                                 break;
                             case 'locale':
                                 // Locales are flipped. And yes, we will flip the array again below.
@@ -151,9 +150,6 @@ class CampaignEventLeadFieldValueType extends AbstractType
 
             // Display selectbox for a field with choices, textbox for others
             if (!empty($fieldValues) && $supportsChoices) {
-                $multiple = (in_array($operator, ['in', '!in']));
-                $value    = $multiple && !is_array($data['value']) ? [$data['value']] : $data['value'];
-
                 $form->add(
                     'value',
                     ChoiceType::class,
@@ -174,8 +170,6 @@ class CampaignEventLeadFieldValueType extends AbstractType
                                 ['message' => 'mautic.core.value.required']
                             ),
                         ],
-                        'multiple' => $multiple,
-                        'data'     => $value,
                     ]
                 );
             } else {

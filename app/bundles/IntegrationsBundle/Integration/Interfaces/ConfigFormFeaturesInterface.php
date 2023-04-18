@@ -6,8 +6,8 @@ namespace Mautic\IntegrationsBundle\Integration\Interfaces;
 
 interface ConfigFormFeaturesInterface
 {
-    public const FEATURE_SYNC          = 'sync';
-    public const FEATURE_PUSH_ACTIVITY = 'push_activity';
+    const FEATURE_SYNC          = 'sync';
+    const FEATURE_PUSH_ACTIVITY = 'push_activity';
 
     /**
      * Return an array of value => label pairs for the features this integration supports.

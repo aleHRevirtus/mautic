@@ -70,8 +70,8 @@ class CampaignSubscriber implements EventSubscriberInterface
                     'eventName'        => NotificationEvents::ON_CAMPAIGN_TRIGGER_ACTION,
                     'formType'         => MobileNotificationSendType::class,
                     'formTypeOptions'  => ['update_select' => 'campaignevent_properties_notification'],
-                    'formTheme'        => '@MauticNotification/FormTheme/NotificationSendList/_notificationsend_list_row.html.twig',
-                    'timelineTemplate' => '@MauticNotification/SubscribedEvents\Timeline/index.html.twig',
+                    'formTheme'        => 'MauticNotificationBundle:FormTheme\NotificationSendList',
+                    'timelineTemplate' => 'MauticNotificationBundle:SubscribedEvents\Timeline:index.html.php',
                     'channel'          => 'mobile_notification',
                     'channelIdField'   => 'mobile_notification',
                 ]
@@ -86,8 +86,8 @@ class CampaignSubscriber implements EventSubscriberInterface
                 'eventName'        => NotificationEvents::ON_CAMPAIGN_TRIGGER_ACTION,
                 'formType'         => NotificationSendType::class,
                 'formTypeOptions'  => ['update_select' => 'campaignevent_properties_notification'],
-                'formTheme'        => '@MauticNotification/FormTheme/NotificationSendList/_notificationsend_list_row.html.twig',
-                'timelineTemplate' => '@MauticNotification/SubscribedEvents\Timeline/index.html.twig',
+                'formTheme'        => 'MauticNotificationBundle:FormTheme\NotificationSendList',
+                'timelineTemplate' => 'MauticNotificationBundle:SubscribedEvents\Timeline:index.html.php',
                 'channel'          => 'notification',
                 'channelIdField'   => 'notification',
             ]
@@ -155,18 +155,18 @@ class CampaignSubscriber implements EventSubscriberInterface
 
         /** @var TokenReplacementEvent $tokenEvent */
         $tokenEvent = $this->dispatcher->dispatch(
+            NotificationEvents::TOKEN_REPLACEMENT,
             new TokenReplacementEvent(
                 $notification->getMessage(),
                 $lead,
                 ['channel' => ['notification', $notification->getId()]]
-            ),
-            NotificationEvents::TOKEN_REPLACEMENT
+            )
         );
 
         /** @var NotificationSendEvent $sendEvent */
         $sendEvent = $this->dispatcher->dispatch(
-            new NotificationSendEvent($tokenEvent->getContent(), $notification->getHeading(), $lead),
-            NotificationEvents::NOTIFICATION_ON_SEND
+            NotificationEvents::NOTIFICATION_ON_SEND,
+            new NotificationSendEvent($tokenEvent->getContent(), $notification->getHeading(), $lead)
         );
 
         // prevent rewrite notification entity

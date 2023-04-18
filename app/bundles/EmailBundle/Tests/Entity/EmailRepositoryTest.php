@@ -5,24 +5,47 @@ declare(strict_types=1);
 namespace Mautic\EmailBundle\Tests\Entity;
 
 use Doctrine\DBAL\Cache\ArrayStatement;
+use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Query\Expression\ExpressionBuilder;
 use Doctrine\DBAL\Query\QueryBuilder;
-use Mautic\CoreBundle\Test\Doctrine\RepositoryConfiguratorTrait;
-use Mautic\EmailBundle\Entity\Email;
+use Doctrine\ORM\EntityManager;
+use Doctrine\ORM\Mapping\ClassMetadata;
 use Mautic\EmailBundle\Entity\EmailRepository;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
 class EmailRepositoryTest extends TestCase
 {
-    use RepositoryConfiguratorTrait;
+    /**
+     * @var EmailRepository
+     */
+    private $repo;
 
-    private EmailRepository $repo;
+    /**
+     * @var Connection|MockObject
+     */
+    private $connection;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->repo = $this->configureRepository(Email::class);
-        $this->connection->method('createQueryBuilder')->willReturnCallback(fn () => new QueryBuilder($this->connection));
+        $this->connection = $this->createMock(Connection::class);
+        $entityManager    = $this->createMock(EntityManager::class);
+        $classMetadata    = $this->createMock(ClassMetadata::class);
+        $this->repo       = new EmailRepository($entityManager, $classMetadata);
+
+        $this->connection->method('createQueryBuilder')
+            ->willReturnCallback(fn () => new QueryBuilder($this->connection));
+
+        $this->connection->method('getExpressionBuilder')
+            ->willReturnCallback(fn () => new ExpressionBuilder($this->connection));
+
+        $this->connection->method('quote')
+            ->willReturnCallback(fn ($value) => "'$value'");
+
+        $entityManager->method('getConnection')
+            ->willReturn($this->connection);
     }
 
     /**

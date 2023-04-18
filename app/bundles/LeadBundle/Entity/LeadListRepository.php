@@ -8,9 +8,6 @@ use Mautic\CoreBundle\Entity\CommonRepository;
 use Mautic\UserBundle\Entity\User;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
-/**
- * @extends CommonRepository<LeadList>
- */
 class LeadListRepository extends CommonRepository
 {
     use OperatorListTrait; // @deprecated to be removed in Mautic 3. Not used inside this class.
@@ -205,20 +202,19 @@ class LeadListRepository extends CommonRepository
             return false;
         }
 
-        $qb = $this->getEntityManager()->getConnection()->createQueryBuilder();
-        $qb->select('ll.leadlist_id')
-            ->from(MAUTIC_TABLE_PREFIX.'lead_lists_leads', 'll')
+        $q = $this->getEntityManager()->getConnection()->createQueryBuilder();
+        $q->select('l.id')
+            ->from(MAUTIC_TABLE_PREFIX.'leads', 'l');
+        $q->join('l', MAUTIC_TABLE_PREFIX.'lead_lists_leads', 'x', 'l.id = x.lead_id')
             ->where(
-                $qb->expr()->and(
-                    $qb->expr()->in('ll.leadlist_id', ':ids'),
-                    $qb->expr()->eq('ll.lead_id', ':leadId'),
-                    $qb->expr()->eq('ll.manually_removed', 0)
+                $q->expr()->andX(
+                    $q->expr()->in('x.leadlist_id', $ids),
+                    $q->expr()->eq('l.id', ':leadId')
                 )
             )
-            ->setParameter('leadId', $lead->getId())
-            ->setParameter('ids', $ids, \Doctrine\DBAL\Connection::PARAM_INT_ARRAY);
+            ->setParameter('leadId', $lead->getId());
 
-        return (bool) $qb->execute()->fetchOne();
+        return (bool) $q->execute()->fetchColumn();
     }
 
     /**
@@ -528,7 +524,7 @@ class LeadListRepository extends CommonRepository
     }
 
     /**
-     * @return array<array<string>>
+     * @return string
      */
     protected function getDefaultOrder()
     {

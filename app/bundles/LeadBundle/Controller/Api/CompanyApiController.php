@@ -7,30 +7,20 @@ use Mautic\LeadBundle\Controller\LeadAccessTrait;
 use Mautic\LeadBundle\Entity\Company;
 use Mautic\LeadBundle\Entity\Lead;
 use Mautic\LeadBundle\Helper\IdentifyCompanyHelper;
-use Mautic\LeadBundle\Model\CompanyModel;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Event\ControllerEvent;
+use Symfony\Component\HttpKernel\Event\FilterControllerEvent;
 
 /**
- * @extends CommonApiController<Company>
+ * Class CompanyApiController.
  */
 class CompanyApiController extends CommonApiController
 {
     use CustomFieldsApiControllerTrait;
     use LeadAccessTrait;
 
-    /**
-     * @var CompanyModel|null
-     */
-    protected $model = null;
-
-    public function initialize(ControllerEvent $event)
+    public function initialize(FilterControllerEvent $event)
     {
-        $companyModel = $this->getModel('lead.company');
-        \assert($companyModel instanceof CompanyModel);
-
-        $this->model              = $companyModel;
+        $this->model              = $this->getModel('lead.company');
         $this->entityClass        = Company::class;
         $this->entityNameOne      = 'company';
         $this->entityNameMulti    = 'companies';
@@ -44,31 +34,29 @@ class CompanyApiController extends CommonApiController
      *
      * @return \Symfony\Component\HttpFoundation\Response
      */
-    public function newEntityAction(Request $request)
+    public function newEntityAction()
     {
         // Check for an email to see if the lead already exists
-        $parameters = $request->request->all();
+        $parameters = $this->request->request->all();
 
         if (empty($parameters['force'])) {
-            $leadCompanyModel = $this->getModel('lead.company');
-            \assert($leadCompanyModel instanceof CompanyModel);
-            list($company, $companyEntities) = IdentifyCompanyHelper::findCompany($parameters, $leadCompanyModel);
+            list($company, $companyEntities) = IdentifyCompanyHelper::findCompany($parameters, $this->getModel('lead.company'));
 
             if (count($companyEntities)) {
-                return $this->editEntityAction($request, $company['id']);
+                return $this->editEntityAction($company['id']);
             }
         }
 
-        return parent::newEntityAction($request);
+        return parent::newEntityAction();
     }
 
     /**
      * {@inheritdoc}
      *
-     * @param Lead   &$entity
-     * @param        $parameters
-     * @param        $form
-     * @param string $action
+     * @param \Mautic\LeadBundle\Entity\Lead &$entity
+     * @param                                $parameters
+     * @param                                $form
+     * @param string                         $action
      */
     protected function preSaveEntity(&$entity, $form, $parameters, $action = 'edit')
     {

@@ -2,9 +2,7 @@
 
 namespace MauticPlugin\MauticCrmBundle\Controller;
 
-use function assert;
 use Mautic\CoreBundle\Controller\CommonController;
-use Mautic\PluginBundle\Helper\IntegrationHelper;
 use MauticPlugin\MauticCrmBundle\Integration\Pipedrive\Import\CompanyImport;
 use MauticPlugin\MauticCrmBundle\Integration\Pipedrive\Import\LeadImport;
 use MauticPlugin\MauticCrmBundle\Integration\Pipedrive\Import\OwnerImport;
@@ -19,24 +17,25 @@ use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
  */
 class PipedriveController extends CommonController
 {
-    public const INTEGRATION_NAME = 'Pipedrive';
+    const INTEGRATION_NAME = 'Pipedrive';
 
-    public const LEAD_ADDED_EVENT  = 'added.person';
-    public const LEAD_UPDATE_EVENT = 'updated.person';
-    public const LEAD_DELETE_EVENT = 'deleted.person';
+    const LEAD_ADDED_EVENT  = 'added.person';
+    const LEAD_UPDATE_EVENT = 'updated.person';
+    const LEAD_DELETE_EVENT = 'deleted.person';
 
-    public const COMPANY_ADD_EVENT    = 'added.organization';
-    public const COMPANY_UPDATE_EVENT = 'updated.organization';
-    public const COMPANY_DELETE_EVENT = 'deleted.organization';
+    const COMPANY_ADD_EVENT    = 'added.organization';
+    const COMPANY_UPDATE_EVENT = 'updated.organization';
+    const COMPANY_DELETE_EVENT = 'deleted.organization';
 
-    public const USER_ADD_EVENT    = 'added.user';
-    public const USER_UPDATE_EVENT = 'updated.user';
+    const USER_ADD_EVENT    = 'added.user';
+    const USER_UPDATE_EVENT = 'updated.user';
 
     /**
      * @return JsonResponse
      */
-    public function webhookAction(Request $request, IntegrationHelper $integrationHelper, LeadImport $leadImport, CompanyImport $companyImport, OwnerImport $ownerImport)
+    public function webhookAction(Request $request)
     {
+        $integrationHelper    = $this->get('mautic.helper.integration');
         $pipedriveIntegration = $integrationHelper->getIntegrationObject(self::INTEGRATION_NAME);
 
         if (!$pipedriveIntegration || !$pipedriveIntegration->getIntegrationSettings()->getIsPublished()) {
@@ -45,7 +44,6 @@ class PipedriveController extends CommonController
             ], Response::HTTP_OK);
         }
 
-        assert($pipedriveIntegration instanceof PipedriveIntegration);
         if (!$this->validCredential($request, $pipedriveIntegration)) {
             throw new UnauthorizedHttpException('Basic');
         }
@@ -59,23 +57,23 @@ class PipedriveController extends CommonController
         try {
             switch ($params['event']) {
                 case self::LEAD_UPDATE_EVENT:
-                    $leadImport = $this->getLeadImport($pipedriveIntegration, $leadImport);
+                    $leadImport = $this->getLeadImport($pipedriveIntegration);
                     $leadImport->update($data);
                     break;
                 case self::LEAD_DELETE_EVENT:
-                    $leadImport = $this->getLeadImport($pipedriveIntegration, $leadImport);
+                    $leadImport = $this->getLeadImport($pipedriveIntegration);
                     $leadImport->delete($params['previous']);
                     break;
                 case self::COMPANY_UPDATE_EVENT:
-                    $companyImport = $this->getCompanyImport($pipedriveIntegration, $companyImport);
+                    $companyImport = $this->getCompanyImport($pipedriveIntegration);
                     $companyImport->update($data);
                     break;
                 case self::COMPANY_DELETE_EVENT:
-                    $companyImport = $this->getCompanyImport($pipedriveIntegration, $companyImport);
+                    $companyImport = $this->getCompanyImport($pipedriveIntegration);
                     $companyImport->delete($params['previous']);
                     break;
                 case self::USER_UPDATE_EVENT:
-                    $ownerImport = $this->getOwnerImport($pipedriveIntegration, $ownerImport);
+                    $ownerImport = $this->getOwnerImport($pipedriveIntegration);
                     $ownerImport->create($data[0]);
                     break;
                 default:
@@ -110,8 +108,10 @@ class PipedriveController extends CommonController
      *
      * @return LeadImport
      */
-    private function getLeadImport($integration, LeadImport $leadImport)
+    private function getLeadImport($integration)
     {
+        /** @var LeadImport $leadImport */
+        $leadImport = $this->get('mautic_integration.pipedrive.import.lead');
         $leadImport->setIntegration($integration);
 
         return $leadImport;
@@ -122,8 +122,10 @@ class PipedriveController extends CommonController
      *
      * @return CompanyImport
      */
-    private function getCompanyImport($integration, CompanyImport $companyImport)
+    private function getCompanyImport($integration)
     {
+        /** @var CompanyImport $companyImport */
+        $companyImport = $this->get('mautic_integration.pipedrive.import.company');
         $companyImport->setIntegration($integration);
 
         return $companyImport;
@@ -134,8 +136,10 @@ class PipedriveController extends CommonController
      *
      * @return OwnerImport
      */
-    private function getOwnerImport($integration, OwnerImport $ownerImport)
+    private function getOwnerImport($integration)
     {
+        /** @var OwnerImport $ownerImport */
+        $ownerImport = $this->get('mautic_integration.pipedrive.import.owner');
         $ownerImport->setIntegration($integration);
 
         return $ownerImport;

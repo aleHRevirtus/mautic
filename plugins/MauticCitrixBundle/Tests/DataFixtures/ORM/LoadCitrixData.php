@@ -4,12 +4,23 @@ namespace MauticPlugin\MauticCitrixBundle\Tests\DataFixtures\ORM;
 
 use Doctrine\Common\DataFixtures\AbstractFixture;
 use Doctrine\Common\DataFixtures\OrderedFixtureInterface;
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ObjectManager;
 use Mautic\LeadBundle\Entity\Lead;
 use MauticPlugin\MauticCitrixBundle\Entity\CitrixEvent;
 
 class LoadCitrixData extends AbstractFixture implements OrderedFixtureInterface
 {
+    /**
+     * @var EntityManagerInterface
+     */
+    private $entityManager;
+
+    public function __construct(EntityManagerInterface $entityManager)
+    {
+        $this->entityManager = $entityManager;
+    }
+
     public function load(ObjectManager $manager)
     {
         $today = new \DateTime();
@@ -21,8 +32,8 @@ class LoadCitrixData extends AbstractFixture implements OrderedFixtureInterface
         $lead->setEmail($email);
         $lead->checkAttributionDate();
 
-        $manager->persist($lead);
-        $manager->flush();
+        $this->entityManager->persist($lead);
+        $this->entityManager->flush();
 
         $this->setReference('lead-citrix', $lead);
 
@@ -36,8 +47,8 @@ class LoadCitrixData extends AbstractFixture implements OrderedFixtureInterface
         $event->setEventName('sample-webinar_#0000');
         $event->setEventDesc('Sample Webinar');
 
-        $manager->persist($event);
-        $manager->flush();
+        $this->entityManager->persist($event);
+        $this->entityManager->flush();
 
         $this->setReference('citrix-event', $event);
     }

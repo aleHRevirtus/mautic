@@ -3,22 +3,12 @@
 namespace Mautic\NotificationBundle\Controller\Api;
 
 use Mautic\ApiBundle\Controller\CommonApiController;
-use Mautic\ApiBundle\Helper\EntityResultHelper;
-use Mautic\CoreBundle\Helper\AppVersion;
-use Mautic\CoreBundle\Security\Permissions\CorePermissions;
-use Mautic\CoreBundle\Translation\Translator;
 use Mautic\LeadBundle\Tracker\ContactTracker;
-use Mautic\NotificationBundle\Entity\Notification;
-use Mautic\NotificationBundle\Model\NotificationModel;
-use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\RequestStack;
-use Symfony\Component\HttpKernel\Event\ControllerEvent;
-use Symfony\Component\Routing\RouterInterface;
+use Symfony\Component\HttpKernel\Event\FilterControllerEvent;
 
 /**
- * @extends CommonApiController<Notification>
+ * Class NotificationApiController.
  */
 class NotificationApiController extends CommonApiController
 {
@@ -27,20 +17,14 @@ class NotificationApiController extends CommonApiController
      */
     protected $contactTracker;
 
-    public function __construct(CorePermissions $security, Translator $translator, EntityResultHelper $entityResultHelper, RouterInterface $router, FormFactoryInterface $formFactory, AppVersion $appVersion, ContactTracker $contactTracker, RequestStack $requestStack)
+    /**
+     * {@inheritdoc}
+     */
+    public function initialize(FilterControllerEvent $event)
     {
-        $this->contactTracker = $contactTracker;
-
-        parent::__construct($security, $translator, $entityResultHelper, $router, $formFactory, $appVersion, $requestStack);
-    }
-
-    public function initialize(ControllerEvent $event)
-    {
-        $notificationModel = $this->getModel('notification');
-        \assert($notificationModel instanceof NotificationModel);
-
-        $this->model           = $notificationModel;
-        $this->entityClass     = Notification::class;
+        $this->contactTracker  = $this->container->get('mautic.tracker.contact');
+        $this->model           = $this->getModel('notification');
+        $this->entityClass     = 'Mautic\NotificationBundle\Entity\Notification';
         $this->entityNameOne   = 'notification';
         $this->entityNameMulti = 'notifications';
 
@@ -52,9 +36,9 @@ class NotificationApiController extends CommonApiController
      *
      * @return JsonResponse
      */
-    public function subscribeAction(Request $request)
+    public function subscribeAction()
     {
-        $osid = $request->get('osid');
+        $osid = $this->request->get('osid');
         if ($osid) {
             /** @var \Mautic\LeadBundle\Model\LeadModel $leadModel */
             $leadModel = $this->getModel('lead');

@@ -2,6 +2,7 @@
 
 namespace MauticPlugin\MauticCitrixBundle\EventListener;
 
+use Mautic\CoreBundle\Helper\TemplatingHelper;
 use Mautic\EmailBundle\EmailEvents;
 use Mautic\EmailBundle\Event\EmailBuilderEvent;
 use Mautic\EmailBundle\Event\EmailSendEvent;
@@ -13,8 +14,7 @@ use MauticPlugin\MauticCitrixBundle\Helper\CitrixProducts;
 use MauticPlugin\MauticCitrixBundle\Model\CitrixModel;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
-use Twig\Environment;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class EmailSubscriber implements EventSubscriberInterface
 {
@@ -34,20 +34,20 @@ class EmailSubscriber implements EventSubscriberInterface
     private $dispatcher;
 
     /**
-     * @var Environment
+     * @var TemplatingHelper
      */
-    private $twig;
+    private $templating;
 
     public function __construct(
         CitrixModel $citrixModel,
         TranslatorInterface $translator,
         EventDispatcherInterface $dispatcher,
-        Environment $twig
+        TemplatingHelper $templating
     ) {
         $this->citrixModel = $citrixModel;
         $this->translator  = $translator;
         $this->dispatcher  = $dispatcher;
-        $this->twig        = $twig;
+        $this->templating  = $templating;
     }
 
     /**
@@ -178,13 +178,13 @@ class EmailSubscriber implements EventSubscriberInterface
                 if ($triggerEvent && $this->dispatcher->hasListeners(CitrixEvents::ON_CITRIX_TOKEN_GENERATE)) {
                     $params['lead'] = $event->getLead();
                     $tokenEvent     = new TokenGenerateEvent($params);
-                    $this->dispatcher->dispatch($tokenEvent, CitrixEvents::ON_CITRIX_TOKEN_GENERATE);
+                    $this->dispatcher->dispatch(CitrixEvents::ON_CITRIX_TOKEN_GENERATE, $tokenEvent);
                     $params = $tokenEvent->getParams();
                     unset($tokenEvent);
                 }
 
-                $button = $this->twig->render(
-                    '@MauticCitrix/SubscribedEvents/EmailToken/token.html.twig',
+                $button = $this->templating->getTemplating()->render(
+                    'MauticCitrixBundle:SubscribedEvents\EmailToken:token.html.php',
                     $params
                 );
 

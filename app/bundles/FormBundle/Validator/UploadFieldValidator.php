@@ -37,8 +37,12 @@ class UploadFieldValidator
             throw new NoFileGivenException();
         }
 
+        /** @var UploadedFile $file */
         $file = $files[$field->getAlias()];
-        \assert($file instanceof UploadedFile);
+
+        if (!$file instanceof UploadedFile) {
+            throw new NoFileGivenException();
+        }
 
         $properties = $field->getProperties();
 

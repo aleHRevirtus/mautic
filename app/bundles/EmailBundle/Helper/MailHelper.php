@@ -16,20 +16,18 @@ use Mautic\EmailBundle\Swiftmailer\Message\MauticMessage;
 use Mautic\EmailBundle\Swiftmailer\Transport\SpoolTransport;
 use Mautic\EmailBundle\Swiftmailer\Transport\TokenTransportInterface;
 use Mautic\LeadBundle\Entity\Lead;
-use Mautic\LeadBundle\Model\LeadModel;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
-use Twig\Environment;
 
 /**
  * Class MailHelper.
  */
 class MailHelper
 {
-    public const QUEUE_RESET_TO          = 'RESET_TO';
-    public const QUEUE_FULL_RESET        = 'FULL_RESET';
-    public const QUEUE_DO_NOTHING        = 'DO_NOTHING';
-    public const QUEUE_NOTHING_IF_FAILED = 'IF_FAILED';
-    public const QUEUE_RETURN_ERRORS     = 'RETURN_ERRORS';
+    const QUEUE_RESET_TO          = 'RESET_TO';
+    const QUEUE_FULL_RESET        = 'FULL_RESET';
+    const QUEUE_DO_NOTHING        = 'DO_NOTHING';
+    const QUEUE_NOTHING_IF_FAILED = 'IF_FAILED';
+    const QUEUE_RETURN_ERRORS     = 'RETURN_ERRORS';
     /**
      * @var MauticFactory
      */
@@ -40,9 +38,9 @@ class MailHelper
     protected $transport;
 
     /**
-     * @var Environment
+     * @var \Symfony\Bundle\FrameworkBundle\Templating\DelegatingEngine
      */
-    protected $twig;
+    protected $templating;
 
     /**
      * @var null
@@ -120,8 +118,6 @@ class MailHelper
      * @var Email|null
      */
     protected $email;
-
-    protected ?string $emailType = null;
 
     /**
      * @var array
@@ -885,11 +881,11 @@ class MailHelper
      */
     public function setTemplate($template, $vars = [], $returnContent = false, $charset = null)
     {
-        if (null == $this->twig) {
-            $this->twig = $this->factory->getTwig();
+        if (null == $this->templating) {
+            $this->templating = $this->factory->getTemplating();
         }
 
-        $content = $this->twig->render($template, $vars);
+        $content = $this->templating->renderResponse($template, $vars)->getContent();
 
         unset($vars);
 
@@ -1083,8 +1079,8 @@ class MailHelper
     /**
      * Add to address.
      *
-     * @param string      $address
-     * @param string|null $name
+     * @param string $address
+     * @param null   $name
      *
      * @return bool
      */
@@ -1347,16 +1343,6 @@ class MailHelper
         $this->source = $source;
     }
 
-    public function getEmailType(): ?string
-    {
-        return $this->emailType;
-    }
-
-    public function setEmailType(?string $emailType): void
-    {
-        $this->emailType = $emailType;
-    }
-
     /**
      * @return Email|null
      */
@@ -1445,7 +1431,7 @@ class MailHelper
 
             $this->processSlots($slots, $email);
 
-            $logicalName = $this->factory->getHelper('theme')->checkForTwigTemplate('@themes/'.$template.'/html/email.html.twig');
+            $logicalName = $this->factory->getHelper('theme')->checkForTwigTemplate(':'.$template.':email.html.php');
 
             $customHtml = $this->setTemplate($logicalName, [
                 'slots'    => $slots,
@@ -1518,12 +1504,6 @@ class MailHelper
     public function getCustomHeaders()
     {
         $headers = array_merge($this->headers, $this->getSystemHeaders());
-
-        // Personal and transactional emails do not contain unsubscribe header
-        $email = $this->getEmail();
-        if (empty($email) || 'transactional' === $this->getEmailType()) {
-            return $headers;
-        }
 
         $listUnsubscribeHeader = $this->getUnsubscribeHeader();
         if ($listUnsubscribeHeader) {
@@ -1653,7 +1633,7 @@ class MailHelper
 
         $event = new EmailSendEvent($this);
 
-        $this->dispatcher->dispatch($event, EmailEvents::EMAIL_ON_SEND);
+        $this->dispatcher->dispatch(EmailEvents::EMAIL_ON_SEND, $event);
 
         $this->eventTokens = array_merge($this->eventTokens, $event->getTokens(false));
 
@@ -1917,7 +1897,7 @@ class MailHelper
             $copyCreated = false;
             if (null === $copy) {
                 $contentToPersist = strtr($this->body['content'], array_flip($this->embedImagesReplaces));
-                if (!$emailModel->getCopyRepository()->saveCopy($hash, $this->subject, $contentToPersist, $this->plainText)) {
+                if (!$emailModel->getCopyRepository()->saveCopy($hash, $this->subject, $contentToPersist)) {
                     // Try one more time to find the ID in case there was overlap when creating
                     $copy = $emailModel->getCopyRepository()->findByHash($hash);
                 } else {
@@ -2044,7 +2024,7 @@ class MailHelper
      */
     public function processSlots($slots, $entity)
     {
-        /** @var \Mautic\CoreBundle\Twig\Helper\SlotsHelper $slotsHelper */
+        /** @var \Mautic\CoreBundle\Templating\Helper\SlotsHelper $slotsHelper */
         $slotsHelper = $this->factory->getHelper('template.slots');
 
         $content = $entity->getContent();
@@ -2099,7 +2079,6 @@ class MailHelper
                     $contact['owner_id'] = 0;
                 } elseif (isset($contact['owner_id'])) {
                     $leadModel = $this->factory->getModel('lead');
-                    \assert($leadModel instanceof LeadModel);
                     if (isset(self::$leadOwners[$contact['owner_id']])) {
                         $owner = self::$leadOwners[$contact['owner_id']];
                     } elseif ($owner = $leadModel->getRepository()->getLeadOwner($contact['owner_id'])) {

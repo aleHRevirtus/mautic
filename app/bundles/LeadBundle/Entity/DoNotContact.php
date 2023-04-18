@@ -15,22 +15,22 @@ class DoNotContact
     /**
      * Lead is contactable.
      */
-    public const IS_CONTACTABLE = 0;
+    const IS_CONTACTABLE = 0;
 
     /**
      * Lead unsubscribed themselves.
      */
-    public const UNSUBSCRIBED = 1;
+    const UNSUBSCRIBED = 1;
 
     /**
      * Lead was unsubscribed due to an unsuccessful send.
      */
-    public const BOUNCED = 2;
+    const BOUNCED = 2;
 
     /**
      * Lead was manually unsubscribed by user.
      */
-    public const MANUAL = 3;
+    const MANUAL = 3;
 
     /**
      * @var int

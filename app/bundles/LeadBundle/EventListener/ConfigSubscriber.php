@@ -32,22 +32,17 @@ class ConfigSubscriber implements EventSubscriberInterface
             'bundle'     => 'LeadBundle',
             'formAlias'  => 'leadconfig',
             'formType'   => ConfigType::class,
-            'formTheme'  => '@MauticLead/FormTheme/Config/_config_companyconfig_widget.html.twig',
+            'formTheme'  => 'MauticLeadBundle:FormTheme\Config',
             'parameters' => $leadParameters,
         ]);
 
         $segmentParameters = $event->getParametersFromConfig('MauticLeadBundle');
-        unset(
-            $segmentParameters['contact_unique_identifiers_operator'],
-            $segmentParameters['contact_columns'],
-            $segmentParameters['background_import_if_more_rows_than'],
-            $segmentParameters['contact_export_in_background']
-        );
+        unset($segmentParameters['contact_unique_identifiers_operator'], $segmentParameters['contact_columns'], $segmentParameters['background_import_if_more_rows_than']);
         $event->addForm([
             'bundle'     => 'LeadBundle',
             'formAlias'  => 'segment_config',
             'formType'   => SegmentConfigType::class,
-            'formTheme'  => '@MauticLead/FormTheme/Config/_config_leadconfig_widget.html.twig',
+            'formTheme'  => 'MauticLeadBundle:FormTheme\Config',
             'parameters' => $segmentParameters,
         ]);
     }
@@ -59,7 +54,7 @@ class ConfigSubscriber implements EventSubscriberInterface
             'bundle'     => 'LeadBundle',
             'formAlias'  => 'companyconfig',
             'formType'   => ConfigCompanyType::class,
-            'formTheme'  => '@MauticLead/FormTheme/Config/_config_segment_config_widget.html.twig',
+            'formTheme'  => 'MauticLeadBundle:FormTheme\Config',
             'parameters' => [
                 'company_unique_identifiers_operator' => $parameters['company_unique_identifiers_operator'],
             ],

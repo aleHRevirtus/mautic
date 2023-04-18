@@ -4,26 +4,33 @@ namespace Mautic\ChannelBundle\Helper;
 
 use Mautic\ChannelBundle\ChannelEvents;
 use Mautic\ChannelBundle\Event\ChannelEvent;
-use Mautic\CoreBundle\Translation\Translator;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Symfony\Component\Templating\Helper\Helper;
+use Symfony\Component\Translation\TranslatorInterface;
 
-class ChannelListHelper
+class ChannelListHelper extends Helper
 {
-    private Translator $translator;
+    /**
+     * @var TranslatorInterface
+     */
+    protected $translator;
 
     /**
-     * @var array<string,string>
+     * @var array
      */
-    private array $channels = [];
+    protected $channels = [];
 
     /**
-     * @var array<string,string[]>
+     * @var array
      */
-    private array $featureChannels = [];
+    protected $featureChannels = [];
 
-    private EventDispatcherInterface $dispatcher;
+    /**
+     * @var EventDispatcherInterface
+     */
+    protected $dispatcher;
 
-    public function __construct(EventDispatcherInterface $dispatcher, Translator $translator)
+    public function __construct(EventDispatcherInterface $dispatcher, TranslatorInterface $translator)
     {
         $this->translator = $translator;
         $this->dispatcher = $dispatcher;
@@ -58,6 +65,7 @@ class ChannelListHelper
         if (!is_array($features)) {
             $features = [$features];
         }
+
         $channels = [];
         foreach ($features as $feature) {
             $featureChannels = (isset($this->featureChannels[$feature])) ? $this->featureChannels[$feature] : [];
@@ -124,13 +132,13 @@ class ChannelListHelper
      *
      * Done this way to avoid a circular dependency error with LeadModel
      */
-    private function setupChannels(): void
+    protected function setupChannels()
     {
         if (!empty($this->channels)) {
             return;
         }
 
-        $event                 = $this->dispatcher->dispatch(new ChannelEvent(), ChannelEvents::ADD_CHANNEL);
+        $event                 = $this->dispatcher->dispatch(ChannelEvents::ADD_CHANNEL, new ChannelEvent());
         $this->channels        = $event->getChannelConfigs();
         $this->featureChannels = $event->getFeatureChannels();
         unset($event);

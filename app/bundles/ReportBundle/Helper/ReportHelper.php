@@ -2,7 +2,9 @@
 
 namespace Mautic\ReportBundle\Helper;
 
-final class ReportHelper
+use Symfony\Component\Templating\Helper\Helper;
+
+class ReportHelper extends Helper
 {
     /**
      * @return string

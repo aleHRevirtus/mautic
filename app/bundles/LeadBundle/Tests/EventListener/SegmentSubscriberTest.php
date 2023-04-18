@@ -9,7 +9,7 @@ use Mautic\LeadBundle\Event\LeadListEvent as SegmentEvent;
 use Mautic\LeadBundle\EventListener\SegmentSubscriber;
 use Mautic\LeadBundle\LeadEvents;
 use Mautic\LeadBundle\Model\ListModel;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class SegmentSubscriberTest extends \PHPUnit\Framework\TestCase
 {

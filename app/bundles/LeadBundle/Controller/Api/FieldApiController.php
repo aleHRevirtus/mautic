@@ -5,13 +5,11 @@ namespace Mautic\LeadBundle\Controller\Api;
 use Mautic\ApiBundle\Controller\CommonApiController;
 use Mautic\LeadBundle\Entity\LeadField;
 use Mautic\LeadBundle\Field\Exception\AbortColumnCreateException;
-use Mautic\LeadBundle\Model\FieldModel;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Event\ControllerEvent;
+use Symfony\Component\HttpKernel\Event\FilterControllerEvent;
 
 /**
- * @extends CommonApiController<LeadField>
+ * Class FieldApiController.
  */
 class FieldApiController extends CommonApiController
 {
@@ -22,19 +20,10 @@ class FieldApiController extends CommonApiController
      */
     protected $fieldObject;
 
-    /**
-     * @var FieldModel|null
-     */
-    protected $model = null;
-
-    public function initialize(ControllerEvent $event)
+    public function initialize(FilterControllerEvent $event)
     {
-        $fieldModel = $this->getModel('lead.field');
-        \assert($fieldModel instanceof FieldModel);
-        $request = $event->getRequest();
-
-        $this->model           = $fieldModel;
-        $this->fieldObject     = $request->get('object');
+        $this->fieldObject     = $this->request->get('object');
+        $this->model           = $this->getModel('lead.field');
         $this->entityClass     = LeadField::class;
         $this->entityNameOne   = 'field';
         $this->entityNameMulti = 'fields';
@@ -70,9 +59,9 @@ class FieldApiController extends CommonApiController
      *
      * @return array
      */
-    protected function getWhereFromRequest(Request $request)
+    protected function getWhereFromRequest()
     {
-        $where = parent::getWhereFromRequest($request);
+        $where = parent::getWhereFromRequest();
 
         $where[] = [
             'col'  => 'object',
@@ -90,7 +79,7 @@ class FieldApiController extends CommonApiController
      *
      * @return mixed|void
      */
-    protected function prepareParametersForBinding(Request $request, $parameters, $entity, $action)
+    protected function prepareParametersForBinding($parameters, $entity, $action)
     {
         $parameters['object'] = $this->fieldObject;
         // Workaround for mispelled isUniqueIdentifer.
@@ -104,10 +93,10 @@ class FieldApiController extends CommonApiController
     /**
      * {@inheritdoc}
      *
-     * @param LeadField &$entity
-     * @param           $parameters
-     * @param           $form
-     * @param string    $action
+     * @param \Mautic\LeadBundle\Entity\Lead &$entity
+     * @param                                $parameters
+     * @param                                $form
+     * @param string                         $action
      */
     protected function preSaveEntity(&$entity, $form, $parameters, $action = 'edit')
     {
@@ -115,7 +104,7 @@ class FieldApiController extends CommonApiController
             $result = $this->model->setFieldProperties($entity, $parameters['properties']);
 
             if (true !== $result) {
-                return $this->returnError($this->translator->trans($result, [], 'validators'), Response::HTTP_BAD_REQUEST);
+                return $this->returnError($this->get('translator')->trans($result, [], 'validators'), Response::HTTP_BAD_REQUEST);
             }
         }
     }

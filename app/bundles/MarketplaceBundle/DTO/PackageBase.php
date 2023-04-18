@@ -16,6 +16,7 @@ final class PackageBase
     public string $description;
     public int $downloads;
     public int $favers;
+
     /**
      * E.g. mautic-plugin.
      */

@@ -3,7 +3,6 @@
 namespace Mautic\SmsBundle\EventListener;
 
 use Mautic\CoreBundle\Helper\InputHelper;
-use Mautic\CoreBundle\Translation\Translator;
 use Mautic\LeadBundle\Entity\LeadEventLog;
 use Mautic\LeadBundle\Entity\LeadEventLogRepository;
 use Mautic\LeadBundle\Event\LeadTimelineEvent;
@@ -12,6 +11,7 @@ use Mautic\LeadBundle\LeadEvents;
 use Mautic\SmsBundle\Event\ReplyEvent;
 use Mautic\SmsBundle\SmsEvents;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class ReplySubscriber implements EventSubscriberInterface
 {
@@ -20,7 +20,7 @@ class ReplySubscriber implements EventSubscriberInterface
     /**
      * ReplySubscriber constructor.
      */
-    public function __construct(Translator $translator, LeadEventLogRepository $eventLogRepository)
+    public function __construct(TranslatorInterface $translator, LeadEventLogRepository $eventLogRepository)
     {
         $this->translator         = $translator;
         $this->eventLogRepository = $eventLogRepository;
@@ -68,7 +68,7 @@ class ReplySubscriber implements EventSubscriberInterface
             'sms',
             'sms',
             'reply',
-            '@MauticSms/SubscribedEvents/Timeline/reply.html.twig'
+            'MauticSmsBundle:SubscribedEvents/Timeline:reply.html.php'
         );
     }
 }

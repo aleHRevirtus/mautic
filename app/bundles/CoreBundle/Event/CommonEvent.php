@@ -3,7 +3,7 @@
 namespace Mautic\CoreBundle\Event;
 
 use Mautic\LeadBundle\Entity\Lead;
-use Symfony\Contracts\EventDispatcher\Event;
+use Symfony\Component\EventDispatcher\Event;
 
 /**
  * Class CommonEvent.

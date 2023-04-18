@@ -7,8 +7,8 @@ namespace Mautic\QueueBundle\Queue;
  */
 final class QueueConsumerResults
 {
-    public const ACKNOWLEDGE        = 'delete';
-    public const DO_NOT_ACKNOWLEDGE = 'do_not_acknowledge';
-    public const REJECT             = 'do_not_retry';
-    public const TEMPORARY_REJECT   = 'temporary_reject';
+    const ACKNOWLEDGE        = 'delete';
+    const DO_NOT_ACKNOWLEDGE = 'do_not_acknowledge';
+    const REJECT             = 'do_not_retry';
+    const TEMPORARY_REJECT   = 'temporary_reject';
 }

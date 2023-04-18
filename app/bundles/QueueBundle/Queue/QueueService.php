@@ -57,7 +57,7 @@ class QueueService
         $protocol                   = $this->coreParametersHelper->get('queue_protocol');
         $payload['mauticQueueName'] = $queueName;
         $event                      = new QueueEvent($protocol, $queueName, $payload);
-        $this->eventDispatcher->dispatch($event, QueueEvents::PUBLISH_MESSAGE);
+        $this->eventDispatcher->dispatch(QueueEvents::PUBLISH_MESSAGE, $event);
     }
 
     /**
@@ -69,7 +69,7 @@ class QueueService
     {
         $protocol = $this->coreParametersHelper->get('queue_protocol');
         $event    = new QueueEvent($protocol, $queueName, [], $messages, $timeout);
-        $this->eventDispatcher->dispatch($event, QueueEvents::CONSUME_MESSAGE);
+        $this->eventDispatcher->dispatch(QueueEvents::CONSUME_MESSAGE, $event);
     }
 
     /**
@@ -95,7 +95,7 @@ class QueueService
         $this->logger->debug('QUEUE: Consuming job for '.$queueName, $logPayload);
 
         $event = new QueueConsumerEvent($payload);
-        $this->eventDispatcher->dispatch($event, $eventName);
+        $this->eventDispatcher->dispatch($eventName, $event);
 
         return $event;
     }

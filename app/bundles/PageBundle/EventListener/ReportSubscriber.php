@@ -12,13 +12,13 @@ use Mautic\ReportBundle\Event\ReportGeneratorEvent;
 use Mautic\ReportBundle\Event\ReportGraphEvent;
 use Mautic\ReportBundle\ReportEvents;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class ReportSubscriber implements EventSubscriberInterface
 {
-    public const CONTEXT_PAGES      = 'pages';
-    public const CONTEXT_PAGE_HITS  = 'page.hits';
-    public const CONTEXT_VIDEO_HITS = 'video.hits';
+    const CONTEXT_PAGES      = 'pages';
+    const CONTEXT_PAGE_HITS  = 'page.hits';
+    const CONTEXT_VIDEO_HITS = 'video.hits';
 
     /**
      * @var CompanyReportData

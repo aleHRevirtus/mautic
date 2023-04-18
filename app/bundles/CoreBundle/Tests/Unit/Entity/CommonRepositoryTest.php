@@ -7,15 +7,12 @@ use Doctrine\DBAL\Query\Expression\ExpressionBuilder;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\QueryBuilder;
-use Doctrine\Persistence\ManagerRegistry;
 use Mautic\CoreBundle\Entity\CommonRepository;
-use Mautic\LeadBundle\Entity\Lead;
-use PHPUnit\Framework\MockObject\MockObject;
 
 class CommonRepositoryTest extends \PHPUnit\Framework\TestCase
 {
     /**
-     * @var MockObject&CommonRepository<object>
+     * @var CommonRepository
      */
     private $repo;
 
@@ -23,9 +20,8 @@ class CommonRepositoryTest extends \PHPUnit\Framework\TestCase
      * @var QueryBuilder
      */
     private $qb;
-
     /**
-     * @var MockObject|Connection
+     * @var \PHPUnit_Framework_MockObject_MockObject|Connection
      */
     private $connectionMock;
 
@@ -34,22 +30,16 @@ class CommonRepositoryTest extends \PHPUnit\Framework\TestCase
      */
     protected function setUp(): void
     {
-        /** @var EntityManager&MockObject $emMock */
         $emMock = $this->getMockBuilder(EntityManager::class)
             ->addMethods(['none'])
-            ->onlyMethods(['getClassMetadata'])
             ->disableOriginalConstructor()
             ->getMock();
 
-        /** @var ManagerRegistry&MockObject $managerRegistry */
-        $managerRegistry = $this->createMock(ManagerRegistry::class);
-        $managerRegistry->method('getManagerForClass')->willReturn($emMock);
+        $metaMock = $this->getMockBuilder(ClassMetadata::class)
+            ->disableOriginalConstructor()
+            ->getMock();
 
-        /** @var ClassMetadata<object>&MockObject $classMetadata */
-        $classMetadata = $this->createMock(ClassMetadata::class);
-        $emMock->method('getClassMetadata')->willReturn($classMetadata);
-
-        $this->repo           = $this->getMockForAbstractClass(CommonRepository::class, [$managerRegistry, Lead::class]);
+        $this->repo           = new CommonRepository($emMock, $metaMock);
         $this->qb             = new QueryBuilder($emMock);
         $this->connectionMock = $this->createMock(Connection::class);
         $this->connectionMock->method('getExpressionBuilder')

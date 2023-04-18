@@ -2,6 +2,119 @@
 
 return [
     'services' => [
+        'events' => [
+            'mautic.sms.lead.subscriber' => [
+                'class'     => \Mautic\SmsBundle\EventListener\LeadSubscriber::class,
+                'arguments' => [
+                    'translator',
+                    'router',
+                    'doctrine.orm.entity_manager',
+                ],
+            ],
+            'mautic.sms.broadcast.subscriber' => [
+                'class'     => \Mautic\SmsBundle\EventListener\BroadcastSubscriber::class,
+                'arguments' => [
+                    'mautic.sms.broadcast.executioner',
+                ],
+            ],
+            'mautic.sms.campaignbundle.subscriber.send' => [
+                'class'     => \Mautic\SmsBundle\EventListener\CampaignSendSubscriber::class,
+                'arguments' => [
+                    'mautic.sms.model.sms',
+                    'mautic.sms.transport_chain',
+                ],
+                'alias' => 'mautic.sms.campaignbundle.subscriber',
+            ],
+            'mautic.sms.campaignbundle.subscriber.reply' => [
+                'class'     => \Mautic\SmsBundle\EventListener\CampaignReplySubscriber::class,
+                'arguments' => [
+                    'mautic.sms.transport_chain',
+                    'mautic.campaign.executioner.realtime',
+                ],
+            ],
+            'mautic.sms.smsbundle.subscriber' => [
+                'class'     => \Mautic\SmsBundle\EventListener\SmsSubscriber::class,
+                'arguments' => [
+                    'mautic.core.model.auditlog',
+                    'mautic.page.model.trackable',
+                    'mautic.page.helper.token',
+                    'mautic.asset.helper.token',
+                    'mautic.helper.sms',
+                ],
+            ],
+            'mautic.sms.channel.subscriber' => [
+                'class'     => \Mautic\SmsBundle\EventListener\ChannelSubscriber::class,
+                'arguments' => [
+                    'mautic.sms.transport_chain',
+                ],
+            ],
+            'mautic.sms.message_queue.subscriber' => [
+                'class'     => \Mautic\SmsBundle\EventListener\MessageQueueSubscriber::class,
+                'arguments' => [
+                    'mautic.sms.model.sms',
+                ],
+            ],
+            'mautic.sms.stats.subscriber' => [
+                'class'     => \Mautic\SmsBundle\EventListener\StatsSubscriber::class,
+                'arguments' => [
+                    'mautic.security',
+                    'doctrine.orm.entity_manager',
+                ],
+            ],
+            'mautic.sms.configbundle.subscriber' => [
+                'class' => Mautic\SmsBundle\EventListener\ConfigSubscriber::class,
+            ],
+            'mautic.sms.subscriber.contact_tracker' => [
+                'class'     => \Mautic\SmsBundle\EventListener\TrackingSubscriber::class,
+                'arguments' => [
+                    'mautic.sms.repository.stat',
+                ],
+            ],
+            'mautic.sms.subscriber.stop' => [
+                'class'     => \Mautic\SmsBundle\EventListener\StopSubscriber::class,
+                'arguments' => [
+                    'mautic.lead.model.dnc',
+                ],
+            ],
+            'mautic.sms.subscriber.reply' => [
+                'class'     => \Mautic\SmsBundle\EventListener\ReplySubscriber::class,
+                'arguments' => [
+                    'translator',
+                    'mautic.lead.repository.lead_event_log',
+                ],
+            ],
+            'mautic.sms.webhook.subscriber' => [
+                'class'     => \Mautic\SmsBundle\EventListener\WebhookSubscriber::class,
+                'arguments' => [
+                    'mautic.webhook.model.webhook',
+                ],
+            ],
+        ],
+        'forms' => [
+            'mautic.form.type.sms' => [
+                'class'     => \Mautic\SmsBundle\Form\Type\SmsType::class,
+                'arguments' => [
+                    'doctrine.orm.entity_manager',
+                ],
+            ],
+            'mautic.form.type.smsconfig' => [
+                'class' => \Mautic\SmsBundle\Form\Type\ConfigType::class,
+            ],
+            'mautic.form.type.smssend_list' => [
+                'class'     => \Mautic\SmsBundle\Form\Type\SmsSendType::class,
+                'arguments' => 'router',
+            ],
+            'mautic.form.type.sms_list' => [
+                'class' => \Mautic\SmsBundle\Form\Type\SmsListType::class,
+            ],
+            'mautic.form.type.sms.config.form' => [
+                'class'     => \Mautic\SmsBundle\Form\Type\ConfigType::class,
+                'arguments' => ['mautic.sms.transport_chain', 'translator'],
+            ],
+            'mautic.form.type.sms.campaign_reply_type' => [
+                'class' => \Mautic\SmsBundle\Form\Type\CampaignReplyType::class,
+            ],
+        ],
         'helpers' => [
             'mautic.helper.sms' => [
                 'class'     => \Mautic\SmsBundle\Helper\SmsHelper::class,
@@ -143,31 +256,45 @@ return [
                 ],
             ],
         ],
+        'controllers' => [
+            'mautic.sms.controller.reply' => [
+                'class'     => \Mautic\SmsBundle\Controller\ReplyController::class,
+                'arguments' => [
+                    'mautic.sms.callback_handler_container',
+                    'mautic.sms.helper.reply',
+                ],
+                'methodCalls' => [
+                    'setContainer' => [
+                        '@service_container',
+                    ],
+                ],
+            ],
+        ],
     ],
     'routes' => [
         'main' => [
             'mautic_sms_index' => [
                 'path'       => '/sms/{page}',
-                'controller' => 'Mautic\SmsBundle\Controller\SmsController::indexAction',
+                'controller' => 'MauticSmsBundle:Sms:index',
             ],
             'mautic_sms_action' => [
                 'path'       => '/sms/{objectAction}/{objectId}',
-                'controller' => 'Mautic\SmsBundle\Controller\SmsController::executeAction',
+                'controller' => 'MauticSmsBundle:Sms:execute',
             ],
             'mautic_sms_contacts' => [
                 'path'       => '/sms/view/{objectId}/contact/{page}',
-                'controller' => 'Mautic\SmsBundle\Controller\SmsController::contactsAction',
+                'controller' => 'MauticSmsBundle:Sms:contacts',
             ],
         ],
         'public' => [
             'mautic_sms_callback' => [
                 'path'       => '/sms/{transport}/callback',
-                'controller' => 'Mautic\SmsBundle\Controller\ReplyController::callbackAction',
+                'controller' => 'MauticSmsBundle:Reply:callback',
             ],
             /* @deprecated as this was Twilio specific */
             'mautic_receive_sms' => [
                 'path'       => '/sms/receive',
-                'controller' => 'Mautic\SmsBundle\Controller\ReplyController::callbackAction',
+                'controller' => 'MauticSmsBundle:Reply:callback',
                 'defaults'   => [
                     'transport' => 'twilio',
                 ],
@@ -178,11 +305,11 @@ return [
                 'standard_entity' => true,
                 'name'            => 'smses',
                 'path'            => '/smses',
-                'controller'      => 'Mautic\SmsBundle\Controller\Api\SmsApiController',
+                'controller'      => 'MauticSmsBundle:Api\SmsApi',
             ],
             'mautic_api_smses_send' => [
                 'path'       => '/smses/{id}/contact/{contactId}/send',
-                'controller' => 'Mautic\SmsBundle\Controller\Api\SmsApiController::sendAction',
+                'controller' => 'MauticSmsBundle:Api\SmsApi:send',
             ],
         ],
     ],

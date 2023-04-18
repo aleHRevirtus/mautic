@@ -16,7 +16,7 @@ final class FormEvents
      *
      * @var string
      */
-    public const FORM_PRE_SAVE = 'mautic.form_pre_save';
+    const FORM_PRE_SAVE = 'mautic.form_pre_save';
 
     /**
      * The mautic.form_post_save event is dispatched right after a form is persisted.
@@ -25,7 +25,7 @@ final class FormEvents
      *
      * @var string
      */
-    public const FORM_POST_SAVE = 'mautic.form_post_save';
+    const FORM_POST_SAVE = 'mautic.form_post_save';
 
     /**
      * The mautic.form_pre_delete event is dispatched before a form is deleted.
@@ -34,7 +34,7 @@ final class FormEvents
      *
      * @var string
      */
-    public const FORM_PRE_DELETE = 'mautic.form_pre_delete';
+    const FORM_PRE_DELETE = 'mautic.form_pre_delete';
 
     /**
      * The mautic.form_post_delete event is dispatched after a form is deleted.
@@ -43,7 +43,7 @@ final class FormEvents
      *
      * @var string
      */
-    public const FORM_POST_DELETE = 'mautic.form_post_delete';
+    const FORM_POST_DELETE = 'mautic.form_post_delete';
 
     /**
      * The mautic.field_pre_save event is dispatched right before a field is persisted.
@@ -52,7 +52,7 @@ final class FormEvents
      *
      * @var string
      */
-    public const FIELD_PRE_SAVE = 'mautic.field_pre_save';
+    const FIELD_PRE_SAVE = 'mautic.field_pre_save';
 
     /**
      * The mautic.field_post_save event is dispatched right after a field is persisted.
@@ -61,7 +61,7 @@ final class FormEvents
      *
      * @var string
      */
-    public const FIELD_POST_SAVE = 'mautic.field_post_save';
+    const FIELD_POST_SAVE = 'mautic.field_post_save';
 
     /**
      * The mautic.field_pre_delete event is dispatched before a field is deleted.
@@ -70,7 +70,7 @@ final class FormEvents
      *
      * @var string
      */
-    public const FIELD_PRE_DELETE = 'mautic.field_pre_delete';
+    const FIELD_PRE_DELETE = 'mautic.field_pre_delete';
 
     /**
      * The mautic.field_post_delete event is dispatched after a field is deleted.
@@ -79,7 +79,7 @@ final class FormEvents
      *
      * @var string
      */
-    public const FIELD_POST_DELETE = 'mautic.field_post_delete';
+    const FIELD_POST_DELETE = 'mautic.field_post_delete';
 
     /**
      * The mautic.form_on_build event is dispatched before displaying the form builder form to allow adding of custom form
@@ -89,7 +89,7 @@ final class FormEvents
      *
      * @var string
      */
-    public const FORM_ON_BUILD = 'mautic.form_on_build';
+    const FORM_ON_BUILD = 'mautic.form_on_build';
 
     /**
      * The mautic.on_form_validate event is dispatched when a form is validated.
@@ -98,7 +98,7 @@ final class FormEvents
      *
      * @var string
      */
-    public const ON_FORM_VALIDATE = 'mautic.on_form_validate';
+    const ON_FORM_VALIDATE = 'mautic.on_form_validate';
 
     /**
      * The mautic.form_on_submit event is dispatched when a new submission is fired.
@@ -107,7 +107,7 @@ final class FormEvents
      *
      * @var string
      */
-    public const FORM_ON_SUBMIT = 'mautic.form_on_submit';
+    const FORM_ON_SUBMIT = 'mautic.form_on_submit';
 
     /**
      * The mautic.form.on_campaign_trigger_condition event is fired when the campaign condition triggers.
@@ -117,7 +117,7 @@ final class FormEvents
      *
      * @var string
      */
-    public const ON_CAMPAIGN_TRIGGER_CONDITION = 'mautic.form.on_campaign_trigger_condition';
+    const ON_CAMPAIGN_TRIGGER_CONDITION = 'mautic.form.on_campaign_trigger_condition';
 
     /**
      * The mautic.form.on_campaign_trigger_decision event is fired when the campaign decision triggers.
@@ -127,7 +127,7 @@ final class FormEvents
      *
      * @var string
      */
-    public const ON_CAMPAIGN_TRIGGER_DECISION = 'mautic.form.on_campaign_trigger_decision';
+    const ON_CAMPAIGN_TRIGGER_DECISION = 'mautic.form.on_campaign_trigger_decision';
 
     /**
      * The mautic.form.on_execute_submit_action event is dispatched to excecute the form submit actions.
@@ -137,7 +137,7 @@ final class FormEvents
      *
      * @var string
      */
-    public const ON_EXECUTE_SUBMIT_ACTION = 'mautic.form.on_execute_submit_action';
+    const ON_EXECUTE_SUBMIT_ACTION = 'mautic.form.on_execute_submit_action';
 
     /**
      * The mautic.form.on_submission_rate_winner event is fired when there is a need to determine submission rate winner.
@@ -147,25 +147,5 @@ final class FormEvents
      *
      * @var string
      */
-    public const ON_DETERMINE_SUBMISSION_RATE_WINNER = 'mautic.form.on_submission_rate_winner';
-
-    /**
-     * The mautic.form.on_object_collect event is fired when there is a call for all available objects that can provide fields for mapping.
-     *
-     * The event listener receives a
-     * Mautic\CoreBundles\Event\ObjectCollectEvent
-     *
-     * @var string
-     */
-    public const ON_OBJECT_COLLECT = 'mautic.form.on_object_collect';
-
-    /**
-     * The mautic.form.on_field_collect event is fired when there is a call for all available fields for specific object that can be provided for mapping.
-     *
-     * The event listener receives a
-     * Mautic\CoreBundles\Event\FieldCollectEvent
-     *
-     * @var string
-     */
-    public const ON_FIELD_COLLECT = 'mautic.form.on_field_collect';
+    const ON_DETERMINE_SUBMISSION_RATE_WINNER = 'mautic.form.on_submission_rate_winner';
 }

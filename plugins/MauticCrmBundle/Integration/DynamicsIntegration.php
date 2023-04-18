@@ -203,7 +203,7 @@ class DynamicsIntegration extends CrmAbstractIntegration
     {
         if ('custom' === $section) {
             return [
-                'template'   => '@MauticCrm/Integration/dynamics.html.twig',
+                'template'   => 'MauticCrmBundle:Integration:dynamics.html.php',
                 'parameters' => [
                 ],
             ];

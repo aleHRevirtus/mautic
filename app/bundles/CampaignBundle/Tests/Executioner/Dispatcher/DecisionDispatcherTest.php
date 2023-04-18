@@ -14,10 +14,9 @@ use Mautic\CampaignBundle\Executioner\Dispatcher\DecisionDispatcher;
 use Mautic\CampaignBundle\Executioner\Dispatcher\LegacyEventDispatcher;
 use Mautic\CampaignBundle\Executioner\Result\EvaluatedContacts;
 use PHPUnit\Framework\MockObject\MockObject;
-use PHPUnit\Framework\TestCase;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
-class DecisionDispatcherTest extends TestCase
+class DecisionDispatcherTest extends \PHPUnit\Framework\TestCase
 {
     /**
      * @var MockObject|EventDispatcherInterface
@@ -58,7 +57,7 @@ class DecisionDispatcherTest extends TestCase
 
         $this->dispatcher->expects($this->once())
             ->method('dispatch')
-            ->with($this->isInstanceOf(DecisionEvent::class), 'something');
+            ->with('something', $this->isInstanceOf(DecisionEvent::class));
 
         $this->decisionDispatcher->dispatchRealTimeEvent($this->config, new LeadEventLog(), null);
     }
@@ -73,7 +72,7 @@ class DecisionDispatcherTest extends TestCase
 
         $this->dispatcher->expects($this->once())
             ->method('dispatch')
-            ->with($this->isInstanceOf(DecisionEvent::class), CampaignEvents::ON_EVENT_DECISION_EVALUATION);
+            ->with(CampaignEvents::ON_EVENT_DECISION_EVALUATION, $this->isInstanceOf(DecisionEvent::class));
 
         $this->decisionDispatcher->dispatchEvaluationEvent($this->config, new LeadEventLog());
     }
@@ -82,7 +81,7 @@ class DecisionDispatcherTest extends TestCase
     {
         $this->dispatcher->expects($this->once())
             ->method('dispatch')
-            ->with($this->isInstanceOf(DecisionResultsEvent::class), CampaignEvents::ON_EVENT_DECISION_EVALUATION_RESULTS);
+            ->with(CampaignEvents::ON_EVENT_DECISION_EVALUATION_RESULTS, $this->isInstanceOf(DecisionResultsEvent::class));
 
         $this->decisionDispatcher->dispatchDecisionResultsEvent($this->config, new ArrayCollection([new LeadEventLog()]), new EvaluatedContacts());
     }

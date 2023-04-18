@@ -36,7 +36,7 @@ class CheckStep implements StepInterface
      *
      * @var string
      */
-    public $cache_path = '%kernel.project_dir%/var/cache';
+    public $cache_path = '%kernel.root_dir%/../var/cache';
 
     /**
      * Absolute path to log directory.
@@ -44,7 +44,7 @@ class CheckStep implements StepInterface
      *
      * @var string
      */
-    public $log_path = '%kernel.project_dir%/var/logs';
+    public $log_path = '%kernel.root_dir%/../var/logs';
 
     /**
      * Set the domain URL for use in getting the absolute URL for cli/cronjob generated URLs.
@@ -58,23 +58,23 @@ class CheckStep implements StepInterface
      *
      * @var string
      */
-    public const RECOMMENDED_MEMORY_LIMIT = '512M';
+    public static $memory_limit = '512M';
 
     /**
      * @param Configurator $configurator Configurator service
-     * @param string       $projectDir   Kernel root path
+     * @param string       $kernelRoot   Kernel root path
      * @param RequestStack $requestStack Request stack
      */
     public function __construct(
         Configurator $configurator,
-        string $projectDir,
+        $kernelRoot,
         RequestStack $requestStack,
         OpenSSLCipher $openSSLCipher
     ) {
         $request = $requestStack->getCurrentRequest();
 
         $this->configIsWritable = $configurator->isFileWritable();
-        $this->kernelRoot       = $projectDir.'/app';
+        $this->kernelRoot       = $kernelRoot;
         if (!empty($request)) {
             $this->site_url     = $request->getSchemeAndHttpHost().$request->getBasePath();
         }
@@ -110,11 +110,11 @@ class CheckStep implements StepInterface
             $messages[] = 'mautic.install.config.unwritable';
         }
 
-        if (!is_writable(str_replace('%kernel.project_dir%', $this->kernelRoot.'/..', $this->cache_path))) {
+        if (!is_writable(str_replace('%kernel.root_dir%', $this->kernelRoot, $this->cache_path))) {
             $messages[] = 'mautic.install.cache.unwritable';
         }
 
-        if (!is_writable(str_replace('%kernel.project_dir%', $this->kernelRoot.'/..', $this->log_path))) {
+        if (!is_writable(str_replace('%kernel.root_dir%', $this->kernelRoot, $this->log_path))) {
             $messages[] = 'mautic.install.logs.unwritable';
         }
 
@@ -230,7 +230,7 @@ class CheckStep implements StepInterface
         }
 
         $memoryLimit    = FileHelper::convertPHPSizeToBytes(ini_get('memory_limit'));
-        $suggestedLimit = FileHelper::convertPHPSizeToBytes(self::RECOMMENDED_MEMORY_LIMIT);
+        $suggestedLimit = FileHelper::convertPHPSizeToBytes(self::$memory_limit);
         if ($memoryLimit > -1 && $memoryLimit < $suggestedLimit) {
             $messages[] = 'mautic.install.memory.limit';
         }
@@ -261,7 +261,7 @@ class CheckStep implements StepInterface
      */
     public function getTemplate()
     {
-        return '@MauticInstall/Install/check.html.twig';
+        return 'MauticInstallBundle:Install:check.html.php';
     }
 
     /**

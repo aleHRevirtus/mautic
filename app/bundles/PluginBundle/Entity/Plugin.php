@@ -12,7 +12,7 @@ use Mautic\CoreBundle\Entity\CommonEntity;
  */
 class Plugin extends CommonEntity
 {
-    public const DESCRIPTION_DELIMITER_REGEX = "/\R---\R/";
+    const DESCRIPTION_DELIMITER_REGEX = "/\R---\R/";
 
     /**
      * @var int

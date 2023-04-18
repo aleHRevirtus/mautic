@@ -6,7 +6,7 @@ namespace Mautic\CoreBundle\Tests\Unit\Validator;
 
 use Mautic\CoreBundle\Exception\FileInvalidException;
 use Mautic\CoreBundle\Validator\FileUploadValidator;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class FileUploadValidatorTest extends \PHPUnit\Framework\TestCase
 {

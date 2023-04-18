@@ -4,6 +4,7 @@ namespace Mautic\LeadBundle\DataFixtures\ORM;
 
 use Doctrine\Common\DataFixtures\AbstractFixture;
 use Doctrine\Common\DataFixtures\OrderedFixtureInterface;
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ObjectManager;
 use Mautic\CoreBundle\Entity\IpAddress;
 use Mautic\CoreBundle\Helper\CoreParametersHelper;
@@ -16,6 +17,11 @@ use Mautic\LeadBundle\Entity\LeadRepository;
 class LoadLeadData extends AbstractFixture implements OrderedFixtureInterface
 {
     /**
+     * @var EntityManagerInterface
+     */
+    private $entityManager;
+
+    /**
      * @var CoreParametersHelper
      */
     private $coreParametersHelper;
@@ -23,18 +29,19 @@ class LoadLeadData extends AbstractFixture implements OrderedFixtureInterface
     /**
      * {@inheritdoc}
      */
-    public function __construct(CoreParametersHelper $coreParametersHelper)
+    public function __construct(EntityManagerInterface $entityManager, CoreParametersHelper $coreParametersHelper)
     {
+        $this->entityManager        = $entityManager;
         $this->coreParametersHelper = $coreParametersHelper;
     }
 
     public function load(ObjectManager $manager)
     {
         /** @var LeadRepository $leadRepo */
-        $leadRepo        = $manager->getRepository(Lead::class);
+        $leadRepo        = $this->entityManager->getRepository(Lead::class);
 
         /** @var CompanyLeadRepository $companyLeadRepo */
-        $companyLeadRepo = $manager->getRepository(CompanyLead::class);
+        $companyLeadRepo = $this->entityManager->getRepository(CompanyLead::class);
 
         $today = new \DateTime();
         $leads = CsvHelper::csv_to_array(__DIR__.'/fakeleaddata.csv');

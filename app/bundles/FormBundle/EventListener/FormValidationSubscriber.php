@@ -11,7 +11,7 @@ use Mautic\FormBundle\Form\Type\FormFieldEmailType;
 use Mautic\FormBundle\Form\Type\FormFieldTelType;
 use Mautic\FormBundle\FormEvents;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class FormValidationSubscriber implements EventSubscriberInterface
 {

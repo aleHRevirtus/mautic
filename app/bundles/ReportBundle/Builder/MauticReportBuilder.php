@@ -17,7 +17,7 @@ final class MauticReportBuilder implements ReportBuilderInterface
     /**
      * @var array
      */
-    public const OPERATORS = [
+    const OPERATORS = [
         'default' => [
             'eq'         => 'mautic.core.operator.equals',
             'gt'         => 'mautic.core.operator.greaterthan',
@@ -69,12 +69,12 @@ final class MauticReportBuilder implements ReportBuilderInterface
     /**
      * Standard Channel Columns.
      */
-    public const CHANNEL_COLUMN_CATEGORY_ID     = 'channel.category_id';
-    public const CHANNEL_COLUMN_NAME            = 'channel.name';
-    public const CHANNEL_COLUMN_DESCRIPTION     = 'channel.description';
-    public const CHANNEL_COLUMN_DATE_ADDED      = 'channel.date_added';
-    public const CHANNEL_COLUMN_CREATED_BY      = 'channel.created_by';
-    public const CHANNEL_COLUMN_CREATED_BY_USER = 'channel.created_by_user';
+    const CHANNEL_COLUMN_CATEGORY_ID     = 'channel.category_id';
+    const CHANNEL_COLUMN_NAME            = 'channel.name';
+    const CHANNEL_COLUMN_DESCRIPTION     = 'channel.description';
+    const CHANNEL_COLUMN_DATE_ADDED      = 'channel.date_added';
+    const CHANNEL_COLUMN_CREATED_BY      = 'channel.created_by';
+    const CHANNEL_COLUMN_CREATED_BY_USER = 'channel.created_by_user';
 
     /**
      * @var Connection
@@ -147,7 +147,7 @@ final class MauticReportBuilder implements ReportBuilderInterface
         $event = new ReportGeneratorEvent($this->entity, $options, $this->db->createQueryBuilder(), $this->channelListHelper);
 
         // Trigger the REPORT_ON_GENERATE event to initialize the QueryBuilder
-        $this->dispatcher->dispatch($event, ReportEvents::REPORT_ON_GENERATE);
+        $this->dispatcher->dispatch(ReportEvents::REPORT_ON_GENERATE, $event);
 
         // Build the QUERY
         $queryBuilder = $event->getQueryBuilder();
@@ -196,7 +196,7 @@ final class MauticReportBuilder implements ReportBuilderInterface
         // Build WHERE clause
         if (!empty($standardFilters)) {
             if (!$filterExpr = $event->getFilterExpression()) {
-                $this->applyFilters($standardFilters, $queryBuilder, $options['filters'], $event);
+                $this->applyFilters($standardFilters, $queryBuilder, $options['filters']);
             } else {
                 $queryBuilder->andWhere($filterExpr);
             }
@@ -337,6 +337,10 @@ final class MauticReportBuilder implements ReportBuilderInterface
 
                 $selectText = sprintf('%s(%s)', $aggregator['function'], $columnSelect);
 
+                if ('AVG' === $aggregator['function']) {
+                    $selectText = sprintf('ROUND(%s)', $selectText);
+                }
+
                 $aggregatorSelect[] = sprintf("%s AS '%s %s'", $selectText, $aggregator['function'], $aggregator['column']);
             }
 
@@ -367,7 +371,7 @@ final class MauticReportBuilder implements ReportBuilderInterface
     /**
      * @return bool
      */
-    private function applyFilters(array $filters, QueryBuilder $queryBuilder, array $filterDefinitions, ReportGeneratorEvent $event)
+    private function applyFilters(array $filters, QueryBuilder $queryBuilder, array $filterDefinitions)
     {
         $expr      = $queryBuilder->expr();
         $groups    = [];
@@ -383,11 +387,6 @@ final class MauticReportBuilder implements ReportBuilderInterface
                         $groups[]  = $groupExpr;
                         $groupExpr = $queryBuilder->expr()->andX();
                     }
-                }
-
-                if ('tag' === $filter['column']) {
-                    $event->applyTagFilter($groupExpr, $filter);
-                    continue;
                 }
 
                 switch ($exprFunction) {
@@ -522,9 +521,9 @@ final class MauticReportBuilder implements ReportBuilderInterface
      * Aliases like "8e296a06" makes MySql to think it is a number.
      * Expects param in format "table_alias.column_name".
      */
-    private function sanitizeColumnName(string $fullColumnName): string
+    private function sanitizeColumnName(string $fullCollumnName): string
     {
-        [$tableAlias, $columnName] = explode('.', $fullColumnName);
+        [$tableAlias, $columnName] = explode('.', $fullCollumnName);
 
         return "`{$tableAlias}`.`{$columnName}`";
     }

@@ -37,7 +37,7 @@ class FieldColumnBackgroundJobDispatcher
 
         $event = new AddColumnBackgroundEvent($leadField);
 
-        $this->dispatcher->dispatch($event, $action);
+        $this->dispatcher->dispatch($action, $event);
 
         if ($event->isPropagationStopped()) {
             throw new AbortColumnCreateException('Column cannot be created now');

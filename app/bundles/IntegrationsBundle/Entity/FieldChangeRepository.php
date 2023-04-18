@@ -7,9 +7,6 @@ namespace Mautic\IntegrationsBundle\Entity;
 use Doctrine\DBAL\Connection;
 use Mautic\CoreBundle\Entity\CommonRepository;
 
-/**
- * @extends CommonRepository<FieldChange>
- */
 class FieldChangeRepository extends CommonRepository
 {
     /**

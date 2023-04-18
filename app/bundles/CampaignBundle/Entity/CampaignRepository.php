@@ -9,9 +9,6 @@ use Mautic\CampaignBundle\Entity\Result\CountResult;
 use Mautic\CampaignBundle\Executioner\ContactFinder\Limiter\ContactLimiter;
 use Mautic\CoreBundle\Entity\CommonRepository;
 
-/**
- * @extends CommonRepository<Campaign>
- */
 class CampaignRepository extends CommonRepository
 {
     use ContactLimiterTrait;

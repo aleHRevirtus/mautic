@@ -43,4 +43,12 @@ class SlotType extends AbstractType
             ]
         );
     }
+
+    /**
+     * @return string
+     */
+    public function getBlockPrefix()
+    {
+        return 'slot';
+    }
 }

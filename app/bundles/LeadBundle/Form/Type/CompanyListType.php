@@ -34,4 +34,12 @@ class CompanyListType extends AbstractType
     {
         return EntityLookupType::class;
     }
+
+    /**
+     * @return string
+     */
+    public function getBlockPrefix()
+    {
+        return 'company_list';
+    }
 }

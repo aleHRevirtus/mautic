@@ -127,7 +127,6 @@ trait EntityFieldsBuildFormTrait
                     $opts['html5']  = false;
                     $opts['input']  = 'string';
                     $opts['widget'] = 'single_text';
-                    $opts['html5']  = false;
                     if ($value) {
                         try {
                             $dtHelper = new DateTimeHelper($value, null, 'local');

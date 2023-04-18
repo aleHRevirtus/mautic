@@ -3,7 +3,7 @@
 namespace MauticPlugin\MauticFocusBundle\Event;
 
 use MauticPlugin\MauticFocusBundle\Entity\Stat;
-use Symfony\Contracts\EventDispatcher\Event;
+use Symfony\Component\EventDispatcher\Event;
 
 /**
  * Class FocusViewEvent.

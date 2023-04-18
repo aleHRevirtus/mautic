@@ -11,17 +11,17 @@ return [
             ],
             'fos_oauth_server_authorize' => [
                 'path'       => '/oauth/v2/authorize',
-                'controller' => 'Mautic\ApiBundle\Controller\oAuth2\AuthorizeController::authorizeAction',
+                'controller' => 'MauticApiBundle:oAuth2/Authorize:authorize',
                 'method'     => 'GET|POST',
             ],
             'mautic_oauth2_server_auth_login' => [
                 'path'       => '/oauth/v2/authorize_login',
-                'controller' => 'Mautic\ApiBundle\Controller\oAuth2\SecurityController::loginAction',
+                'controller' => 'MauticApiBundle:oAuth2/Security:login',
                 'method'     => 'GET|POST',
             ],
             'mautic_oauth2_server_auth_login_check' => [
                 'path'       => '/oauth/v2/authorize_login_check',
-                'controller' => 'Mautic\ApiBundle\Controller\oAuth2\SecurityController::loginCheckAction',
+                'controller' => 'MauticApiBundle:oAuth2/Security:loginCheck',
                 'method'     => 'GET|POST',
             ],
         ],
@@ -29,11 +29,11 @@ return [
             // Clients
             'mautic_client_index' => [
                 'path'       => '/credentials/{page}',
-                'controller' => 'Mautic\ApiBundle\Controller\ClientController::indexAction',
+                'controller' => 'MauticApiBundle:Client:index',
             ],
             'mautic_client_action' => [
                 'path'       => '/credentials/{objectAction}/{objectId}',
-                'controller' => 'Mautic\ApiBundle\Controller\ClientController::executeAction',
+                'controller' => 'MauticApiBundle:Client:execute',
             ],
         ],
     ],
@@ -56,6 +56,71 @@ return [
     ],
 
     'services' => [
+        'controllers' => [
+            'mautic.api.oauth2.authorize_controller' => [
+                'class'     => \Mautic\ApiBundle\Controller\oAuth2\AuthorizeController::class,
+                'arguments' => [
+                    'request_stack',
+                    'fos_oauth_server.authorize.form',
+                    'fos_oauth_server.authorize.form.handler.default',
+                    'fos_oauth_server.server',
+                    'templating',
+                    'security.token_storage',
+                    'router',
+                    'fos_oauth_server.client_manager.default',
+                    'event_dispatcher',
+                    'session',
+                ],
+            ],
+        ],
+        'events' => [
+            'mautic.api.subscriber' => [
+                'class'     => \Mautic\ApiBundle\EventListener\ApiSubscriber::class,
+                'arguments' => [
+                    'mautic.helper.core_parameters',
+                    'translator',
+                ],
+            ],
+            'mautic.api.client.subscriber' => [
+                'class'     => \Mautic\ApiBundle\EventListener\ClientSubscriber::class,
+                'arguments' => [
+                    'mautic.helper.ip_lookup',
+                    'mautic.core.model.auditlog',
+                ],
+            ],
+            'mautic.api.configbundle.subscriber' => [
+                'class' => \Mautic\ApiBundle\EventListener\ConfigSubscriber::class,
+            ],
+            'mautic.api.search.subscriber' => [
+                'class'     => \Mautic\ApiBundle\EventListener\SearchSubscriber::class,
+                'arguments' => [
+                    'mautic.api.model.client',
+                    'mautic.security',
+                    'mautic.helper.templating',
+                ],
+            ],
+            'mautic.api.rate_limit_generate_key.subscriber' => [
+              'class'     => \Mautic\ApiBundle\EventListener\RateLimitGenerateKeySubscriber::class,
+              'arguments' => [
+                'mautic.helper.core_parameters',
+              ],
+            ],
+        ],
+        'forms' => [
+            'mautic.form.type.apiclients' => [
+                'class'     => \Mautic\ApiBundle\Form\Type\ClientType::class,
+                'arguments' => [
+                    'request_stack',
+                    'translator',
+                    'validator',
+                    'session',
+                    'router',
+                ],
+            ],
+            'mautic.form.type.apiconfig' => [
+                'class' => 'Mautic\ApiBundle\Form\Type\ConfigType',
+            ],
+        ],
         'helpers' => [
             'mautic.api.helper.entity_result' => [
                 'class' => \Mautic\ApiBundle\Helper\EntityResultHelper::class,
@@ -63,7 +128,7 @@ return [
         ],
         'other' => [
             'mautic.api.oauth.event_listener' => [
-                'class'     => 'Mautic\ApiBundle\EventListener\PreAuthorizationEventListener',
+                'class'     => 'Mautic\ApiBundle\EventListener\OAuthEventListener',
                 'arguments' => [
                     'doctrine.orm.entity_manager',
                     'mautic.security',

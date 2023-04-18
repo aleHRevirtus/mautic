@@ -13,6 +13,6 @@ class MauticSmsBundle extends PluginBundleBase
 {
     public function build(ContainerBuilder $container)
     {
-        $container->addCompilerPass(new SmsTransportPass(), \Symfony\Component\DependencyInjection\Compiler\PassConfig::TYPE_BEFORE_OPTIMIZATION, 0);
+        $container->addCompilerPass(new SmsTransportPass());
     }
 }

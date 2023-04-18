@@ -6,20 +6,27 @@ use Mautic\ChannelBundle\Entity\Channel;
 use Mautic\ChannelBundle\Entity\Message;
 use Mautic\ChannelBundle\Model\MessageModel;
 use Mautic\CoreBundle\Form\Type\AbstractFormStandardType;
-use Mautic\CoreBundle\Security\Permissions\CorePermissions;
 use Symfony\Component\Form\Extension\Core\Type\CollectionType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\Valid;
 
+/**
+ * Class MessageType.
+ */
 class MessageType extends AbstractFormStandardType
 {
-    protected MessageModel $model;
+    /**
+     * @var MessageModel
+     */
+    protected $model;
 
-    public function __construct(MessageModel $messageModel, CorePermissions $security)
+    /**
+     * MessageType constructor.
+     */
+    public function __construct(MessageModel $messageModel)
     {
-        $this->model    = $messageModel;
-        $this->security = $security;
+        $this->model = $messageModel;
     }
 
     public function buildForm(FormBuilderInterface $builder, array $options)

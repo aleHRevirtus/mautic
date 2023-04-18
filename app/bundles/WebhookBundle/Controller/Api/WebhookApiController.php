@@ -3,48 +3,20 @@
 namespace Mautic\WebhookBundle\Controller\Api;
 
 use Mautic\ApiBundle\Controller\CommonApiController;
-use Mautic\ApiBundle\Helper\EntityResultHelper;
-use Mautic\CoreBundle\Helper\AppVersion;
-use Mautic\CoreBundle\Security\Permissions\CorePermissions;
-use Mautic\CoreBundle\Translation\Translator;
 use Mautic\WebhookBundle\Entity\Webhook;
-use Mautic\WebhookBundle\Model\WebhookModel;
-use Symfony\Component\Form\FormFactoryInterface;
-use Symfony\Component\HttpFoundation\RequestStack;
-use Symfony\Component\HttpKernel\Event\ControllerEvent;
-use Symfony\Component\Routing\RouterInterface;
+use Symfony\Component\HttpKernel\Event\FilterControllerEvent;
 
 /**
- * @extends CommonApiController<Webhook>
+ * Class WebhookApiController.
  */
 class WebhookApiController extends CommonApiController
 {
     /**
-     * @var WebhookModel|null
+     * {@inheritdoc}
      */
-    protected $model = null;
-
-    private RequestStack $requestStack;
-
-    public function __construct(
-        CorePermissions $security,
-        Translator $translator,
-        EntityResultHelper $entityResultHelper,
-        RouterInterface $router,
-        FormFactoryInterface $formFactory,
-        AppVersion $appVersion,
-        RequestStack $requestStack
-    ) {
-        $this->requestStack = $requestStack;
-        parent::__construct($security, $translator, $entityResultHelper, $router, $formFactory, $appVersion, $requestStack);
-    }
-
-    public function initialize(ControllerEvent $event)
+    public function initialize(FilterControllerEvent $event)
     {
-        $webhookModel = $this->getModel('webhook');
-        \assert($webhookModel instanceof WebhookModel);
-
-        $this->model            = $webhookModel;
+        $this->model            = $this->getModel('webhook');
         $this->entityClass      = Webhook::class;
         $this->entityNameOne    = 'hook';
         $this->entityNameMulti  = 'hooks';
@@ -55,8 +27,12 @@ class WebhookApiController extends CommonApiController
 
     /**
      * Gives child controllers opportunity to analyze and do whatever to an entity before going through serializer.
+     *
+     * @param string $action
+     *
+     * @return mixed
      */
-    protected function preSerializeEntity(object $entity, string $action = 'view'): void
+    protected function preSerializeEntity(&$entity, $action = 'view')
     {
         // We have to use this hack to have a simple array instead of the one the serializer gives us
         $entity->buildTriggers();
@@ -73,7 +49,7 @@ class WebhookApiController extends CommonApiController
         }
 
         // Remove events missing in the PUT request
-        if ('PUT' === $this->requestStack->getCurrentRequest()->getMethod()) {
+        if ('PUT' === $this->request->getMethod()) {
             foreach ($entity->getEvents() as $event) {
                 if (!in_array($event->getEventType(), $eventsToKeep)) {
                     $entity->removeEvent($event);

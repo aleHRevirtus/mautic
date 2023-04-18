@@ -6,8 +6,6 @@ use Mautic\CoreBundle\Helper\ClickthroughHelper;
 use Mautic\CoreBundle\Helper\CoreParametersHelper;
 use Mautic\CoreBundle\Helper\IpLookupHelper;
 use Mautic\LeadBundle\DataObject\LeadManipulator;
-use Mautic\LeadBundle\Deduplicate\ContactMerger;
-use Mautic\LeadBundle\Deduplicate\Exception\SameContactException;
 use Mautic\LeadBundle\Entity\Lead;
 use Mautic\LeadBundle\Event\ContactIdentificationEvent;
 use Mautic\LeadBundle\Exception\ContactNotFoundException;
@@ -56,7 +54,7 @@ class ContactRequestHelper
     private $logger;
 
     /**
-     * @var Lead|null
+     * @var Lead
      */
     private $trackedContact;
 
@@ -70,8 +68,6 @@ class ContactRequestHelper
      */
     private $publiclyUpdatableFieldValues = [];
 
-    private ContactMerger $contactMerger;
-
     public function __construct(
         LeadModel $leadModel,
         ContactTracker $contactTracker,
@@ -79,8 +75,7 @@ class ContactRequestHelper
         IpLookupHelper $ipLookupHelper,
         RequestStack $requestStack,
         Logger $logger,
-        EventDispatcherInterface $eventDispatcher,
-        ContactMerger $contactMerger
+        EventDispatcherInterface $eventDispatcher
     ) {
         $this->leadModel            = $leadModel;
         $this->contactTracker       = $contactTracker;
@@ -89,11 +84,10 @@ class ContactRequestHelper
         $this->requestStack         = $requestStack;
         $this->logger               = $logger;
         $this->eventDispatcher      = $eventDispatcher;
-        $this->contactMerger        = $contactMerger;
     }
 
     /**
-     * @return Lead|null
+     * @return Lead
      */
     public function getContactFromQuery(array $queryFields = [])
     {
@@ -149,17 +143,10 @@ class ContactRequestHelper
         if (!empty($this->queryFields)) {
             [$foundContact, $this->publiclyUpdatableFieldValues] = $this->leadModel->checkForDuplicateContact(
                 $this->queryFields,
+                $this->trackedContact,
                 true,
                 true
             );
-
-            if ($this->trackedContact && $this->trackedContact->getId() && $foundContact->getId()) {
-                try {
-                    $foundContact = $this->contactMerger->merge($this->trackedContact, $foundContact);
-                } catch (SameContactException $exception) {
-                }
-            }
-
             if (is_null($this->trackedContact) or $foundContact->getId() !== $this->trackedContact->getId()) {
                 // A contact was found by a publicly updatable field
                 if (!$foundContact->isNew()) {
@@ -181,10 +168,10 @@ class ContactRequestHelper
     private function getContactFromClickthrough(array $clickthrough)
     {
         $event = new ContactIdentificationEvent($clickthrough);
-        $this->eventDispatcher->dispatch($event, LeadEvents::ON_CLICKTHROUGH_IDENTIFICATION);
+        $this->eventDispatcher->dispatch(LeadEvents::ON_CLICKTHROUGH_IDENTIFICATION, $event);
 
         if ($contact = $event->getIdentifiedContact()) {
-            $this->logger->debug("LEAD: Contact ID# {$contact->getId()} tracked through clickthrough query by the ".$event->getIdentifier().' channel');
+            $this->logger->addDebug("LEAD: Contact ID# {$contact->getId()} tracked through clickthrough query by the ".$event->getIdentifier().' channel');
 
             // Merge tracked visitor into the clickthrough contact
             return $this->mergeWithTrackedContact($contact);
@@ -207,7 +194,7 @@ class ContactRequestHelper
         if ($email = $foundContact->getEmail()) {
             // Add email to query for checkForDuplicateContact to pick up and merge
             $this->queryFields['email'] = $email;
-            $this->logger->debug("LEAD: Contact ID# {$clickthrough['lead']} tracked through clickthrough query.");
+            $this->logger->addDebug("LEAD: Contact ID# {$clickthrough['lead']} tracked through clickthrough query.");
 
             return;
         }
@@ -252,10 +239,7 @@ class ContactRequestHelper
     private function mergeWithTrackedContact(Lead $foundContact)
     {
         if ($this->trackedContact && $this->trackedContact->getId() && $this->trackedContact->isAnonymous()) {
-            try {
-                return $this->contactMerger->merge($this->trackedContact, $foundContact);
-            } catch (SameContactException $exception) {
-            }
+            return $this->leadModel->mergeLeads($this->trackedContact, $foundContact, false);
         }
 
         return $foundContact;

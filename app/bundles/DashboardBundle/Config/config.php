@@ -5,25 +5,25 @@ return [
         'main' => [
             'mautic_dashboard_index' => [
                 'path'       => '/dashboard',
-                'controller' => 'Mautic\DashboardBundle\Controller\DashboardController::indexAction',
+                'controller' => 'MauticDashboardBundle:Dashboard:index',
             ],
             'mautic_dashboard_widget' => [
                 'path'       => '/dashboard/widget/{widgetId}',
-                'controller' => 'Mautic\DashboardBundle\Controller\DashboardController::widgetAction',
+                'controller' => 'MauticDashboardBundle:Dashboard:widget',
             ],
             'mautic_dashboard_action' => [
                 'path'       => '/dashboard/{objectAction}/{objectId}',
-                'controller' => 'Mautic\DashboardBundle\Controller\DashboardController::executeAction',
+                'controller' => 'MauticDashboardBundle:Dashboard:execute',
             ],
         ],
         'api' => [
             'mautic_widget_types' => [
                 'path'       => '/data',
-                'controller' => 'Mautic\DashboardBundle\Controller\Api\WidgetApiController::getTypesAction',
+                'controller' => 'MauticDashboardBundle:Api\WidgetApi:getTypes',
             ],
             'mautic_widget_data' => [
                 'path'       => '/data/{type}',
-                'controller' => 'Mautic\DashboardBundle\Controller\Api\WidgetApiController::getDataAction',
+                'controller' => 'MauticDashboardBundle:Api\WidgetApi:getData',
             ],
         ],
     ],
@@ -40,6 +40,15 @@ return [
         ],
     ],
     'services' => [
+        'forms' => [
+            'mautic.dashboard.form.type.widget' => [
+                'class'     => 'Mautic\DashboardBundle\Form\Type\WidgetType',
+                'arguments' => [
+                    'event_dispatcher',
+                    'mautic.security',
+                ],
+            ],
+        ],
         'models' => [
             'mautic.dashboard.model.dashboard' => [
                 'class'     => 'Mautic\DashboardBundle\Model\DashboardModel',
@@ -62,7 +71,7 @@ return [
         ],
     ],
     'parameters' => [
-        'dashboard_import_dir'      => '%kernel.project_dir%/media/dashboards',
+        'dashboard_import_dir'      => '%kernel.root_dir%/../media/dashboards',
         'dashboard_import_user_dir' => null,
     ],
 ];

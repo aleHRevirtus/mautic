@@ -7,15 +7,24 @@ use Mautic\LeadBundle\Event\LeadTimelineEvent;
 use Mautic\LeadBundle\LeadEvents;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\Routing\RouterInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class LeadSubscriber implements EventSubscriberInterface
 {
-    private TranslatorInterface $translator;
+    /**
+     * @var TranslatorInterface
+     */
+    private $translator;
 
-    private RouterInterface $router;
+    /**
+     * @var RouterInterface
+     */
+    private $router;
 
-    private MessageQueueRepository $messageQueueRepository;
+    /**
+     * @var MessageQueueRepository
+     */
+    private $messageQueueRepository;
 
     public function __construct(
         TranslatorInterface $translator,
@@ -27,7 +36,10 @@ class LeadSubscriber implements EventSubscriberInterface
         $this->messageQueueRepository = $messageQueueRepository;
     }
 
-    public static function getSubscribedEvents(): array
+    /**
+     * @return array
+     */
+    public static function getSubscribedEvents()
     {
         return [
             LeadEvents::TIMELINE_ON_GENERATE => ['onTimelineGenerate', 0],
@@ -37,7 +49,12 @@ class LeadSubscriber implements EventSubscriberInterface
     /**
      * Compile events for the lead timeline.
      */
-    public function onTimelineGenerate(LeadTimelineEvent $event): void
+    public function onTimelineGenerate(LeadTimelineEvent $event)
+    {
+        $this->addChannelMessageEvents($event);
+    }
+
+    private function addChannelMessageEvents(LeadTimelineEvent $event)
     {
         $eventTypeKey  = 'message.queue';
         $eventTypeName = $this->translator->trans('mautic.message.queue');
@@ -74,7 +91,7 @@ class LeadSubscriber implements EventSubscriberInterface
                         'extra'      => [
                             'log' => $log,
                         ],
-                        'contentTemplate' => '@MauticChannel/SubscribedEvents\Timeline/queued_messages.html.twig',
+                        'contentTemplate' => 'MauticChannelBundle:SubscribedEvents\Timeline:queued_messages.html.php',
                         'icon'            => 'fa-comments-o',
                         'contactId'       => $log['lead_id'],
                     ]

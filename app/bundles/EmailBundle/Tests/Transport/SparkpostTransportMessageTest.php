@@ -2,7 +2,6 @@
 
 namespace Mautic\EmailBundle\Tests\Transport;
 
-use Mautic\CoreBundle\Helper\CoreParametersHelper;
 use Mautic\CoreBundle\Translation\Translator;
 use Mautic\EmailBundle\Model\TransportCallback;
 use Mautic\EmailBundle\Swiftmailer\Message\MauticMessage;
@@ -14,15 +13,10 @@ class SparkpostTransportMessageTest extends \PHPUnit\Framework\TestCase
 {
     public function testCcAndBccFields()
     {
-        $emailId              = 1;
-        $internalEmailName    = '202211_シナリオメール②内視鏡機器提案のご案内';
-        // As $internalEmailName is already contain 64 bytes and after prepend $emailId, string bytes will be exceed so for maintain 64 bytes last char will be trimmed.
-        $expectedInternalEmailName    = '202211_シナリオメール②内視鏡機器提案のご案';
-        $translator                   = $this->createMock(Translator::class);
-        $transportCallback            = $this->createMock(TransportCallback::class);
-        $sparkpostFactory             = $this->createMock(SparkpostFactoryInterface::class);
-        $logger                       = $this->createMock(LoggerInterface::class);
-        $coreParametersHelper         = $this->createMock(CoreParametersHelper::class);
+        $translator        = $this->createMock(Translator::class);
+        $transportCallback = $this->createMock(TransportCallback::class);
+        $sparkpostFactory  = $this->createMock(SparkpostFactoryInterface::class);
+        $logger            = $this->createMock(LoggerInterface::class);
 
         $message = new MauticMessage('Test subject', 'First Name: {formfield=first_name}');
         $message->addFrom('from@xx.xx');
@@ -42,8 +36,6 @@ class SparkpostTransportMessageTest extends \PHPUnit\Framework\TestCase
                 'tokens' => [
                     '{formfield=first_name}' => '1',
                 ],
-                'emailId'   => $emailId,
-                'emailName' => $internalEmailName,
             ]
         );
 
@@ -56,10 +48,10 @@ class SparkpostTransportMessageTest extends \PHPUnit\Framework\TestCase
             ]
         );
 
-        $sparkpost = new SparkpostTransport('1234', $translator, $transportCallback, $sparkpostFactory, $logger, $coreParametersHelper);
+        $sparkpost = new SparkpostTransport('1234', $translator, $transportCallback, $sparkpostFactory, $logger);
 
         $sparkpostMessage = $sparkpost->getSparkPostMessage($message);
-        $this->assertSame(sprintf('%s:%s', $emailId, $expectedInternalEmailName), $sparkpostMessage['campaign_id']);
+
         $this->assertEquals('from@xx.xx', $sparkpostMessage['content']['from']);
         $this->assertEquals('Test subject', $sparkpostMessage['content']['subject']);
         $this->assertEquals('First Name: {{{ FORMFIELDFIRSTNAME }}}', $sparkpostMessage['content']['html']);
@@ -75,10 +67,6 @@ class SparkpostTransportMessageTest extends \PHPUnit\Framework\TestCase
                 ],
                 'substitution_data' => [
                     'FORMFIELDFIRSTNAME' => '1',
-                ],
-                'metadata' => [
-                    'emailId'   => $emailId,
-                    'emailName' => $internalEmailName,
                 ],
             ],
             [

@@ -4,11 +4,11 @@ namespace Mautic\UserBundle\EventListener;
 
 use Mautic\CoreBundle\CoreEvents;
 use Mautic\CoreBundle\Event as MauticEvents;
+use Mautic\CoreBundle\Helper\TemplatingHelper;
 use Mautic\CoreBundle\Security\Permissions\CorePermissions;
 use Mautic\UserBundle\Model\RoleModel;
 use Mautic\UserBundle\Model\UserModel;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-use Twig\Environment;
 
 class SearchSubscriber implements EventSubscriberInterface
 {
@@ -28,20 +28,20 @@ class SearchSubscriber implements EventSubscriberInterface
     private $security;
 
     /**
-     * @var Environment
+     * @var TemplatingHelper
      */
-    private $twig;
+    private $templating;
 
     public function __construct(
         UserModel $userModel,
         RoleModel $roleModel,
         CorePermissions $security,
-        Environment $twig
+        TemplatingHelper $templating
     ) {
         $this->userModel     = $userModel;
         $this->userRoleModel = $roleModel;
         $this->security      = $security;
-        $this->twig          = $twig;
+        $this->templating    = $templating;
     }
 
     /**
@@ -73,23 +73,23 @@ class SearchSubscriber implements EventSubscriberInterface
                 $userResults = [];
                 $canEdit     = $this->security->isGranted('user:users:edit');
                 foreach ($users as $user) {
-                    $userResults[] = $this->twig->render(
-                        '@MauticUser/SubscribedEvents\Search/global_user.html.twig',
+                    $userResults[] = $this->templating->getTemplating()->renderResponse(
+                        'MauticUserBundle:SubscribedEvents\Search:global_user.html.php',
                         [
                             'user'    => $user,
                             'canEdit' => $canEdit,
                         ]
-                    );
+                    )->getContent();
                 }
                 if (count($users) > 5) {
-                    $userResults[] = $this->twig->render(
-                        'MauticUser/SubscribedEvents\Search/global_user.html.twig',
+                    $userResults[] = $this->templating->getTemplating()->renderResponse(
+                        'MauticUserBundle:SubscribedEvents\Search:global_user.html.php',
                         [
                             'showMore'     => true,
                             'searchString' => $str,
                             'remaining'    => (count($users) - 5),
                         ]
-                    );
+                    )->getContent();
                 }
                 $userResults['count'] = count($users);
                 $event->addResults('mautic.user.users', $userResults);
@@ -107,23 +107,23 @@ class SearchSubscriber implements EventSubscriberInterface
                 $canEdit     = $this->security->isGranted('user:roles:edit');
 
                 foreach ($roles as $role) {
-                    $roleResults[] = $this->twig->render(
-                        '@MauticUser/SubscribedEvents\Search/global_role.html.twig',
+                    $roleResults[] = $this->templating->getTemplating()->renderResponse(
+                        'MauticUserBundle:SubscribedEvents\Search:global_role.html.php',
                         [
                             'role'    => $role,
                             'canEdit' => $canEdit,
                         ]
-                    );
+                    )->getContent();
                 }
                 if (count($roles) > 5) {
-                    $roleResults[] = $this->twig->render(
-                        '@MauticUser/SubscribedEvents\Search/global_role.html.twig',
+                    $roleResults[] = $this->templating->getTemplating()->renderResponse(
+                        'MauticUserBundle:SubscribedEvents\Search:global_role.html.php',
                         [
                             'showMore'     => true,
                             'searchString' => $str,
                             'remaining'    => (count($roles) - 5),
                         ]
-                    );
+                    )->getContent();
                 }
                 $roleResults['count'] = count($roles);
                 $event->addResults('mautic.user.roles', $roleResults);

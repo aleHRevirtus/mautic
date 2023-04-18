@@ -13,6 +13,9 @@ use Mautic\CoreBundle\Helper\InputHelper;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Mapping\ClassMetadata;
 
+/**
+ * Class Form.
+ */
 class Form extends FormEntity
 {
     /**
@@ -137,6 +140,9 @@ class Form extends FormEntity
         parent::__clone();
     }
 
+    /**
+     * Construct.
+     */
     public function __construct()
     {
         $this->fields      = new ArrayCollection();
@@ -329,6 +335,8 @@ class Form extends FormEntity
     }
 
     /**
+     * Get id.
+     *
      * @return int
      */
     public function getId()
@@ -337,6 +345,8 @@ class Form extends FormEntity
     }
 
     /**
+     * Set name.
+     *
      * @param string $name
      *
      * @return Form
@@ -350,6 +360,8 @@ class Form extends FormEntity
     }
 
     /**
+     * Get name.
+     *
      * @return string
      */
     public function getName()
@@ -358,6 +370,8 @@ class Form extends FormEntity
     }
 
     /**
+     * Set description.
+     *
      * @param string $description
      *
      * @return Form
@@ -371,6 +385,8 @@ class Form extends FormEntity
     }
 
     /**
+     * Get description.
+     *
      * @return string
      */
     public function getDescription($truncate = false, $length = 45)
@@ -385,6 +401,8 @@ class Form extends FormEntity
     }
 
     /**
+     * Set cachedHtml.
+     *
      * @param string $cachedHtml
      *
      * @return Form
@@ -397,6 +415,8 @@ class Form extends FormEntity
     }
 
     /**
+     * Get cachedHtml.
+     *
      * @return string
      */
     public function getCachedHtml()
@@ -405,6 +425,8 @@ class Form extends FormEntity
     }
 
     /**
+     * Get render style.
+     *
      * @return string
      */
     public function getRenderStyle()
@@ -413,6 +435,8 @@ class Form extends FormEntity
     }
 
     /**
+     * Set postAction.
+     *
      * @param string $postAction
      *
      * @return Form
@@ -426,6 +450,8 @@ class Form extends FormEntity
     }
 
     /**
+     * Get postAction.
+     *
      * @return string
      */
     public function getPostAction()
@@ -434,6 +460,8 @@ class Form extends FormEntity
     }
 
     /**
+     * Set postActionProperty.
+     *
      * @param string $postActionProperty
      *
      * @return Form
@@ -447,6 +475,8 @@ class Form extends FormEntity
     }
 
     /**
+     * Get postActionProperty.
+     *
      * @return string
      */
     public function getPostActionProperty()
@@ -454,12 +484,17 @@ class Form extends FormEntity
         return $this->postActionProperty;
     }
 
+    /**
+     * Get result count.
+     */
     public function getResultCount()
     {
         return count($this->submissions);
     }
 
     /**
+     * Set publishUp.
+     *
      * @param \DateTime $publishUp
      *
      * @return Form
@@ -473,6 +508,8 @@ class Form extends FormEntity
     }
 
     /**
+     * Get publishUp.
+     *
      * @return \DateTime
      */
     public function getPublishUp()
@@ -481,6 +518,8 @@ class Form extends FormEntity
     }
 
     /**
+     * Set publishDown.
+     *
      * @param \DateTime $publishDown
      *
      * @return Form
@@ -494,6 +533,8 @@ class Form extends FormEntity
     }
 
     /**
+     * Get publishDown.
+     *
      * @return \DateTime
      */
     public function getPublishDown()
@@ -502,7 +543,9 @@ class Form extends FormEntity
     }
 
     /**
-     * @param int|string $key
+     * Add a field.
+     *
+     * @param $key
      *
      * @return Form
      */
@@ -517,7 +560,9 @@ class Form extends FormEntity
     }
 
     /**
-     * @param int|string $key
+     * Remove a field.
+     *
+     * @param $key
      */
     public function removeField($key, Field $field)
     {
@@ -528,6 +573,8 @@ class Form extends FormEntity
     }
 
     /**
+     * Get fields.
+     *
      * @return \Doctrine\Common\Collections\Collection|Field[]
      */
     public function getFields()
@@ -536,6 +583,8 @@ class Form extends FormEntity
     }
 
     /**
+     * Get array of field aliases.
+     *
      * @return array
      */
     public function getFieldAliases()
@@ -553,26 +602,8 @@ class Form extends FormEntity
     }
 
     /**
-     * Loops trough the form fields and returns a simple array of mapped object keys if any.
+     * Set alias.
      *
-     * @return string[]
-     */
-    public function getMappedFieldObjects(): array
-    {
-        return array_values(
-            array_filter(
-                array_unique(
-                    $this->getFields()->map(
-                        function (Field $field) {
-                            return $field->getMappedObject();
-                        }
-                    )->toArray()
-                )
-            )
-        );
-    }
-
-    /**
      * @param string $alias
      *
      * @return Form
@@ -586,6 +617,8 @@ class Form extends FormEntity
     }
 
     /**
+     * Get alias.
+     *
      * @return string
      */
     public function getAlias()
@@ -594,6 +627,8 @@ class Form extends FormEntity
     }
 
     /**
+     * Add submissions.
+     *
      * @return Form
      */
     public function addSubmission(Submission $submissions)
@@ -603,12 +638,17 @@ class Form extends FormEntity
         return $this;
     }
 
+    /**
+     * Remove submissions.
+     */
     public function removeSubmission(Submission $submissions)
     {
         $this->submissions->removeElement($submissions);
     }
 
     /**
+     * Get submissions.
+     *
      * @return \Doctrine\Common\Collections\Collection|Submission[]
      */
     public function getSubmissions()
@@ -617,7 +657,9 @@ class Form extends FormEntity
     }
 
     /**
-     * @param int|string $key
+     * Add actions.
+     *
+     * @param $key
      *
      * @return Form
      */
@@ -631,6 +673,9 @@ class Form extends FormEntity
         return $this;
     }
 
+    /**
+     * Remove action.
+     */
     public function removeAction(Action $action)
     {
         $this->actions->removeElement($action);
@@ -645,6 +690,8 @@ class Form extends FormEntity
     }
 
     /**
+     * Get actions.
+     *
      * @return \Doctrine\Common\Collections\Collection|Action[]
      */
     public function getActions()

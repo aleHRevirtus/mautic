@@ -24,7 +24,7 @@ use Mautic\IntegrationsBundle\Tests\Functional\Services\SyncService\TestExamples
 
 final class ExampleIntegration extends BasicIntegration implements IntegrationInterface, SyncInterface
 {
-    public const NAME = 'Example';
+    const NAME = 'Example';
 
     /**
      * @var ExampleSyncDataExchange

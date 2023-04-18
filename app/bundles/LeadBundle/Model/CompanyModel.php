@@ -12,24 +12,20 @@ use Mautic\EmailBundle\Helper\EmailValidator;
 use Mautic\LeadBundle\Deduplicate\CompanyDeduper;
 use Mautic\LeadBundle\Entity\Company;
 use Mautic\LeadBundle\Entity\CompanyLead;
-use Mautic\LeadBundle\Entity\CompanyRepository;
 use Mautic\LeadBundle\Entity\Lead;
 use Mautic\LeadBundle\Entity\LeadField;
 use Mautic\LeadBundle\Entity\LeadRepository;
 use Mautic\LeadBundle\Event\CompanyEvent;
-use Mautic\LeadBundle\Event\CompanyMergeEvent;
 use Mautic\LeadBundle\Event\LeadChangeCompanyEvent;
 use Mautic\LeadBundle\Exception\UniqueFieldNotFoundException;
 use Mautic\LeadBundle\Form\Type\CompanyType;
 use Mautic\LeadBundle\LeadEvents;
-use Symfony\Component\Form\FormFactoryInterface;
+use Symfony\Component\EventDispatcher\Event;
 use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
-use Symfony\Contracts\EventDispatcher\Event;
 
 /**
- * @extends CommonFormModel<Company>
- * @implements AjaxLookupModelInterface<Company>
+ * Class CompanyModel.
  */
 class CompanyModel extends CommonFormModel implements AjaxLookupModelInterface
 {
@@ -113,11 +109,14 @@ class CompanyModel extends CommonFormModel implements AjaxLookupModelInterface
         parent::saveEntities($entities, $unlock);
     }
 
-    public function getRepository(): CompanyRepository
+    /**
+     * {@inheritdoc}
+     *
+     * @return \Mautic\LeadBundle\Entity\CompanyRepository
+     */
+    public function getRepository()
     {
-        $repo = $this->em->getRepository(Company::class);
-        \assert($repo instanceof CompanyRepository);
-
+        $repo =  $this->em->getRepository('MauticLeadBundle:Company');
         if (!$this->repoSetup) {
             $this->repoSetup = true;
             $repo->setDispatcher($this->dispatcher);
@@ -168,7 +167,7 @@ class CompanyModel extends CommonFormModel implements AjaxLookupModelInterface
      *
      * @throws MethodNotAllowedHttpException
      */
-    public function createForm($entity, FormFactoryInterface $formFactory, $action = null, $options = [])
+    public function createForm($entity, $formFactory, $action = null, $options = [])
     {
         if (!$entity instanceof Company) {
             throw new MethodNotAllowedHttpException(['Company']);
@@ -420,7 +419,7 @@ class CompanyModel extends CommonFormModel implements AjaxLookupModelInterface
         if (!empty($dispatchEvents) && ($this->dispatcher->hasListeners(LeadEvents::LEAD_COMPANY_CHANGE))) {
             foreach ($dispatchEvents as $companyId) {
                 $event = new LeadChangeCompanyEvent($lead, $companyLeadAdd[$companyId]);
-                $this->dispatcher->dispatch($event, LeadEvents::LEAD_COMPANY_CHANGE);
+                $this->dispatcher->dispatch(LeadEvents::LEAD_COMPANY_CHANGE, $event);
 
                 unset($event);
             }
@@ -538,7 +537,7 @@ class CompanyModel extends CommonFormModel implements AjaxLookupModelInterface
         if (!empty($dispatchEvents) && ($this->dispatcher->hasListeners(LeadEvents::LEAD_COMPANY_CHANGE))) {
             foreach ($dispatchEvents as $companyId) {
                 $event = new LeadChangeCompanyEvent($lead, $companyLeadRemove[$companyId], false);
-                $this->dispatcher->dispatch($event, LeadEvents::LEAD_COMPANY_CHANGE);
+                $this->dispatcher->dispatch(LeadEvents::LEAD_COMPANY_CHANGE, $event);
 
                 unset($event);
             }
@@ -641,7 +640,7 @@ class CompanyModel extends CommonFormModel implements AjaxLookupModelInterface
                 $event->setEntityManager($this->em);
             }
 
-            $this->dispatcher->dispatch($event, $name);
+            $this->dispatcher->dispatch($name, $event);
 
             return $event;
         } else {
@@ -697,14 +696,8 @@ class CompanyModel extends CommonFormModel implements AjaxLookupModelInterface
         foreach ($secCompanyLeads as $lead) {
             $this->addLeadToCompany($mainCompany->getId(), $lead['lead_id']);
         }
-
-        $event = new CompanyMergeEvent($mainCompany, $secCompany);
-        $this->dispatcher->dispatch($event, LeadEvents::COMPANY_PRE_MERGE);
-
         //save the updated company
         $this->saveEntity($mainCompany, false);
-
-        $this->dispatcher->dispatch($event, LeadEvents::COMPANY_POST_MERGE);
 
         //delete the old company
         $this->deleteEntity($secCompany);

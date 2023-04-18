@@ -14,17 +14,23 @@ use Mautic\IntegrationsBundle\IntegrationEvents;
 use Mautic\IntegrationsBundle\Sync\SyncDataExchange\Internal\Object\Company;
 use Mautic\IntegrationsBundle\Sync\SyncDataExchange\Internal\ObjectHelper\CompanyObjectHelper;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-use Symfony\Component\Routing\RouterInterface;
+use Symfony\Component\Routing\Router;
 
 class CompanyObjectSubscriber implements EventSubscriberInterface
 {
-    private CompanyObjectHelper $companyObjectHelper;
+    /**
+     * @var CompanyObjectHelper
+     */
+    private $companyObjectHelper;
 
-    private RouterInterface $router;
+    /**
+     * @var Router
+     */
+    private $router;
 
     public function __construct(
         CompanyObjectHelper $companyObjectHelper,
-        RouterInterface $router
+        Router $router
     ) {
         $this->companyObjectHelper = $companyObjectHelper;
         $this->router              = $router;

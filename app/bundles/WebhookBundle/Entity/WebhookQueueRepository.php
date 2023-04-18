@@ -4,9 +4,6 @@ namespace Mautic\WebhookBundle\Entity;
 
 use Mautic\CoreBundle\Entity\CommonRepository;
 
-/**
- * @extends CommonRepository<WebhookQueue>
- */
 class WebhookQueueRepository extends CommonRepository
 {
     /**

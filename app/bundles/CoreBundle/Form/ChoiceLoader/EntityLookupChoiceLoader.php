@@ -6,11 +6,12 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Query\Expression\ExpressionBuilder;
 use Mautic\CoreBundle\Factory\ModelFactory;
 use Mautic\CoreBundle\Model\AjaxLookupModelInterface;
+use Mautic\CoreBundle\Translation\Translator;
 use Symfony\Component\Form\ChoiceList\ArrayChoiceList;
 use Symfony\Component\Form\ChoiceList\Loader\ChoiceLoaderInterface;
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\OptionsResolver\Options;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class EntityLookupChoiceLoader implements ChoiceLoaderInterface
 {
@@ -30,12 +31,12 @@ class EntityLookupChoiceLoader implements ChoiceLoaderInterface
     protected $options;
 
     /**
-     * @var ModelFactory<object>
+     * @var ModelFactory
      */
     protected $modelFactory;
 
     /**
-     * @var TranslatorInterface
+     * @var Translator
      */
     protected $translator;
 
@@ -45,8 +46,7 @@ class EntityLookupChoiceLoader implements ChoiceLoaderInterface
     protected $connection;
 
     /**
-     * @param ModelFactory<object> $modelFactory
-     * @param array                $options
+     * @param array $options
      */
     public function __construct(ModelFactory $modelFactory, TranslatorInterface $translator, Connection $connection, $options = [])
     {

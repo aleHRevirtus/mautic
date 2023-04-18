@@ -7,7 +7,7 @@ use Mautic\CoreBundle\Helper\PathsHelper;
 use Mautic\CoreBundle\Update\Step\FinalizeUpdateStep;
 use PHPUnit\Framework\MockObject\MockObject;
 use Symfony\Component\HttpFoundation\Session\Session;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class FinalizeUpdateStepTest extends AbstractStepTest
 {

@@ -2,16 +2,16 @@
 
 namespace Mautic\ReportBundle\Entity;
 
-use Mautic\CoreBundle\Entity\CommonRepository;
+use Doctrine\ORM\EntityRepository;
 use Mautic\ReportBundle\Scheduler\Option\ExportOption;
 
 /**
- * @extends CommonRepository<Scheduler>
+ * SchedulerRepository.
  */
-class SchedulerRepository extends CommonRepository
+class SchedulerRepository extends EntityRepository
 {
     /**
-     * @return Scheduler|null
+     * @return Report|null
      */
     public function getSchedulerByReport(Report $report)
     {

@@ -5,7 +5,7 @@ namespace Mautic\DynamicContentBundle\Entity;
 use Mautic\CoreBundle\Entity\CommonRepository;
 
 /**
- * @extends CommonRepository<DynamicContentLeadData>
+ * Class DownloadRepository.
  */
 class DynamicContentLeadDataRepository extends CommonRepository
 {

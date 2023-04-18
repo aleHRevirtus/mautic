@@ -53,7 +53,7 @@ class PointSubscriber implements EventSubscriberInterface
             'description' => 'mautic.page.point.action.urlhit_descr',
             'callback'    => [PointActionHelper::class, 'validateUrlHit'],
             'formType'    => PointActionUrlHitType::class,
-            'formTheme'   => '@MauticPage/FormTheme/Point/pointaction_urlhit_widget.html.twig',
+            'formTheme'   => 'MauticPageBundle:FormTheme\Point',
         ];
 
         $event->addAction('url.hit', $action);

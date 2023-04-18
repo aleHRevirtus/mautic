@@ -8,7 +8,6 @@ use Mautic\LeadBundle\Tracker\ContactTracker;
 use MauticPlugin\MauticFocusBundle\Entity\Stat;
 use MauticPlugin\MauticFocusBundle\Event\FocusViewEvent;
 use MauticPlugin\MauticFocusBundle\FocusEvents;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -46,26 +45,28 @@ class PublicController extends CommonController
     /**
      * @return Response
      */
-    public function viewPixelAction(Request $request, ContactTracker $contactTracker)
+    public function viewPixelAction()
     {
-        $id = $request->get('id', false);
+        $id = $this->request->get('id', false);
         if ($id) {
             /** @var \MauticPlugin\MauticFocusBundle\Model\FocusModel $model */
             $model = $this->getModel('focus');
             $focus = $model->getEntity($id);
 
-            $lead = $contactTracker->getContact();
+            /** @var ContactTracker $contactTracker */
+            $contactTracker = $this->get('mautic.tracker.contact');
+            $lead           = $contactTracker->getContact();
 
             if ($focus && $focus->isPublished() && $lead) {
-                $stat = $model->addStat($focus, Stat::TYPE_NOTIFICATION, $request, $lead);
+                $stat = $model->addStat($focus, Stat::TYPE_NOTIFICATION, $this->request, $lead);
                 if ($stat && $this->dispatcher->hasListeners(FocusEvents::FOCUS_ON_VIEW)) {
                     $event = new FocusViewEvent($stat);
-                    $this->dispatcher->dispatch($event, FocusEvents::FOCUS_ON_VIEW);
+                    $this->dispatcher->dispatch(FocusEvents::FOCUS_ON_VIEW, $event);
                     unset($event);
                 }
             }
         }
 
-        return TrackingPixelHelper::getResponse($request);
+        return TrackingPixelHelper::getResponse($this->request);
     }
 }

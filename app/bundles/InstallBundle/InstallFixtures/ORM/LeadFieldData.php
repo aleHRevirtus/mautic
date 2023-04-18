@@ -8,16 +8,15 @@ use Doctrine\Common\DataFixtures\OrderedFixtureInterface;
 use Doctrine\Persistence\ObjectManager;
 use Mautic\LeadBundle\Entity\LeadField;
 use Mautic\LeadBundle\Model\FieldModel;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\DependencyInjection\ContainerAwareInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
-class LeadFieldData extends AbstractFixture implements OrderedFixtureInterface, FixtureGroupInterface
+class LeadFieldData extends AbstractFixture implements OrderedFixtureInterface, ContainerAwareInterface, FixtureGroupInterface
 {
-    private TranslatorInterface $translator;
-
-    public function __construct(TranslatorInterface $translator)
-    {
-        $this->translator = $translator;
-    }
+    /**
+     * @var ContainerInterface
+     */
+    private $container;
 
     /**
      * {@inheritdoc}
@@ -28,6 +27,14 @@ class LeadFieldData extends AbstractFixture implements OrderedFixtureInterface, 
     }
 
     /**
+     * {@inheritdoc}
+     */
+    public function setContainer(ContainerInterface $container = null)
+    {
+        $this->container = $container;
+    }
+
+    /**
      * @throws \Doctrine\DBAL\Schema\SchemaException
      */
     public function load(ObjectManager $manager)
@@ -35,13 +42,14 @@ class LeadFieldData extends AbstractFixture implements OrderedFixtureInterface, 
         $fieldGroups['lead']    = FieldModel::$coreFields;
         $fieldGroups['company'] = FieldModel::$coreCompanyFields;
 
+        $translator   = $this->container->get('translator');
         foreach ($fieldGroups as $fields) {
             $order = 1;
             foreach ($fields as $alias => $field) {
                 $type = isset($field['type']) ? $field['type'] : 'text';
 
                 $entity = new LeadField();
-                $entity->setLabel($this->translator->trans('mautic.lead.field.'.$alias, [], 'fixtures'));
+                $entity->setLabel($translator->trans('mautic.lead.field.'.$alias, [], 'fixtures'));
                 $entity->setGroup(isset($field['group']) ? $field['group'] : 'core');
                 $entity->setOrder($order);
                 $entity->setAlias($alias);

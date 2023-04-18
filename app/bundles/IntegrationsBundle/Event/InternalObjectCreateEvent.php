@@ -6,7 +6,7 @@ namespace Mautic\IntegrationsBundle\Event;
 
 use Mautic\IntegrationsBundle\Entity\ObjectMapping;
 use Mautic\IntegrationsBundle\Sync\SyncDataExchange\Internal\Object\ObjectInterface;
-use Symfony\Contracts\EventDispatcher\Event;
+use Symfony\Component\EventDispatcher\Event;
 
 class InternalObjectCreateEvent extends Event
 {

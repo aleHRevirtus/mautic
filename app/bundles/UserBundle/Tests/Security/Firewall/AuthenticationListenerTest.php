@@ -9,13 +9,12 @@ use Mautic\ApiBundle\Entity\oAuth2\AccessToken;
 use Mautic\ApiBundle\Entity\oAuth2\Client;
 use Mautic\UserBundle\Entity\PermissionRepository;
 use Mautic\UserBundle\Entity\Role;
-use Mautic\UserBundle\Entity\User;
 use Mautic\UserBundle\Security\Authentication\AuthenticationHandler;
 use Mautic\UserBundle\Security\Firewall\AuthenticationListener;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
-use Symfony\Component\HttpKernel\Event\RequestEvent;
+use Symfony\Component\HttpKernel\Event\GetResponseEvent;
 use Symfony\Component\Security\Core\Authentication\AuthenticationManagerInterface;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
@@ -63,25 +62,20 @@ class AuthenticationListenerTest extends TestCase
         );
     }
 
-    public function testInvoke(): void
+    public function testHandle(): void
     {
-        $token     = 'test-token';
+        $token = 'test-token';
+
         $adminRole = new Role();
         $adminRole->setIsAdmin(true);
 
-        $client = new class() extends Client {
-            public function getId()
-            {
-                return 123;
-            }
-        };
+        $client = new Client();
         $client->setRole($adminRole);
-        $client->setName('test-client');
 
         $this->accessToken = new AccessToken();
         $this->accessToken->setClient($client);
 
-        $requestEvent = $this->createMock(RequestEvent::class);
+        $getResponseEvent = $this->createMock(GetResponseEvent::class);
 
         $this->tokenStorage->expects($this->any())
             ->method('getToken')
@@ -102,21 +96,14 @@ class AuthenticationListenerTest extends TestCase
             ->willReturn($this->accessToken);
 
         $this->token->expects($this->any())
-            ->method('setUser')
-            ->with($this->callback(function (User $user) use ($adminRole) {
-                $this->assertSame('test-client', $user->getFirstName());
-                $this->assertSame('[123]', $user->getLastName());
-                $this->assertSame('test-client [123]', $user->getUsername());
-                $this->assertSame($adminRole, $user->getRole());
-
-                return true;
-            }));
+            ->method('setUser');
 
         $this->tokenStorage->expects($this->any())
             ->method('setToken')
             ->with($this->token);
 
-        $invokableListener = $this->authenticationListener;
-        $invokableListener($requestEvent);
+        $result = $this->authenticationListener->handle($getResponseEvent);
+
+        $this->assertNull($result);
     }
 }

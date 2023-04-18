@@ -10,18 +10,42 @@ return [
         'public' => [
             'mautic_plugin_clearbit_index' => [
                 'path'       => '/clearbit/callback',
-                'controller' => 'MauticPlugin\MauticClearbitBundle\Controller\PublicController::callbackAction',
+                'controller' => 'MauticClearbitBundle:Public:callback',
             ],
         ],
         'main' => [
             'mautic_plugin_clearbit_action' => [
                 'path'       => '/clearbit/{objectAction}/{objectId}',
-                'controller' => 'MauticPlugin\MauticClearbitBundle\Controller\ClearbitController::executeAction',
+                'controller' => 'MauticClearbitBundle:Clearbit:execute',
             ],
         ],
     ],
 
     'services' => [
+        'events' => [
+            'mautic.plugin.clearbit.button.subscriber' => [
+                'class'     => \MauticPlugin\MauticClearbitBundle\EventListener\ButtonSubscriber::class,
+                'arguments' => [
+                    'mautic.helper.integration',
+                    'translator',
+                    'router',
+                ],
+            ],
+            'mautic.plugin.clearbit.lead.subscriber' => [
+                'class'     => \MauticPlugin\MauticClearbitBundle\EventListener\LeadSubscriber::class,
+                'arguments' => [
+                    'mautic.plugin.clearbit.lookup_helper',
+                ],
+            ],
+        ],
+        'forms' => [
+            'mautic.form.type.clearbit_lookup' => [
+                'class' => 'MauticPlugin\MauticClearbitBundle\Form\Type\LookupType',
+            ],
+            'mautic.form.type.clearbit_batch_lookup' => [
+                'class' => 'MauticPlugin\MauticClearbitBundle\Form\Type\BatchLookupType',
+            ],
+        ],
         'others' => [
             'mautic.plugin.clearbit.lookup_helper' => [
                 'class'     => 'MauticPlugin\MauticClearbitBundle\Helper\LookupHelper',

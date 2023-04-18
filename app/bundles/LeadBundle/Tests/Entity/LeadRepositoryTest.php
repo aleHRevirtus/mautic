@@ -8,8 +8,9 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Query\Expression\CompositeExpression;
 use Doctrine\DBAL\Query\QueryBuilder;
 use Doctrine\ORM\AbstractQuery;
+use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Mapping\ClassMetadata;
 use Mautic\CoreBundle\Test\Doctrine\DBALMocker;
-use Mautic\CoreBundle\Test\Doctrine\RepositoryConfiguratorTrait;
 use Mautic\LeadBundle\Entity\CustomFieldRepositoryTrait;
 use Mautic\LeadBundle\Entity\Lead;
 use Mautic\LeadBundle\Entity\LeadRepository;
@@ -18,15 +19,36 @@ use PHPUnit\Framework\MockObject\MockObject;
 
 class LeadRepositoryTest extends \PHPUnit\Framework\TestCase
 {
-    use RepositoryConfiguratorTrait;
+    /**
+     * @var MockObject|EntityManagerInterface
+     */
+    private $entityManager;
 
-    private LeadRepository $repository;
+    /**
+     * @var MockObject|ClassMetadata
+     */
+    private $classMetadata;
+
+    /**
+     * @var MockObject|Connection
+     */
+    private $connection;
+
+    /**
+     * @var LeadRepository
+     */
+    private $repository;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->repository = $this->configureRepository(Lead::class);
+        $this->entityManager = $this->createMock(EntityManagerInterface::class);
+        $this->classMetadata = $this->createMock(ClassMetadata::class);
+        $this->connection    = $this->createMock(Connection::class);
+        $this->repository    = new LeadRepository($this->entityManager, $this->classMetadata);
+
+        $this->entityManager->method('getConnection')->willReturn($this->connection);
     }
 
     public function testBooleanWithPrepareDbalFieldsForSave(): void

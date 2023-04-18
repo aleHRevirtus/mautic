@@ -5,7 +5,7 @@ namespace Mautic\LeadBundle\Entity;
 use Mautic\CoreBundle\Entity\CommonRepository;
 
 /**
- * @extends CommonRepository<Tag>
+ * Class TagRepository.
  */
 class TagRepository extends CommonRepository
 {

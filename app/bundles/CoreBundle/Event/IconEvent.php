@@ -3,7 +3,7 @@
 namespace Mautic\CoreBundle\Event;
 
 use Mautic\CoreBundle\Security\Permissions\CorePermissions;
-use Symfony\Contracts\EventDispatcher\Event;
+use Symfony\Component\EventDispatcher\Event;
 
 /**
  * Class IconEvent.

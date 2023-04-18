@@ -4,17 +4,13 @@ namespace Mautic\PointBundle\Controller\Api;
 
 use Mautic\ApiBundle\Controller\CommonApiController;
 use Mautic\CoreBundle\Helper\InputHelper;
-use Mautic\CoreBundle\Helper\IpLookupHelper;
 use Mautic\LeadBundle\Controller\LeadAccessTrait;
 use Mautic\LeadBundle\Model\LeadModel;
-use Mautic\PointBundle\Entity\Point;
-use Mautic\PointBundle\Model\PointModel;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Event\ControllerEvent;
+use Symfony\Component\HttpKernel\Event\FilterControllerEvent;
 
 /**
- * @extends CommonApiController<Point>
+ * Class PointApiController.
  */
 class PointApiController extends CommonApiController
 {
@@ -26,21 +22,13 @@ class PointApiController extends CommonApiController
     protected $leadModel;
 
     /**
-     * @var PointModel|null
+     * {@inheritdoc}
      */
-    protected $model = null;
-
-    public function initialize(ControllerEvent $event)
+    public function initialize(FilterControllerEvent $event)
     {
-        $leadModel = $this->getModel('lead');
-        \assert($leadModel instanceof LeadModel);
-
-        $pointModel = $this->getModel('point');
-        \assert($pointModel instanceof PointModel);
-
-        $this->model            = $pointModel;
-        $this->leadModel        = $leadModel;
-        $this->entityClass      = Point::class;
+        $this->model            = $this->getModel('point');
+        $this->leadModel        = $this->getModel('lead');
+        $this->entityClass      = 'Mautic\PointBundle\Entity\Point';
         $this->entityNameOne    = 'point';
         $this->entityNameMulti  = 'points';
         $this->serializerGroups = ['pointDetails', 'categoryList', 'publishDetails'];
@@ -72,7 +60,7 @@ class PointApiController extends CommonApiController
      *
      * @return \Symfony\Component\HttpFoundation\Response
      */
-    public function adjustPointsAction(Request $request, IpLookupHelper $ipLookupHelper, $leadId, $operator, $delta)
+    public function adjustPointsAction($leadId, $operator, $delta)
     {
         $lead = $this->checkLeadAccess($leadId, 'edit');
         if ($lead instanceof Response) {
@@ -80,7 +68,7 @@ class PointApiController extends CommonApiController
         }
 
         try {
-            $this->logApiPointChange($request, $ipLookupHelper, $lead, $delta, $operator);
+            $this->logApiPointChange($lead, $delta, $operator);
         } catch (\Exception $e) {
             return $this->returnError($e->getMessage(), Response::HTTP_BAD_REQUEST);
         }
@@ -94,12 +82,12 @@ class PointApiController extends CommonApiController
      * @param int $leadId
      * @param int $delta
      */
-    protected function logApiPointChange(Request $request, IpLookupHelper $ipLookupHelper, $lead, $delta, $operator)
+    protected function logApiPointChange($lead, $delta, $operator)
     {
-        $trans      = $this->translator;
-        $ip         = $ipLookupHelper->getIpAddress();
-        $eventName  = InputHelper::clean($request->request->get('eventName', $trans->trans('mautic.lead.lead.submitaction.operator_'.$operator)));
-        $actionName = InputHelper::clean($request->request->get('actionName', $trans->trans('mautic.lead.event.api')));
+        $trans      = $this->get('translator');
+        $ip         = $this->get('mautic.helper.ip_lookup')->getIpAddress();
+        $eventName  = InputHelper::clean($this->request->request->get('eventName', $trans->trans('mautic.lead.lead.submitaction.operator_'.$operator)));
+        $actionName = InputHelper::clean($this->request->request->get('actionName', $trans->trans('mautic.lead.event.api')));
 
         $lead->adjustPoints($delta, $operator);
         $lead->addPointsChangeLogEntry('API', $eventName, $actionName, $delta, $ip);

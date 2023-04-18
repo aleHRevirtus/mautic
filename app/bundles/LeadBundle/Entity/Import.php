@@ -7,6 +7,8 @@ use Doctrine\ORM\Mapping as ORM;
 use Mautic\ApiBundle\Serializer\Driver\ApiMetadataDriver;
 use Mautic\CoreBundle\Doctrine\Mapping\ClassMetadataBuilder;
 use Mautic\CoreBundle\Entity\FormEntity;
+use Mautic\CoreBundle\Helper\Chart\PieChart;
+use Symfony\Bundle\FrameworkBundle\Templating\Helper\TranslatorHelper;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Mapping\ClassMetadata;
 
@@ -19,42 +21,42 @@ class Import extends FormEntity
     /**
      * When the import entity is created for background processing.
      */
-    public const QUEUED = 1;
+    const QUEUED = 1;
 
     /**
      * When the background process started the import.
      */
-    public const IN_PROGRESS = 2;
+    const IN_PROGRESS = 2;
 
     /**
      * When the import is finished.
      */
-    public const IMPORTED = 3;
+    const IMPORTED = 3;
 
     /**
      * When the import process failed.
      */
-    public const FAILED = 4;
+    const FAILED = 4;
 
     /**
      * When the import has been stopped by a user.
      */
-    public const STOPPED = 5;
+    const STOPPED = 5;
 
     /**
      * When the import happens in the browser.
      */
-    public const MANUAL = 6;
+    const MANUAL = 6;
 
     /**
      * When the import is scheduled for later processing.
      */
-    public const DELAYED = 7;
+    const DELAYED = 7;
 
     /** ===== Priorities: ===== */
-    public const LOW    = 512;
-    public const NORMAL = 64;
-    public const HIGH   = 1;
+    const LOW    = 512;
+    const NORMAL = 64;
+    const HIGH   = 1;
 
     /**
      * @var int
@@ -924,5 +926,20 @@ class Import extends FormEntity
         }
 
         return parent::setIsPublished($isPublished);
+    }
+
+    /**
+     * Get pie graph data for row status counts.
+     *
+     * @return array
+     */
+    public function getRowStatusesPieChart(TranslatorHelper $translator)
+    {
+        $chart = new PieChart();
+        $chart->setDataset($translator->trans('mautic.lead.import.inserted.count'), $this->getInsertedCount());
+        $chart->setDataset($translator->trans('mautic.lead.import.updated.count'), $this->getUpdatedCount());
+        $chart->setDataset($translator->trans('mautic.lead.import.ignored.count'), $this->getIgnoredCount());
+
+        return $chart->render();
     }
 }

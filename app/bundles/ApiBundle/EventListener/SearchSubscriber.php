@@ -5,9 +5,9 @@ namespace Mautic\ApiBundle\EventListener;
 use Mautic\ApiBundle\Model\ClientModel;
 use Mautic\CoreBundle\CoreEvents;
 use Mautic\CoreBundle\Event as MauticEvents;
+use Mautic\CoreBundle\Helper\TemplatingHelper;
 use Mautic\CoreBundle\Security\Permissions\CorePermissions;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-use Twig\Environment;
 
 class SearchSubscriber implements EventSubscriberInterface
 {
@@ -22,15 +22,15 @@ class SearchSubscriber implements EventSubscriberInterface
     private $security;
 
     /**
-     * @var Environment
+     * @var TemplatingHelper
      */
-    private $twig;
+    private $templating;
 
-    public function __construct(ClientModel $apiClientModel, CorePermissions $security, Environment $twig)
+    public function __construct(ClientModel $apiClientModel, CorePermissions $security, TemplatingHelper $templating)
     {
         $this->apiClientModel = $apiClientModel;
         $this->security       = $security;
-        $this->twig           = $twig;
+        $this->templating     = $templating;
     }
 
     /**
@@ -62,23 +62,23 @@ class SearchSubscriber implements EventSubscriberInterface
                 $clientResults = [];
                 $canEdit       = $this->security->isGranted('api:clients:edit');
                 foreach ($clients as $client) {
-                    $clientResults[] = $this->twig->render(
-                        '@MauticApi/SubscribedEvents\Search/global.html.twig',
+                    $clientResults[] = $this->templating->getTemplating()->renderResponse(
+                        'MauticApiBundle:SubscribedEvents\Search:global.html.php',
                         [
                             'client'  => $client,
                             'canEdit' => $canEdit,
                         ]
-                    );
+                    )->getContent();
                 }
                 if (count($clients) > 5) {
-                    $clientResults[] = $this->twig->render(
-                        '@MauticApi/SubscribedEvents\Search/global.html.twig',
+                    $clientResults[] = $this->templating->getTemplating()->renderResponse(
+                        'MauticApiBundle:SubscribedEvents\Search:global.html.php',
                         [
                             'showMore'     => true,
                             'searchString' => $str,
                             'remaining'    => (count($clients) - 5),
                         ]
-                    );
+                    )->getContent();
                 }
                 $clientResults['count'] = count($clients);
                 $event->addResults('mautic.api.client.menu.index', $clientResults);

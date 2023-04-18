@@ -3,25 +3,20 @@
 namespace Mautic\QueueBundle\Command;
 
 use Mautic\QueueBundle\Queue\QueueService;
-use Symfony\Component\Console\Command\Command;
+use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
  * CLI Command to process orders that have been queued.
+ * Class ProcessQueuesCommand.
  */
-class ConsumeQueueCommand extends Command
+class ConsumeQueueCommand extends ContainerAwareCommand
 {
-    private QueueService $queueService;
-
-    public function __construct(QueueService $queueService)
-    {
-        parent::__construct();
-
-        $this->queueService = $queueService;
-    }
-
+    /**
+     * {@inheritdoc}
+     */
     protected function configure()
     {
         $this->setName('mautic:queue:process')
@@ -51,9 +46,16 @@ class ConsumeQueueCommand extends Command
         parent::configure();
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    /**
+     * {@inheritdoc}
+     */
+    protected function execute(InputInterface $input, OutputInterface $output)
     {
-        if (!$this->queueService->isQueueEnabled()) {
+        $container    = $this->getContainer();
+        /** @var QueueService $queueService */
+        $queueService = $container->get('mautic.queue.service');
+
+        if (!$queueService->isQueueEnabled()) {
             $output->writeLn('You have not configured mautic to use queue mode, nothing will be processed');
 
             return 0;
@@ -80,7 +82,7 @@ class ConsumeQueueCommand extends Command
             return 0;
         }
 
-        $this->queueService->consumeFromQueue($queueName, $messages, $timeout);
+        $queueService->consumeFromQueue($queueName, $messages, $timeout);
 
         return 0;
     }

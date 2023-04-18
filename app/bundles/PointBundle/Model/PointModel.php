@@ -18,14 +18,10 @@ use Mautic\PointBundle\Event\PointBuilderEvent;
 use Mautic\PointBundle\Event\PointEvent;
 use Mautic\PointBundle\Form\Type\PointType;
 use Mautic\PointBundle\PointEvents;
-use Symfony\Component\Form\FormFactoryInterface;
+use Symfony\Component\EventDispatcher\Event;
 use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
-use Symfony\Contracts\EventDispatcher\Event;
 
-/**
- * @extends CommonFormModel<Point>
- */
 class PointModel extends CommonFormModel
 {
     /**
@@ -92,7 +88,7 @@ class PointModel extends CommonFormModel
      *
      * @throws MethodNotAllowedHttpException
      */
-    public function createForm($entity, FormFactoryInterface $formFactory, $action = null, $options = [])
+    public function createForm($entity, $formFactory, $action = null, $options = [])
     {
         if (!$entity instanceof Point) {
             throw new MethodNotAllowedHttpException(['Point']);
@@ -157,7 +153,7 @@ class PointModel extends CommonFormModel
                 $event->setEntityManager($this->em);
             }
 
-            $this->dispatcher->dispatch($event, $name);
+            $this->dispatcher->dispatch($name, $event);
 
             return $event;
         }
@@ -178,7 +174,7 @@ class PointModel extends CommonFormModel
             //build them
             $actions = [];
             $event   = new PointBuilderEvent($this->translator);
-            $this->dispatcher->dispatch($event, PointEvents::POINT_ON_BUILD);
+            $this->dispatcher->dispatch(PointEvents::POINT_ON_BUILD, $event);
             $actions['actions'] = $event->getActions();
             $actions['list']    = $event->getActionList();
             $actions['choices'] = $event->getActionChoices();
@@ -297,7 +293,7 @@ class PointModel extends CommonFormModel
                     );
 
                     $event = new PointActionEvent($action, $lead);
-                    $this->dispatcher->dispatch($event, PointEvents::POINT_ON_ACTION);
+                    $this->dispatcher->dispatch(PointEvents::POINT_ON_ACTION, $event);
 
                     if (!$action->getRepeatable()) {
                         $log = new LeadPointLog();

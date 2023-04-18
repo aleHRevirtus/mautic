@@ -27,7 +27,7 @@ class ConfigSubscriber implements EventSubscriberInterface
             'bundle'     => 'ApiBundle',
             'formAlias'  => 'apiconfig',
             'formType'   => ConfigType::class,
-            'formTheme'  => '@MauticApi/FormTheme/Config/_config_apiconfig_widget.html.twig',
+            'formTheme'  => 'MauticApiBundle:FormTheme\Config',
             'parameters' => $event->getParametersFromConfig('MauticApiBundle'),
         ]);
     }

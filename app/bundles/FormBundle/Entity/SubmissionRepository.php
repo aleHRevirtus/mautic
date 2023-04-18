@@ -2,14 +2,13 @@
 
 namespace Mautic\FormBundle\Entity;
 
-use Doctrine\DBAL\Query\QueryBuilder as DbalQueryBuilder;
-use Doctrine\ORM\QueryBuilder;
+use Doctrine\DBAL\Query\QueryBuilder;
 use Mautic\CoreBundle\Entity\CommonRepository;
 use Mautic\CoreBundle\Helper\DateTimeHelper;
 use Mautic\LeadBundle\Entity\TimelineTrait;
 
 /**
- * @extends CommonRepository<Submission>
+ * IpAddressRepository.
  */
 class SubmissionRepository extends CommonRepository
 {
@@ -89,11 +88,7 @@ class SubmissionRepository extends CommonRepository
         $this->buildLimiterClauses($dq, $args);
 
         $dq->resetQueryPart('select');
-        $fieldAliasSql = ',';
-        foreach ($fieldAliases as $fieldAlias) {
-            $fieldAliasSql .= 'r.`'.$fieldAlias.'`,';
-        }
-        $fieldAliasSql = substr($fieldAliasSql, 0, -1);
+        $fieldAliasSql = (!empty($fieldAliases)) ? ', '.implode(',r.', $fieldAliases) : '';
         $dq->select('r.submission_id, s.date_submitted as dateSubmitted, s.lead_id as leadId, s.referer, i.ip_address as ipAddress'.$fieldAliasSql);
         $results = $dq->execute()->fetchAll();
 
@@ -240,25 +235,24 @@ class SubmissionRepository extends CommonRepository
     }
 
     /**
-     * @param QueryBuilder|DbalQueryBuilder $q
-     * @param array<mixed>                  $filter
+     * {@inheritdoc}
      */
-    public function getFilterExpr($q, array $filter, ?string $unique = null): array
+    public function getFilterExpr(&$q, $filter, $parameterName = null)
     {
-        if ('s.date_submitted' === $filter['column']) {
+        if ('s.date_submitted' == $filter['column']) {
             $date       = (new DateTimeHelper($filter['value'], 'Y-m-d'))->toUtcString();
             $date1      = $this->generateRandomParameterName();
             $date2      = $this->generateRandomParameterName();
             $parameters = [$date1 => $date.' 00:00:00', $date2 => $date.' 23:59:59'];
-            $expr       = $q->expr()->and(
+            $expr       = $q->expr()->andX(
                 $q->expr()->gte('s.date_submitted', ":$date1"),
                 $q->expr()->lte('s.date_submitted', ":$date2")
             );
 
             return [$expr, $parameters];
+        } else {
+            return parent::getFilterExpr($q, $filter);
         }
-
-        return parent::getFilterExpr($q, $filter);
     }
 
     /**
@@ -307,9 +301,9 @@ class SubmissionRepository extends CommonRepository
     /**
      * Get list of forms ordered by it's count.
      *
-     * @param DbalQueryBuilder $query
-     * @param int              $limit
-     * @param int              $offset
+     * @param QueryBuilder $query
+     * @param int          $limit
+     * @param int          $offset
      *
      * @return array
      *
@@ -330,9 +324,9 @@ class SubmissionRepository extends CommonRepository
     /**
      * Get list of forms ordered by it's count.
      *
-     * @param DbalQueryBuilder $query
-     * @param int              $limit
-     * @param int              $offset
+     * @param QueryBuilder $query
+     * @param int          $limit
+     * @param int          $offset
      *
      * @return array
      *

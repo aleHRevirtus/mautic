@@ -160,7 +160,7 @@ Mautic.addReportRow = function (elId) {
         Mautic.updateReportGlueTriggers();
     } else if (typeof Mautic.reportPrototypeColumnOptions != 'undefined') {
         // Update the column options if applicable
-        mQuery(newColumnId).html(Mautic.reportPrototypeColumnOptions.clone());
+        mQuery(newColumnId).html(Mautic.reportPrototypeColumnOptions);
     }
 
     Mautic.activateChosenSelect(mQuery('#' + elId + '_' + index + '_column'));
@@ -251,9 +251,7 @@ Mautic.updateReportFilterValueInput = function (filterColumn, setup) {
         };
 
         if (filterType == 'multiselect') {
-            attr.name += '[]';
             attr.multiple = true;
-            currentValue = (typeof currentValue !== 'undefined') ? currentValue.split(",") : null;
         }
 
         var newSelect = mQuery('<select />', attr);
@@ -263,15 +261,12 @@ Mautic.updateReportFilterValueInput = function (filterColumn, setup) {
                 .val(value)
                 .html(label);
 
-            if (value == currentValue && filterType != 'multiselect') {
+            if (value == currentValue) {
                 newOption.prop('selected', true);
             }
 
             newOption.appendTo(newSelect);
         });
-        if (filterType == 'multiselect') {
-            newSelect.val(currentValue);
-        }
         mQuery(valueEl).replaceWith(newSelect);
 
         Mautic.activateChosenSelect(newSelect);
@@ -352,9 +347,9 @@ Mautic.checkReportCondition = function (selector) {
 
     // Disable the value input if the condition is empty or notEmpty
     if (option == 'empty' || option == 'notEmpty') {
-        mQuery('#' + valueInput).prop('disabled', true).trigger('chosen:updated');
+        mQuery('#' + valueInput).prop('disabled', true);
     } else {
-        mQuery('#' + valueInput).prop('disabled', false).trigger('chosen:updated');
+        mQuery('#' + valueInput).prop('disabled', false);
     }
 };
 

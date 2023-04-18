@@ -12,7 +12,7 @@ use Mautic\EmailBundle\Stat\StatHelper;
 use Mautic\EmailBundle\Swiftmailer\Exception\BatchQueueMaxException;
 use Mautic\LeadBundle\Entity\DoNotContact as DNC;
 use Mautic\LeadBundle\Model\DoNotContact;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class SendEmailToContact
 {
@@ -142,7 +142,7 @@ class SendEmailToContact
      *
      * @return $this
      */
-    public function setEmail(Email $email, array $channel = [], array $customHeaders = [], array $assetAttachments = [], string $emailType = null)
+    public function setEmail(Email $email, array $channel = [], array $customHeaders = [], array $assetAttachments = [])
     {
         // Flush anything that's pending from a previous email
         $this->flush();
@@ -151,7 +151,6 @@ class SendEmailToContact
         $this->mailer->enableQueue();
 
         if ($this->mailer->setEmail($email, true, [], $assetAttachments)) {
-            $this->mailer->setEmailType($emailType);
             $this->mailer->setSource($channel);
             $this->mailer->setCustomHeaders($customHeaders);
 

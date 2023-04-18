@@ -7,7 +7,6 @@ namespace Mautic\IntegrationsBundle\Sync\SyncDataExchange;
 use Mautic\IntegrationsBundle\Entity\FieldChangeRepository;
 use Mautic\IntegrationsBundle\Sync\DAO\Mapping\MappingManualDAO;
 use Mautic\IntegrationsBundle\Sync\DAO\Sync\Order\ObjectChangeDAO;
-use Mautic\IntegrationsBundle\Sync\DAO\Sync\Order\ObjectMappingsDAO;
 use Mautic\IntegrationsBundle\Sync\DAO\Sync\Order\OrderDAO;
 use Mautic\IntegrationsBundle\Sync\DAO\Sync\Report\ObjectDAO as ReportObjectDAO;
 use Mautic\IntegrationsBundle\Sync\DAO\Sync\Report\ReportDAO;
@@ -24,9 +23,9 @@ use Mautic\IntegrationsBundle\Sync\SyncDataExchange\Internal\ReportBuilder\Parti
 
 class MauticSyncDataExchange implements SyncDataExchangeInterface
 {
-    public const NAME           = 'mautic';
-    public const OBJECT_CONTACT = 'lead'; // kept as lead for BC
-    public const OBJECT_COMPANY = 'company';
+    const NAME           = 'mautic';
+    const OBJECT_CONTACT = 'lead'; // kept as lead for BC
+    const OBJECT_COMPANY = 'company';
 
     /**
      * @var FieldChangeRepository
@@ -83,9 +82,9 @@ class MauticSyncDataExchange implements SyncDataExchangeInterface
         return $this->partialObjectReportBuilder->buildReport($requestDAO);
     }
 
-    public function executeSyncOrder(OrderDAO $syncOrderDAO): ObjectMappingsDAO
+    public function executeSyncOrder(OrderDAO $syncOrderDAO): void
     {
-        return $this->orderExecutioner->execute($syncOrderDAO);
+        $this->orderExecutioner->execute($syncOrderDAO);
     }
 
     /**

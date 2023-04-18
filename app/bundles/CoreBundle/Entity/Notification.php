@@ -2,7 +2,6 @@
 
 namespace Mautic\CoreBundle\Entity;
 
-use DateTime;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Mautic\CoreBundle\Doctrine\Mapping\ClassMetadataBuilder;
@@ -36,7 +35,7 @@ class Notification
     protected $message;
 
     /**
-     * @var DateTime|null
+     * @var \DateTiem|null
      */
     protected $dateAdded;
 
@@ -50,11 +49,6 @@ class Notification
      */
     protected $isRead = false;
 
-    /**
-     * @var string|null
-     */
-    protected $deduplicate;
-
     public static function loadMetadata(ORM\ClassMetadata $metadata)
     {
         $builder = new ClassMetadataBuilder($metadata);
@@ -63,8 +57,7 @@ class Notification
             ->setCustomRepositoryClass(NotificationRepository::class)
             ->addIndex(['is_read'], 'notification_read_status')
             ->addIndex(['type'], 'notification_type')
-            ->addIndex(['is_read', 'user_id'], 'notification_user_read_status')
-            ->addIndex(['deduplicate', 'date_added'], 'deduplicate_date_added');
+            ->addIndex(['is_read', 'user_id'], 'notification_user_read_status');
 
         $builder->addId();
 
@@ -93,11 +86,6 @@ class Notification
 
         $builder->createField('isRead', Types::BOOLEAN)
             ->columnName('is_read')
-            ->build();
-
-        $builder->createField('deduplicate', 'string')
-            ->nullable()
-            ->length(32)
             ->build();
     }
 
@@ -163,7 +151,7 @@ class Notification
     }
 
     /**
-     * @param DateTime|null $dateAdded
+     * @param \DateTime|null $dateAdded
      */
     public function setDateAdded($dateAdded)
     {
@@ -216,10 +204,5 @@ class Notification
     public function setHeader($header)
     {
         $this->header = $header;
-    }
-
-    public function setDeduplicate(?string $deduplicate): void
-    {
-        $this->deduplicate = $deduplicate;
     }
 }

@@ -2,25 +2,36 @@
 
 namespace MauticPlugin\MauticSocialBundle\Command;
 
-use MauticPlugin\MauticSocialBundle\Entity\MonitoringRepository;
-use MauticPlugin\MauticSocialBundle\Model\MonitoringModel;
-use Symfony\Component\Console\Command\Command;
+use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class MauticSocialMonitoringCommand extends Command
+class MauticSocialMonitoringCommand extends ContainerAwareCommand
 {
-    private MonitoringModel $monitoringModel;
+    protected $batchSize;
 
-    public function __construct(MonitoringModel $monitoringModel)
-    {
-        $this->monitoringModel = $monitoringModel;
+    protected $monitorRepo;
 
-        parent::__construct();
-    }
+    /**
+     * @var int|null
+     */
+    protected $maxPerIterations;
 
+    /**
+     * @var OutputInterface
+     */
+    protected $output;
+
+    /**
+     * @var InputInterface
+     */
+    protected $input;
+
+    /**
+     * Configure the command.
+     */
     protected function configure()
     {
         $this->setName('mautic:social:monitoring')
@@ -35,10 +46,23 @@ class MauticSocialMonitoringCommand extends Command
             ->addOption('query-count', null, InputOption::VALUE_OPTIONAL, 'The number of records to search for per iteration. Default is 100.', 100);
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    protected function execute(InputInterface $input, OutputInterface $output)
     {
+        $this->input  = $input;
+        $this->output = $output;
+
+        /** @var \MauticPlugin\MauticSocialBundle\Model\MonitoringModel $model */
+        $model = $this->getContainer()
+            ->get('mautic.social.model.monitoring');
+
+        // set the repository
+        $this->monitorRepo = $model->getRepository();
+
+        $translator = $this->getContainer()->get('translator');
+        $translator->setLocale($this->getContainer()->getParameter('mautic.locale'));
+
         // get the mid from the cli
-        $batchSize = $input->getOption('batch-size');
+        $this->batchSize = $this->input->getOption('batch-size');
 
         // monitor record
         $monitorId   = $input->getOption('mid');
@@ -46,18 +70,18 @@ class MauticSocialMonitoringCommand extends Command
 
         // no mid found, quit now
         if (!$monitorList->count()) {
-            $output->writeln('No published monitors found. Make sure the id you supplied is published');
+            $this->output->writeln('No published monitors found. Make sure the id you supplied is published');
 
-            return 0;
+            return;
         }
 
         // max iterations
-        $maxPerIterations = ceil($batchSize / count($monitorList));
+        $this->maxPerIterations = ceil($this->batchSize / count($monitorList));
 
         foreach ($monitorList as $monitor) {
-            $output->writeln('Executing Monitor Item '.$monitor->getId());
-            $resultCode = $this->processMonitorListItem($monitor, $maxPerIterations, $input, $output);
-            $output->writeln('Result Code: '.$resultCode);
+            $this->output->writeln('Executing Monitor Item '.$monitor->getId());
+            $resultCode = $this->processMonitorListItem($monitor);
+            $this->output->writeln('Result Code: '.$resultCode);
         }
 
         return 0;
@@ -75,14 +99,11 @@ class MauticSocialMonitoringCommand extends Command
             'limit' => 100,
         ];
 
-        /** @var MonitoringRepository $repository */
-        $repository = $this->monitoringModel->getRepository();
-
         if (null !== $id) {
             $filter['filter'] = [
                 'force' => [
                     [
-                        'column' => $repository->getTableAlias().'.id',
+                        'column' => $this->monitorRepo->getTableAlias().'.id',
                         'expr'   => 'eq',
                         'value'  => (int) $id,
                     ],
@@ -90,7 +111,7 @@ class MauticSocialMonitoringCommand extends Command
             ];
         }
 
-        return $repository->getPublishedEntities($filter);
+        return $this->monitorRepo->getPublishedEntities($filter);
     }
 
     /**
@@ -100,7 +121,7 @@ class MauticSocialMonitoringCommand extends Command
      *
      * @throws \Exception
      */
-    protected function processMonitorListItem($listItem, float $maxPerIterations, InputInterface $input, OutputInterface $output)
+    protected function processMonitorListItem($listItem)
     {
         // @todo set this up to use the command type per-monitor record.
         $networkType = $listItem->getNetworkType();
@@ -118,7 +139,7 @@ class MauticSocialMonitoringCommand extends Command
         }
 
         if ('' == $commandName) {
-            $output->writeln('Matching command not found.');
+            $this->output->writeln('Matching command not found.');
 
             return 1;
         }
@@ -130,12 +151,15 @@ class MauticSocialMonitoringCommand extends Command
         $cliArgs = [
             'command'       => $commandName,
             '--mid'         => $listItem->getId(),
-            '--max-runs'    => $maxPerIterations,
-            '--query-count' => $input->getOption('query-count'),
+            '--max-runs'    => $this->maxPerIterations,
+            '--query-count' => $this->input->getOption('query-count'),
         ];
 
+        // create an input array
+        $input = new ArrayInput($cliArgs);
+
         // execute the command
-        $returnCode = $command->run(new ArrayInput($cliArgs), $output);
+        $returnCode = $command->run($input, $this->output);
 
         return $returnCode;
     }

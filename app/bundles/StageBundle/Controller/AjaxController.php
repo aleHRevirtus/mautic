@@ -5,7 +5,6 @@ namespace Mautic\StageBundle\Controller;
 use Mautic\CoreBundle\Controller\AjaxController as CommonAjaxController;
 use Mautic\CoreBundle\Helper\InputHelper;
 use Mautic\StageBundle\Form\Type\StageActionType;
-use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -16,7 +15,7 @@ class AjaxController extends CommonAjaxController
     /**
      * @return \Symfony\Component\HttpFoundation\JsonResponse
      */
-    public function getActionFormAction(Request $request, FormFactoryInterface $formFactory)
+    protected function getActionFormAction(Request $request)
     {
         $dataArray = [
             'success' => 0,
@@ -38,9 +37,9 @@ class AjaxController extends CommonAjaxController
                 $formType        = (!empty($actions['actions'][$type]['formType'])) ? $actions['actions'][$type]['formType'] : 'genericstage_settings';
                 $formTypeOptions = (!empty($actions['actions'][$type]['formTypeOptions'])) ? $actions['actions'][$type]['formTypeOptions'] : [];
 
-                $form = $formFactory->create(StageActionType::class, [], ['formType' => $formType, 'formTypeOptions' => $formTypeOptions]);
-                $html = $this->renderView('@MauticStage/Stage/actionform.html.twig', [
-                    'form' => $this->setFormTheme($form, '@MauticStage/Stage/actionform.html.twig', $themes),
+                $form = $this->get('form.factory')->create(StageActionType::class, [], ['formType' => $formType, 'formTypeOptions' => $formTypeOptions]);
+                $html = $this->renderView('MauticStageBundle:Stage:actionform.html.php', [
+                    'form' => $this->setFormTheme($form, 'MauticStageBundle:Stage:actionform.html.php', $themes),
                 ]);
 
                 $html                 = str_replace('stageaction', 'stage', $html);

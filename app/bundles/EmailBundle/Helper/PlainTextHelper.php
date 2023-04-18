@@ -4,7 +4,7 @@ namespace Mautic\EmailBundle\Helper;
 
 class PlainTextHelper
 {
-    public const ENCODING = 'UTF-8';
+    const ENCODING = 'UTF-8';
 
     /**
      * Contains the HTML content to convert.

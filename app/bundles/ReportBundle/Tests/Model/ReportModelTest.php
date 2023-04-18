@@ -4,7 +4,7 @@ namespace Mautic\ReportBundle\Tests\Model;
 
 use Mautic\ChannelBundle\Helper\ChannelListHelper;
 use Mautic\CoreBundle\Helper\CoreParametersHelper;
-use Mautic\CoreBundle\Translation\Translator;
+use Mautic\CoreBundle\Helper\TemplatingHelper;
 use Mautic\LeadBundle\Model\FieldModel;
 use Mautic\ReportBundle\Event\ReportBuilderEvent;
 use Mautic\ReportBundle\Helper\ReportHelper;
@@ -13,8 +13,7 @@ use Mautic\ReportBundle\Model\ExcelExporter;
 use Mautic\ReportBundle\Model\ReportModel;
 use Mautic\ReportBundle\Tests\Fixtures;
 use Symfony\Component\EventDispatcher\EventDispatcher;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
-use Twig\Environment;
+use Symfony\Component\Translation\Translator;
 
 class ReportModelTest extends \PHPUnit\Framework\TestCase
 {
@@ -30,10 +29,10 @@ class ReportModelTest extends \PHPUnit\Framework\TestCase
 
         $this->reportModel = new ReportModel(
             $this->createMock(CoreParametersHelper::class),
-            $this->createMock(Environment::class),
-            new ChannelListHelper($this->createMock(EventDispatcherInterface::class), $this->createMock(Translator::class)),
+            $this->createMock(TemplatingHelper::class),
+            $this->createMock(ChannelListHelper::class),
             $fieldModelMock,
-            new ReportHelper(),
+            $this->createMock(ReportHelper::class),
             $this->createMock(CsvExporter::class),
             $this->createMock(ExcelExporter::class)
         );
@@ -41,7 +40,7 @@ class ReportModelTest extends \PHPUnit\Framework\TestCase
         $mockDispatcher = $this->createMock(EventDispatcher::class);
         $mockDispatcher->method('dispatch')
             ->willReturnCallback(
-                function (ReportBuilderEvent $event) {
+                function ($eventName, ReportBuilderEvent $event) {
                     $reportBuilderData = Fixtures::getReportBuilderEventData();
                     $event->addTable('assets', $reportBuilderData['all']['tables']['assets']);
                 }
@@ -59,7 +58,7 @@ class ReportModelTest extends \PHPUnit\Framework\TestCase
         parent::setUp();
     }
 
-    public function testGetColumnListWithContext(): void
+    public function testGetColumnListWithContext()
     {
         $properContextFormat = 'assets';
         $actual              = $this->reportModel->getColumnList($properContextFormat);

@@ -6,39 +6,20 @@ use Doctrine\ORM\EntityNotFoundException;
 use Mautic\ApiBundle\Controller\CommonApiController;
 use Mautic\CoreBundle\Helper\InputHelper;
 use Mautic\CoreBundle\Helper\RandomHelper\RandomHelperInterface;
-use Mautic\EmailBundle\Entity\Email;
-use Mautic\EmailBundle\Model\EmailModel;
 use Mautic\EmailBundle\MonitoredEmail\Processor\Reply;
 use Mautic\LeadBundle\Controller\LeadAccessTrait;
 use Mautic\LeadBundle\Entity\Lead;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Event\ControllerEvent;
+use Symfony\Component\HttpKernel\Event\FilterControllerEvent;
 
-/**
- * @extends CommonApiController<Email>
- */
 class EmailApiController extends CommonApiController
 {
     use LeadAccessTrait;
 
-    /**
-     * @var EmailModel|null
-     */
-    protected $model = null;
-
-    /**
-     * @var array<string, mixed>
-     */
-    protected $extraGetEntitiesArguments = ['ignoreListJoin' => true];
-
-    public function initialize(ControllerEvent $event)
+    public function initialize(FilterControllerEvent $event)
     {
-        $emailModel = $this->getModel('email');
-        \assert($emailModel instanceof EmailModel);
-
-        $this->model            = $emailModel;
-        $this->entityClass      = Email::class;
+        $this->model            = $this->getModel('email');
+        $this->entityClass      = 'Mautic\EmailBundle\Entity\Email';
         $this->entityNameOne    = 'email';
         $this->entityNameMulti  = 'emails';
         $this->serializerGroups = ['emailDetails', 'categoryList', 'publishDetails', 'assetList', 'formList', 'leadListList'];
@@ -60,7 +41,7 @@ class EmailApiController extends CommonApiController
      *
      * @return Response
      */
-    public function getEntitiesAction(Request $request)
+    public function getEntitiesAction()
     {
         //get parent level only
         $this->listFilters[] = [
@@ -68,7 +49,7 @@ class EmailApiController extends CommonApiController
             'expr'   => 'isNull',
         ];
 
-        return parent::getEntitiesAction($request);
+        return parent::getEntitiesAction();
     }
 
     /**
@@ -80,7 +61,7 @@ class EmailApiController extends CommonApiController
      *
      * @throws \Symfony\Component\HttpKernel\Exception\NotFoundHttpException
      */
-    public function sendAction(Request $request, $id)
+    public function sendAction($id)
     {
         $entity = $this->model->getEntity($id);
 
@@ -92,8 +73,8 @@ class EmailApiController extends CommonApiController
             return $this->accessDenied();
         }
 
-        $lists = $request->request->get('lists', null);
-        $limit = $request->request->get('limit', null);
+        $lists = $this->request->request->get('lists', null);
+        $limit = $this->request->request->get('limit', null);
 
         list($count, $failed) = $this->model->sendEmailToLists($entity, $lists, $limit);
 
@@ -119,7 +100,7 @@ class EmailApiController extends CommonApiController
      *
      * @throws \Symfony\Component\HttpKernel\Exception\NotFoundHttpException
      */
-    public function sendLeadAction(Request $request, $id, $leadId)
+    public function sendLeadAction($id, $leadId)
     {
         $entity = $this->model->getEntity($id);
         if (null !== $entity) {
@@ -133,7 +114,7 @@ class EmailApiController extends CommonApiController
                 return $lead;
             }
 
-            $post       = $request->request->all();
+            $post       = $this->request->request->all();
             $tokens     = (!empty($post['tokens'])) ? $post['tokens'] : [];
             $assetsIds  = (!empty($post['assetAttachments'])) ? $post['assetAttachments'] : [];
             $response   = ['success' => false];
@@ -163,8 +144,6 @@ class EmailApiController extends CommonApiController
                     'tokens'            => $cleanTokens,
                     'assetAttachments'  => $assetsIds,
                     'return_errors'     => true,
-                    'ignoreDNC'         => true,
-                    'email_type'        => 'transactional',
                 ]
             );
 
@@ -187,8 +166,14 @@ class EmailApiController extends CommonApiController
      *
      * @return Response
      */
-    public function replyAction(Reply $replyService, RandomHelperInterface $randomHelper, $trackingHash)
+    public function replyAction($trackingHash)
     {
+        /** @var Reply $replyService */
+        $replyService = $this->get('mautic.message.processor.replier');
+
+        /** @var RandomHelperInterface $randomHelper */
+        $randomHelper = $this->get('mautic.helper.random');
+
         try {
             $replyService->createReplyByHash($trackingHash, "api-{$randomHelper->generate()}");
         } catch (EntityNotFoundException $e) {

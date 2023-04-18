@@ -17,7 +17,7 @@ use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class KickoffExecutioner implements ExecutionerInterface
 {
@@ -129,6 +129,8 @@ class KickoffExecutioner implements ExecutionerInterface
     {
         $this->logger->debug('CAMPAIGN: Triggering kickoff events');
 
+        $this->progressBar  = null;
+
         $this->rootEvents = $this->campaign->getRootEvents();
         $totalRootEvents  = $this->rootEvents->count();
         if (!$totalRootEvents) {
@@ -209,7 +211,7 @@ class KickoffExecutioner implements ExecutionerInterface
                 $this->executioner->executeEventsForContacts($rootEvents, $contacts, $this->counter);
             }
 
-            $this->kickoffContactFinder->clear($contacts);
+            $this->kickoffContactFinder->clear();
 
             if ($this->limiter->getContactId()) {
                 // No use making another call

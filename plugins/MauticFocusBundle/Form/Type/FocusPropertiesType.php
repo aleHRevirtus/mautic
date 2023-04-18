@@ -117,6 +117,11 @@ class FocusPropertiesType extends AbstractType
         }
     }
 
+    public function getBlockPrefix()
+    {
+        return 'focus_properties';
+    }
+
     /**
      * {@inheritdoc}
      */

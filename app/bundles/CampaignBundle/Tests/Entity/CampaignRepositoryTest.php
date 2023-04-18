@@ -4,80 +4,99 @@ declare(strict_types=1);
 
 namespace Mautic\CampaignBundle\Tests\Entity;
 
+use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Query\QueryBuilder;
 use Doctrine\ORM\AbstractQuery;
+use Doctrine\ORM\EntityManager;
+use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\Query;
-use Mautic\CampaignBundle\Entity\Campaign;
 use Mautic\CampaignBundle\Entity\CampaignRepository;
-use Mautic\CoreBundle\Test\Doctrine\RepositoryConfiguratorTrait;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
 class CampaignRepositoryTest extends TestCase
 {
-    use RepositoryConfiguratorTrait;
+    /**
+     * @var EntityManager|MockObject
+     */
+    private $entityManager;
 
     /**
-     * @var MockObject&QueryBuilder
+     * @var ClassMetadata|MockObject
      */
-    private $queryBuilder;
+    private $classMetadata;
 
-    private CampaignRepository $repository;
+    /**
+     * @var Connection|MockObject
+     */
+    private $connection;
+
+    /**
+     * @var CampaignRepository
+     */
+    private $repository;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->queryBuilder = $this->getMockBuilder(QueryBuilder::class)
+        $this->entityManager = $this->createMock(EntityManager::class);
+        $this->classMetadata = $this->createMock(ClassMetadata::class);
+        $this->connection    = $this->createMock(Connection::class);
+        $this->repository    = new CampaignRepository($this->entityManager, $this->classMetadata);
+    }
+
+    public function testFetchEmailIdsById(): void
+    {
+        $id          = 2;
+        $queryResult = [
+            1 => [
+                'channelId' => 1,
+            ],
+            2 => [
+                'channelId' => 2,
+            ],
+        ];
+
+        $expectedResult = [
+            1,
+            2,
+        ];
+
+        $queryBuilder = $this->getMockBuilder(QueryBuilder::class)
             ->disableOriginalConstructor()
             ->onlyMethods(['select', 'from', 'where', 'setParameter', 'andWhere'])
             ->addMethods(['getQuery'])
             ->getMock();
 
-        $this->repository = $this->configureRepository(Campaign::class);
-
-        $this->entityManager->method('createQueryBuilder')->willReturn($this->queryBuilder);
-    }
-
-    public function testFetchEmailIdsById(): void
-    {
-        $id = 2;
-
-        $queryResult = [
-            1 => ['channelId' => 1],
-            2 => ['channelId' => 2],
-        ];
-
-        $expectedResult = [1, 2];
-
         $this->entityManager
             ->method('createQueryBuilder')
-            ->willReturn($this->queryBuilder);
+            ->willReturn($queryBuilder);
 
-        $this->queryBuilder->expects(self::once())
+        $queryBuilder->expects(self::once())
             ->method('select')
             ->with('e.channelId')
-            ->willReturn($this->queryBuilder);
+            ->willReturn($queryBuilder);
 
-        $this->queryBuilder->expects(self::once())
+        $queryBuilder->expects(self::once())
             ->method('from')
             ->with('MauticCampaignBundle:Campaign', $this->repository->getTableAlias(), $this->repository->getTableAlias().'.id')
-            ->willReturn($this->queryBuilder);
+            ->willReturn($queryBuilder);
 
-        $this->queryBuilder->expects(self::once())
+        $queryBuilder->expects(self::once())
             ->method('where')
             ->with($this->repository->getTableAlias().'.id = :id')
-            ->willReturn($this->queryBuilder);
+            ->willReturn($queryBuilder);
 
-        $this->queryBuilder->expects(self::once())
+        $queryBuilder->expects(self::once())
             ->method('setParameter')
             ->with('id', $id)
-            ->willReturn($this->queryBuilder);
+            ->willReturn($queryBuilder);
 
-        $this->queryBuilder->expects(self::once())
+        $queryBuilder->expects(self::once())
             ->method('andWhere')
             ->with('e.channelId IS NOT NULL')
-            ->willReturn($this->queryBuilder);
+            ->willReturn($queryBuilder);
 
         $query = $this->getMockBuilder(AbstractQuery::class)
             ->disableOriginalConstructor()
@@ -89,7 +108,7 @@ class CampaignRepositoryTest extends TestCase
             ->with(Query::HYDRATE_ARRAY)
             ->willReturn($query);
 
-        $this->queryBuilder->expects(self::once())
+        $queryBuilder->expects(self::once())
             ->method('getQuery')
             ->willReturn($query);
 

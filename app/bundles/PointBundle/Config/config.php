@@ -5,23 +5,23 @@ return [
         'main' => [
             'mautic_pointtriggerevent_action' => [
                 'path'       => '/points/triggers/events/{objectAction}/{objectId}',
-                'controller' => 'Mautic\PointBundle\Controller\TriggerEventController::executeAction',
+                'controller' => 'MauticPointBundle:TriggerEvent:execute',
             ],
             'mautic_pointtrigger_index' => [
                 'path'       => '/points/triggers/{page}',
-                'controller' => 'Mautic\PointBundle\Controller\TriggerController::indexAction',
+                'controller' => 'MauticPointBundle:Trigger:index',
             ],
             'mautic_pointtrigger_action' => [
                 'path'       => '/points/triggers/{objectAction}/{objectId}',
-                'controller' => 'Mautic\PointBundle\Controller\TriggerController::executeAction',
+                'controller' => 'MauticPointBundle:Trigger:execute',
             ],
             'mautic_point_index' => [
                 'path'       => '/points/{page}',
-                'controller' => 'Mautic\PointBundle\Controller\PointController::indexAction',
+                'controller' => 'MauticPointBundle:Point:index',
             ],
             'mautic_point_action' => [
                 'path'       => '/points/{objectAction}/{objectId}',
-                'controller' => 'Mautic\PointBundle\Controller\PointController::executeAction',
+                'controller' => 'MauticPointBundle:Point:execute',
             ],
         ],
         'api' => [
@@ -29,30 +29,30 @@ return [
                 'standard_entity' => true,
                 'name'            => 'points',
                 'path'            => '/points',
-                'controller'      => 'Mautic\PointBundle\Controller\Api\PointApiController',
+                'controller'      => 'MauticPointBundle:Api\PointApi',
             ],
             'mautic_api_getpointactiontypes' => [
                 'path'       => '/points/actions/types',
-                'controller' => 'Mautic\PointBundle\Controller\Api\PointApiController::getPointActionTypesAction',
+                'controller' => 'MauticPointBundle:Api\PointApi:getPointActionTypes',
             ],
             'mautic_api_pointtriggersstandard' => [
                 'standard_entity' => true,
                 'name'            => 'triggers',
                 'path'            => '/points/triggers',
-                'controller'      => 'Mautic\PointBundle\Controller\Api\TriggerApiController',
+                'controller'      => 'MauticPointBundle:Api\TriggerApi',
             ],
             'mautic_api_getpointtriggereventtypes' => [
                 'path'       => '/points/triggers/events/types',
-                'controller' => 'Mautic\PointBundle\Controller\Api\TriggerApiController::getPointTriggerEventTypesAction',
+                'controller' => 'MauticPointBundle:Api\TriggerApi:getPointTriggerEventTypes',
             ],
             'mautic_api_pointtriggerdeleteevents' => [
                 'path'       => '/points/triggers/{triggerId}/events/delete',
-                'controller' => 'Mautic\PointBundle\Controller\Api\TriggerApiController::deletePointTriggerEventsAction',
+                'controller' => 'MauticPointBundle:Api\TriggerApi:deletePointTriggerEvents',
                 'method'     => 'DELETE',
             ],
             'mautic_api_adjustcontactpoints' => [
                 'path'       => '/contacts/{leadId}/points/{operator}/{delta}',
-                'controller' => 'Mautic\PointBundle\Controller\Api\PointApiController::adjustPointsAction',
+                'controller' => 'MauticPointBundle:Api\PointApi:adjustPoints',
                 'method'     => 'POST',
             ],
         ],
@@ -84,6 +84,68 @@ return [
     ],
 
     'services' => [
+        'events' => [
+            'mautic.point.subscriber' => [
+                'class'     => \Mautic\PointBundle\EventListener\PointSubscriber::class,
+                'arguments' => [
+                    'mautic.helper.ip_lookup',
+                    'mautic.core.model.auditlog',
+                ],
+            ],
+            'mautic.point.leadbundle.subscriber' => [
+                'class'     => \Mautic\PointBundle\EventListener\LeadSubscriber::class,
+                'arguments' => [
+                    'mautic.point.model.trigger',
+                    'translator',
+                    'mautic.lead.repository.points_change_log',
+                    'mautic.point.repository.lead_point_log',
+                    'mautic.point.repository.lead_trigger_log',
+                ],
+            ],
+            'mautic.point.search.subscriber' => [
+                'class'     => \Mautic\PointBundle\EventListener\SearchSubscriber::class,
+                'arguments' => [
+                    'mautic.point.model.point',
+                    'mautic.point.model.trigger',
+                    'mautic.security',
+                    'mautic.helper.templating',
+                ],
+            ],
+            'mautic.point.dashboard.subscriber' => [
+                'class'     => \Mautic\PointBundle\EventListener\DashboardSubscriber::class,
+                'arguments' => [
+                    'mautic.point.model.point',
+                ],
+            ],
+            'mautic.point.stats.subscriber' => [
+                'class'     => \Mautic\PointBundle\EventListener\StatsSubscriber::class,
+                'arguments' => [
+                    'mautic.security',
+                    'doctrine.orm.entity_manager',
+                ],
+            ],
+        ],
+        'forms' => [
+            'mautic.point.type.form' => [
+                'class'     => \Mautic\PointBundle\Form\Type\PointType::class,
+                'arguments' => ['mautic.security'],
+            ],
+            'mautic.point.type.action' => [
+                'class' => \Mautic\PointBundle\Form\Type\PointActionType::class,
+            ],
+            'mautic.pointtrigger.type.form' => [
+                'class'     => \Mautic\PointBundle\Form\Type\TriggerType::class,
+                'arguments' => [
+                  'mautic.security',
+                ],
+            ],
+            'mautic.pointtrigger.type.action' => [
+                'class' => \Mautic\PointBundle\Form\Type\TriggerEventType::class,
+            ],
+            'mautic.point.type.genericpoint_settings' => [
+                'class' => \Mautic\PointBundle\Form\Type\GenericPointSettingsType::class,
+            ],
+        ],
         'models' => [
             'mautic.point.model.point' => [
                 'class'     => \Mautic\PointBundle\Model\PointModel::class,

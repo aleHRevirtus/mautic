@@ -73,6 +73,14 @@ class PreferenceCenterListType extends AbstractType
     /**
      * {@inheritdoc}
      */
+    public function getBlockPrefix()
+    {
+        return 'preference_center_list';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function getParent()
     {
         return ChoiceType::class;

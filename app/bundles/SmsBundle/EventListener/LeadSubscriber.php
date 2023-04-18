@@ -7,7 +7,7 @@ use Mautic\LeadBundle\Event\LeadTimelineEvent;
 use Mautic\LeadBundle\LeadEvents;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\Routing\RouterInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class LeadSubscriber implements EventSubscriberInterface
 {
@@ -104,7 +104,7 @@ class LeadSubscriber implements EventSubscriberInterface
                             'stat'   => $stat,
                             'type'   => $state,
                         ],
-                        'contentTemplate' => '@MauticSms/SubscribedEvents\Timeline/index.html.twig',
+                        'contentTemplate' => 'MauticSmsBundle:SubscribedEvents\Timeline:index.html.php',
                         'icon'            => ('read' == $state) ? 'fa-message-o' : 'fa-commenting',
                         'contactId'       => $contactId,
                     ]

@@ -14,7 +14,7 @@ use Symfony\Component\Form\FormError;
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
 use Symfony\Component\OptionsResolver\OptionsResolver;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class IntegrationSyncSettingsFieldMappingsType extends AbstractType
 {
@@ -43,8 +43,11 @@ class IntegrationSyncSettingsFieldMappingsType extends AbstractType
             throw new InvalidFormOptionException('objects must be an array');
         }
 
+        /** @var ConfigFormSyncInterface $integrationObject */
         $integrationObject = $options['integrationObject'];
-        \assert($integrationObject instanceof ConfigFormSyncInterface);
+        if (!$integrationObject instanceof ConfigFormSyncInterface) {
+            throw new InvalidFormOptionException('integrationObject must be an instance of ConfigFormSyncInterface');
+        }
 
         $fieldFilterHelper = new FieldFilterHelper($integrationObject);
 

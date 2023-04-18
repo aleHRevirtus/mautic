@@ -4,7 +4,6 @@ namespace Mautic\LeadBundle\Controller;
 
 use Mautic\CoreBundle\Controller\CommonController;
 use Mautic\CoreBundle\Helper\InputHelper;
-use Mautic\CoreBundle\Twig\Helper\DateHelper;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -26,7 +25,7 @@ class AuditlogController extends CommonController
 
         $this->setListFilters();
 
-        $session = $request->getSession();
+        $session = $this->get('session');
         if ('POST' == $request->getMethod() && $request->request->has('search')) {
             $filters = [
                 'search'        => InputHelper::clean($request->request->get('search')),
@@ -57,15 +56,15 @@ class AuditlogController extends CommonController
                     'mauticContent' => 'leadAuditlog',
                     'auditLogCount' => $events['total'],
                 ],
-                'contentTemplate' => '@MauticLead/Auditlog/list.html.twig',
+                'contentTemplate' => 'MauticLeadBundle:Auditlog:list.html.php',
             ]
         );
     }
 
     /**
-     * @return array|Response
+     * @return array|\Symfony\Component\HttpFoundation\JsonResponse|\Symfony\Component\HttpFoundation\RedirectResponse|\Symfony\Component\HttpFoundation\StreamedResponse
      */
-    public function batchExportAction(Request $request, DateHelper $dateHelper, $leadId)
+    public function batchExportAction(Request $request, $leadId)
     {
         if (empty($leadId)) {
             return $this->accessDenied();
@@ -78,7 +77,7 @@ class AuditlogController extends CommonController
 
         $this->setListFilters();
 
-        $session = $request->getSession();
+        $session = $this->get('session');
         if ('POST' == $request->getMethod() && $request->request->has('search')) {
             $filters = [
                 'search'        => InputHelper::clean($request->request->get('search')),
@@ -95,9 +94,9 @@ class AuditlogController extends CommonController
             $session->get('mautic.lead.'.$leadId.'.auditlog.orderbydir'),
         ];
 
-        $dataType = $request->get('filetype', 'csv');
+        $dataType = $this->request->get('filetype', 'csv');
 
-        $resultsCallback = function ($event) use ($dateHelper) {
+        $resultsCallback = function ($event) {
             $eventLabel = (isset($event['eventLabel'])) ? $event['eventLabel'] : $event['eventType'];
             if (is_array($eventLabel)) {
                 $eventLabel = $eventLabel['label'];
@@ -106,7 +105,7 @@ class AuditlogController extends CommonController
             return [
                 'eventName'      => $eventLabel,
                 'eventType'      => isset($event['eventType']) ? $event['eventType'] : '',
-                'eventTimestamp' => $dateHelper->toText($event['timestamp'], 'local', 'Y-m-d H:i:s', true),
+                'eventTimestamp' => $this->get('mautic.helper.template.date')->toText($event['timestamp'], 'local', 'Y-m-d H:i:s', true),
             ];
         };
 

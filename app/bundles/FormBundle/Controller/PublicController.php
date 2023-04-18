@@ -4,14 +4,11 @@ namespace Mautic\FormBundle\Controller;
 
 use Mautic\CoreBundle\Controller\FormController as CommonFormController;
 use Mautic\CoreBundle\Helper\InputHelper;
-use Mautic\CoreBundle\Twig\Helper\DateHelper;
 use Mautic\FormBundle\Event\SubmissionEvent;
 use Mautic\FormBundle\Model\FormModel;
-use Mautic\FormBundle\Model\SubmissionModel;
 use Mautic\LeadBundle\Helper\TokenHelper;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -27,16 +24,16 @@ class PublicController extends CommonFormController
     /**
      * @return \Symfony\Component\HttpFoundation\RedirectResponse|Response
      */
-    public function submitAction(Request $request, DateHelper $dateTemplateHelper)
+    public function submitAction()
     {
-        if ('POST' !== $request->getMethod()) {
+        if ('POST' !== $this->request->getMethod()) {
             return $this->accessDenied();
         }
-        $isAjax        = $request->query->get('ajax', false);
+        $isAjax        = $this->request->query->get('ajax', false);
         $form          = null;
-        $post          = $request->request->get('mauticform');
+        $post          = $this->request->request->get('mauticform');
         $messengerMode = (!empty($post['messenger']));
-        $server        = $request->server->all();
+        $server        = $this->request->server->all();
         $return        = (isset($post['return'])) ? $post['return'] : false;
 
         if (empty($return)) {
@@ -50,7 +47,7 @@ class PublicController extends CommonFormController
             $query  = (false === strpos($return, '?')) ? '?' : '&';
         }
 
-        $translator = $this->translator;
+        $translator = $this->get('translator');
 
         if (!isset($post['formId']) && isset($post['formid'])) {
             $post['formId'] = $post['formid'];
@@ -75,6 +72,7 @@ class PublicController extends CommonFormController
 
                 //check to ensure the form is published
                 $status             = $form->getPublishStatus();
+                $dateTemplateHelper = $this->get('mautic.helper.template.date');
                 if ('pending' == $status) {
                     $error = $translator->trans(
                         'mautic.form.submit.error.pending',
@@ -94,15 +92,13 @@ class PublicController extends CommonFormController
                 } elseif ('published' != $status) {
                     $error = $translator->trans('mautic.form.submit.error.unavailable', [], 'flashes');
                 } else {
-                    $formSubmissionModel = $this->getModel('form.submission');
-                    \assert($formSubmissionModel instanceof SubmissionModel);
-                    $result = $formSubmissionModel->saveSubmission($post, $server, $form, $request, true);
+                    $result = $this->getModel('form.submission')->saveSubmission($post, $server, $form, $this->request, true);
                     if (!empty($result['errors'])) {
                         if ($messengerMode || $isAjax) {
                             $error = $result['errors'];
                         } else {
                             $error = ($result['errors']) ?
-                                $this->translator->trans('mautic.form.submission.errors').'<br /><ol><li>'.
+                                $this->get('translator')->trans('mautic.form.submission.errors').'<br /><ol><li>'.
                                 implode('</li><li>', $result['errors']).'</li></ol>' : false;
                         }
                     } elseif (!empty($result['callback'])) {
@@ -119,7 +115,7 @@ class PublicController extends CommonFormController
                                 $submissionEvent->setPostSubmitCallback($key, $callbackRequested);
                                 $submissionEvent->setContext($key);
 
-                                $this->dispatcher->dispatch($submissionEvent, $callbackRequested['eventName']);
+                                $this->get('event_dispatcher')->dispatch($callbackRequested['eventName'], $submissionEvent);
                             }
 
                             if ($submissionEvent->isPropagationStopped() && $submissionEvent->hasPostSubmitResponse()) {
@@ -202,7 +198,7 @@ class PublicController extends CommonFormController
             } else {
                 $response = json_encode($data);
 
-                return $this->render('@MauticForm//messenger.html.twig', ['response' => $response]);
+                return $this->render('MauticFormBundle::messenger.html.php', ['response' => $response]);
             }
         } else {
             if (!empty($error)) {
@@ -224,13 +220,13 @@ class PublicController extends CommonFormController
 
                     return $this->redirect($return);
                 } else {
-                    $msg = $this->translator->trans('mautic.form.submission.thankyou');
+                    $msg = $this->get('translator')->trans('mautic.form.submission.thankyou');
                 }
             } else {
                 $msg = $postActionProperty;
             }
 
-            $session = $request->getSession();
+            $session = $this->get('session');
             $session->set(
                 'mautic.emailbundle.message',
                 [
@@ -239,7 +235,7 @@ class PublicController extends CommonFormController
                 ]
             );
 
-            return $this->redirectToRoute('mautic_form_postmessage');
+            return $this->redirect($this->generateUrl('mautic_form_postmessage'));
         }
     }
 
@@ -248,9 +244,9 @@ class PublicController extends CommonFormController
      *
      * @return Response
      */
-    public function messageAction(Request $request)
+    public function messageAction()
     {
-        $session = $request->getSession();
+        $session = $this->get('session');
         $message = $session->get('mautic.emailbundle.message', []);
 
         $msg     = (!empty($message['message'])) ? $message['message'] : '';
@@ -262,7 +258,7 @@ class PublicController extends CommonFormController
             $this->factory->getHelper('template.assets')->addCustomDeclaration($analytics);
         }
 
-        $logicalName = $this->factory->getHelper('theme')->checkForTwigTemplate('@themes/'.$this->coreParametersHelper->get('theme').'/html/message.html.twig');
+        $logicalName = $this->factory->getHelper('theme')->checkForTwigTemplate(':'.$this->coreParametersHelper->get('theme').':message.html.php');
 
         return $this->render($logicalName, [
             'message'  => $msg,
@@ -281,12 +277,12 @@ class PublicController extends CommonFormController
      * @throws \Exception
      * @throws \Mautic\CoreBundle\Exception\FileNotFoundException
      */
-    public function previewAction(Request $request, $id = 0)
+    public function previewAction($id = 0)
     {
-        $model = $this->getModel('form.form');
-        \assert($model instanceof FormModel);
-        $objectId          = (empty($id)) ? (int) $request->get('id') : $id;
-        $css               = InputHelper::string($request->get('css'));
+        /** @var FormModel $model */
+        $objectId          = (empty($id)) ? (int) $this->request->get('id') : $id;
+        $css               = InputHelper::string($this->request->get('css'));
+        $model             = $this->getModel('form.form');
         $form              = $model->getEntity($objectId);
         $customStylesheets = (!empty($css)) ? explode(',', $css) : [];
         $template          = null;
@@ -326,7 +322,7 @@ class PublicController extends CommonFormController
         $viewParams['template'] = $template;
 
         if (!empty($template)) {
-            $logicalName  = $this->factory->getHelper('theme')->checkForTwigTemplate('@themes/'.$template.'/html/form.html.twig');
+            $logicalName  = $this->factory->getHelper('theme')->checkForTwigTemplate(':'.$template.':form.html.php');
             $assetsHelper = $this->factory->getHelper('template.assets');
             $analytics    = $this->factory->getHelper('template.analytics')->getCode();
 
@@ -348,7 +344,7 @@ class PublicController extends CommonFormController
             return $this->render($logicalName, $viewParams);
         }
 
-        return $this->render('@MauticForm//form.html.twig', $viewParams);
+        return $this->render('MauticFormBundle::form.html.php', $viewParams);
     }
 
     /**
@@ -356,21 +352,20 @@ class PublicController extends CommonFormController
      *
      * @return Response
      */
-    public function generateAction(Request $request)
+    public function generateAction()
     {
         // Don't store a visitor with this request
         defined('MAUTIC_NON_TRACKABLE_REQUEST') || define('MAUTIC_NON_TRACKABLE_REQUEST', 1);
 
-        $formId = (int) $request->get('id');
+        $formId = (int) $this->request->get('id');
 
         $model = $this->getModel('form.form');
-        \assert($model instanceof FormModel);
         $form  = $model->getEntity($formId);
         $js    = '';
 
         if (null !== $form) {
             $status = $form->getPublishStatus();
-            if ('published' === $status) {
+            if ('published' == $status) {
                 $js = $model->getAutomaticJavascript($form);
             }
         }
@@ -386,9 +381,9 @@ class PublicController extends CommonFormController
     /**
      * @return Response
      */
-    public function embedAction(Request $request)
+    public function embedAction()
     {
-        $formId = (int) $request->get('id');
+        $formId = (int) $this->request->get('id');
         /** @var FormModel $model */
         $model = $this->getModel('form');
         $form  = $model->getEntity($formId);
@@ -396,9 +391,9 @@ class PublicController extends CommonFormController
         if (null !== $form) {
             $status = $form->getPublishStatus();
             if ('published' === $status) {
-                if ($request->get('video')) {
+                if ($this->request->get('video')) {
                     return $this->render(
-                        '@MauticForm/Public/videoembed.html.twig',
+                        'MauticFormBundle:Public:videoembed.html.php',
                         ['form' => $form, 'fieldSettings' => $model->getCustomComponents()['fields']]
                     );
                 }

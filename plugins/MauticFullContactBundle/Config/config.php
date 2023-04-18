@@ -10,18 +10,42 @@ return [
         'public' => [
             'mautic_plugin_fullcontact_index' => [
                 'path'       => '/fullcontact/callback',
-                'controller' => 'MauticPlugin\MauticFullContactBundle\Controller\PublicController::callbackAction',
+                'controller' => 'MauticFullContactBundle:Public:callback',
             ],
         ],
         'main' => [
             'mautic_plugin_fullcontact_action' => [
                 'path'       => '/fullcontact/{objectAction}/{objectId}',
-                'controller' => 'MauticPlugin\MauticFullContactBundle\Controller\FullContactController::executeAction',
+                'controller' => 'MauticFullContactBundle:FullContact:execute',
             ],
         ],
     ],
 
     'services' => [
+        'events' => [
+            'mautic.plugin.fullcontact.button.subscriber' => [
+                'class'     => \MauticPlugin\MauticFullContactBundle\EventListener\ButtonSubscriber::class,
+                'arguments' => [
+                    'mautic.helper.integration',
+                    'translator',
+                    'router',
+                ],
+            ],
+            'mautic.plugin.fullcontact.lead.subscriber' => [
+                'class'     => \MauticPlugin\MauticFullContactBundle\EventListener\LeadSubscriber::class,
+                'arguments' => [
+                    'mautic.plugin.fullcontact.lookup_helper',
+                ],
+            ],
+        ],
+        'forms' => [
+            'mautic.form.type.fullcontact_lookup' => [
+                'class' => \MauticPlugin\MauticFullContactBundle\Form\Type\LookupType::class,
+            ],
+            'mautic.form.type.fullcontact_batch_lookup' => [
+                'class' => \MauticPlugin\MauticFullContactBundle\Form\Type\BatchLookupType::class,
+            ],
+        ],
         'others' => [
             'mautic.plugin.fullcontact.lookup_helper' => [
                 'class'     => 'MauticPlugin\MauticFullContactBundle\Helper\LookupHelper',

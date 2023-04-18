@@ -6,7 +6,7 @@ use Mautic\CoreBundle\Event\DetermineWinnerEvent;
 use Mautic\PageBundle\Entity\HitRepository;
 use Mautic\PageBundle\PageEvents;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class DetermineWinnerSubscriber implements EventSubscriberInterface
 {
@@ -108,7 +108,7 @@ class DetermineWinnerSubscriber implements EventSubscriberInterface
                     'winners'         => $winners,
                     'support'         => $support,
                     'basedOn'         => 'page.bouncerate',
-                    'supportTemplate' => '@MauticPage/SubscribedEvents\AbTest/bargraph.html.twig',
+                    'supportTemplate' => 'MauticPageBundle:SubscribedEvents\AbTest:bargraph.html.php',
                 ]);
 
                 return;
@@ -160,7 +160,7 @@ class DetermineWinnerSubscriber implements EventSubscriberInterface
                     'winners'         => $winners,
                     'support'         => $support,
                     'basedOn'         => 'page.dwelltime',
-                    'supportTemplate' => '@MauticPage/SubscribedEvents\AbTest/bargraph.html.twig',
+                    'supportTemplate' => 'MauticPageBundle:SubscribedEvents\AbTest:bargraph.html.php',
                 ]);
 
                 return;

@@ -3,33 +3,31 @@
 namespace Mautic\ConfigBundle\Event;
 
 use Mautic\CoreBundle\Helper\BundleHelper;
-use Symfony\Contracts\EventDispatcher\Event;
+use Symfony\Component\EventDispatcher\Event;
 
 class ConfigBuilderEvent extends Event
 {
     /**
-     * @var mixed[]
+     * @var array
      */
-    private array $forms = [];
+    private $forms = [];
 
     /**
-     * @var string[]
+     * @var array
      */
-    private array $formThemes = [
-        '@MauticConfig/FormTheme/_config_file_row.html.twig',
+    private $formThemes = [
+        'MauticConfigBundle:FormTheme',
     ];
 
-    private BundleHelper $bundleHelper;
+    /**
+     * @var BundleHelper
+     */
+    private $bundleHelper;
 
     /**
-     * @var string[]
+     * @var array
      */
-    protected array $encodedFields = [];
-
-    /**
-     * @var array<string> Array of field names which are not exist in local.php but are needed for generation other field
-     */
-    protected array $temporaryFields = [];
+    protected $encodedFields = [];
 
     public function __construct(BundleHelper $bundleHelper)
     {
@@ -130,25 +128,5 @@ class ConfigBuilderEvent extends Event
     public function getFileFields()
     {
         return $this->encodedFields;
-    }
-
-    /**
-     * Adds temporary fields for config.
-     *
-     * @param array<string> $fields
-     */
-    public function addTemporaryFields(array $fields): void
-    {
-        $this->temporaryFields = array_merge($this->temporaryFields, $fields);
-    }
-
-    /**
-     * Return a list of temporary fields.
-     *
-     * @return array<string>
-     */
-    public function getTemporaryFields(): array
-    {
-        return $this->temporaryFields;
     }
 }

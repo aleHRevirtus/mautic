@@ -4,14 +4,13 @@ namespace Mautic\LeadBundle\Controller;
 
 use Mautic\CoreBundle\Factory\PageHelperFactoryInterface;
 use Mautic\LeadBundle\Entity\LeadRepository;
-use Symfony\Component\HttpFoundation\Request;
 
 trait EntityContactsTrait
 {
     /**
      * @param string|int              $entityId
      * @param int                     $page
-     * @param string[]|string         $permission
+     * @param string                  $permission
      * @param string                  $sessionVar
      * @param string                  $entityJoinTable    Table to join to obtain list of related contacts or a DBAL QueryBuilder object defining custom joins
      * @param string|null             $dncChannel         Channel for this entity to get do not contact records for
@@ -30,8 +29,6 @@ trait EntityContactsTrait
      * @return mixed
      */
     protected function generateContactsGrid(
-        Request $request,
-        PageHelperFactoryInterface $pageHelperFactory,
         $entityId,
         $page,
         $permission,
@@ -50,7 +47,7 @@ trait EntityContactsTrait
         \DateTimeInterface $dateFrom = null,
         \DateTimeInterface $dateTo = null
     ) {
-        if ($permission && !$this->security->isGranted($permission)) {
+        if ($permission && !$this->get('mautic.security')->isGranted($permission)) {
             return $this->accessDenied();
         }
 
@@ -61,23 +58,25 @@ trait EntityContactsTrait
         }
 
         // Apply filters
-        if ('POST' == $request->getMethod()) {
+        if ('POST' == $this->request->getMethod()) {
             $this->setListFilters($sessionVar.'.contact');
         }
 
-        $search = $request->get('search', $request->getSession()->get('mautic.'.$sessionVar.'.contact.filter', ''));
-        $request->getSession()->set('mautic.'.$sessionVar.'.contact.filter', $search);
+        $search = $this->request->get('search', $this->get('session')->get('mautic.'.$sessionVar.'.contact.filter', ''));
+        $this->get('session')->set('mautic.'.$sessionVar.'.contact.filter', $search);
 
-        $pageHelper = $pageHelperFactory->make("mautic.{$sessionVar}", $page);
+        /** @var PageHelperFactoryInterface $pageHelperFacotry */
+        $pageHelperFacotry = $this->get('mautic.page.helper.factory');
+        $pageHelper        = $pageHelperFacotry->make("mautic.{$sessionVar}", $page);
 
         $filter     = ['string' => $search, 'force' => []];
-        $orderBy    = $orderBy ?: $request->getSession()->get('mautic.'.$sessionVar.'.contact.orderby', 'l.id');
-        $orderByDir = $orderByDir ?: $request->getSession()->get('mautic.'.$sessionVar.'.contact.orderbydir', 'DESC');
+        $orderBy    = $orderBy ?: $this->get('session')->get('mautic.'.$sessionVar.'.contact.orderby', 'l.id');
+        $orderByDir = $orderByDir ?: $this->get('session')->get('mautic.'.$sessionVar.'.contact.orderbydir', 'DESC');
 
         //set limits
-        $limit = $request->getSession()->get(
+        $limit = $this->get('session')->get(
             'mautic.'.$sessionVar.'.contact.limit',
-            $this->coreParametersHelper->get('default_pagelimit')
+            $this->get('mautic.helper.core_parameters')->get('default_pagelimit')
         );
 
         $start = (1 === $page) ? 0 : (($page - 1) * $limit);
@@ -128,7 +127,7 @@ trait EntityContactsTrait
                 [
                     'returnUrl'         => $returnUrl,
                     'viewParameters'    => ['page' => $lastPage, 'objectId' => $entityId],
-                    'contentTemplate'   => '@MauticLead/Lead/grid.html.twig',
+                    'contentTemplate'   => 'MauticLeadBundle:Lead:grid.html.php',
                     'forwardController' => false,
                     'passthroughVars'   => [
                         'mauticContent' => $sessionVar.'Contacts',
@@ -164,7 +163,7 @@ trait EntityContactsTrait
                     'noContactList'   => $dnc,
                     'target'          => $paginationTarget,
                 ],
-                'contentTemplate' => '@MauticLead/Lead/grid.html.twig',
+                'contentTemplate' => 'MauticLeadBundle:Lead:grid.html.php',
                 'passthroughVars' => [
                     'mauticContent' => $sessionVar.'Contacts',
                     'route'         => false,

@@ -13,4 +13,9 @@ class TwitterAbstractType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options)
     {
     }
+
+    public function getBlockPrefix()
+    {
+        return 'twitter_abstract';
+    }
 }

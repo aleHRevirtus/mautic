@@ -3,7 +3,6 @@
 namespace Mautic\LeadBundle\Controller;
 
 use Mautic\LeadBundle\Entity\Lead;
-use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Class LeadAccessTrait.
@@ -18,7 +17,7 @@ trait LeadAccessTrait
      * @param bool   $isPlugin
      * @param string $intgegration
      *
-     * @return Response|Lead
+     * @return \Symfony\Component\HttpFoundation\JsonResponse|\Symfony\Component\HttpFoundation\RedirectResponse|Lead
      */
     protected function checkLeadAccess($leadId, $action, $isPlugin = false, $integration = '')
     {
@@ -34,14 +33,14 @@ trait LeadAccessTrait
         if (null === $lead || !$lead->getId()) {
             if (method_exists($this, 'postActionRedirect')) {
                 //set the return URL
-                $page      = $this->getCurrentRequest()->getSession()->get($isPlugin ? 'mautic.'.$integration.'.page' : 'mautic.lead.page', 1);
+                $page      = $this->get('session')->get($isPlugin ? 'mautic.'.$integration.'.page' : 'mautic.lead.page', 1);
                 $returnUrl = $this->generateUrl($isPlugin ? 'mautic_plugin_timeline_index' : 'mautic_contact_index', ['page' => $page]);
 
                 return $this->postActionRedirect(
                     [
                         'returnUrl'       => $returnUrl,
                         'viewParameters'  => ['page' => $page],
-                        'contentTemplate' => $isPlugin ? 'Mautic\LeadBundle\Controller\LeadController::pluginIndexAction' : 'Mautic\LeadBundle\Controller\LeadController::indexAction',
+                        'contentTemplate' => $isPlugin ? 'MauticLeadBundle:Lead:pluginIndex' : 'MauticLeadBundle:Lead:index',
                         'passthroughVars' => [
                             'activeLink'    => $isPlugin ? '#mautic_plugin_timeline_index' : '#mautic_contact_index',
                             'mauticContent' => 'leadTimeline',
@@ -58,7 +57,7 @@ trait LeadAccessTrait
             } else {
                 return $this->notFound('mautic.contact.error.notfound');
             }
-        } elseif (!$this->security->hasEntityAccess(
+        } elseif (!$this->get('mautic.security')->hasEntityAccess(
             'lead:leads:'.$action.'own',
             'lead:leads:'.$action.'other',
             $lead->getPermissionUser()
@@ -107,7 +106,7 @@ trait LeadAccessTrait
         }
 
         foreach ($leads as $lead) {
-            if (!$this->security->hasEntityAccess(
+            if (!$this->get('mautic.security')->hasEntityAccess(
                 'lead:leads:'.$action.'own',
                 'lead:leads:'.$action.'other',
                 $lead->getOwner()

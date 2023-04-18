@@ -121,6 +121,14 @@ class FormController extends AbstractStandardFormController
     /**
      * @return mixed
      */
+    protected function getControllerBase()
+    {
+        return $this->deprecatedTemplateBase;
+    }
+
+    /**
+     * @return mixed
+     */
     protected function getTranslationBase()
     {
         return $this->deprecatedTranslationBase;

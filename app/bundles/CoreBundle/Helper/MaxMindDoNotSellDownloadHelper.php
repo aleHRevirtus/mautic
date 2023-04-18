@@ -11,7 +11,7 @@ class MaxMindDoNotSellDownloadHelper
     /**
      * @const REMOTE_DATA
      */
-    public const REMOTE_DATA = 'https://api.maxmind.com/privacy/exclusions';
+    const REMOTE_DATA = 'https://api.maxmind.com/privacy/exclusions';
 
     /**
      * @var array<string>

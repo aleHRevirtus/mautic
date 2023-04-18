@@ -10,7 +10,7 @@ class ListLead
     /**
      * @var string
      */
-    public const TABLE_NAME = 'lead_lists_leads';
+    const TABLE_NAME = 'lead_lists_leads';
 
     /**
      * @var LeadList

@@ -22,12 +22,8 @@ use Mautic\LeadBundle\Entity\Lead;
 use Mautic\LeadBundle\Model\ListModel;
 use Mautic\LeadBundle\Tracker\ContactTracker;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 
-/**
- * @extends CommonFormModel<Campaign>
- */
 class CampaignModel extends CommonFormModel
 {
     /**
@@ -120,6 +116,7 @@ class CampaignModel extends CommonFormModel
      * {@inheritdoc}
      *
      * @param object      $entity
+     * @param object      $formFactory
      * @param string|null $action
      * @param array       $options
      *
@@ -127,7 +124,7 @@ class CampaignModel extends CommonFormModel
      *
      * @throws \Symfony\Component\HttpKernel\Exception\NotFoundHttpException
      */
-    public function createForm($entity, FormFactoryInterface $formFactory, $action = null, $options = [])
+    public function createForm($entity, $formFactory, $action = null, $options = [])
     {
         if (!$entity instanceof Campaign) {
             throw new MethodNotAllowedHttpException(['Campaign']);
@@ -177,10 +174,10 @@ class CampaignModel extends CommonFormModel
      *
      * @throws \Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException
      */
-    protected function dispatchEvent($action, &$entity, $isNew = false, \Symfony\Contracts\EventDispatcher\Event $event = null)
+    protected function dispatchEvent($action, &$entity, $isNew = false, \Symfony\Component\EventDispatcher\Event $event = null)
     {
         if ($entity instanceof \Mautic\CampaignBundle\Entity\Lead) {
-            return null;
+            return;
         }
 
         if (!$entity instanceof Campaign) {
@@ -209,7 +206,7 @@ class CampaignModel extends CommonFormModel
                 $event = new Events\CampaignEvent($entity, $isNew);
             }
 
-            $this->dispatcher->dispatch($event, $name);
+            $this->dispatcher->dispatch($name, $event);
 
             return $event;
         } else {

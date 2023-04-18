@@ -7,7 +7,7 @@ use Mautic\CoreBundle\Helper\FileProperties;
 use Mautic\ReportBundle\Entity\Report;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Routing\Router;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class MessageSchedule
 {

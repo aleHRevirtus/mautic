@@ -6,7 +6,7 @@ namespace Mautic\LeadBundle\Event;
 
 use Mautic\CoreBundle\Event\AbstractCustomRequestEvent;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class LeadListFiltersChoicesEvent extends AbstractCustomRequestEvent
 {

@@ -6,8 +6,8 @@ use Doctrine\DBAL\Query\QueryBuilder;
 use Mautic\CoreBundle\Event\TokenReplacementEvent;
 use Mautic\CoreBundle\Helper\Chart\ChartQuery;
 use Mautic\CoreBundle\Helper\Chart\LineChart;
+use Mautic\CoreBundle\Helper\TemplatingHelper;
 use Mautic\CoreBundle\Model\FormModel;
-use Mautic\FormBundle\ProgressiveProfiling\DisplayManager;
 use Mautic\LeadBundle\Entity\Lead;
 use Mautic\LeadBundle\Model\FieldModel;
 use Mautic\LeadBundle\Tracker\ContactTracker;
@@ -17,20 +17,16 @@ use MauticPlugin\MauticFocusBundle\Entity\Stat;
 use MauticPlugin\MauticFocusBundle\Event\FocusEvent;
 use MauticPlugin\MauticFocusBundle\FocusEvents;
 use MauticPlugin\MauticFocusBundle\Form\Type\FocusType;
+use Symfony\Component\EventDispatcher\ContainerAwareEventDispatcher;
+use Symfony\Component\EventDispatcher\Event;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
-use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
-use Symfony\Contracts\EventDispatcher\Event;
-use Twig\Environment;
 
-/**
- * @extends FormModel<Focus>
- */
 class FocusModel extends FormModel
 {
     /**
-     * @var EventDispatcherInterface
+     * @var ContainerAwareEventDispatcher
      */
     protected $dispatcher;
 
@@ -45,9 +41,9 @@ class FocusModel extends FormModel
     protected $trackableModel;
 
     /**
-     * @var Environment
+     * @var TemplatingHelper
      */
-    protected $twig;
+    protected $templating;
 
     /**
      * @var FieldModel
@@ -65,14 +61,14 @@ class FocusModel extends FormModel
     public function __construct(
         \Mautic\FormBundle\Model\FormModel $formModel,
         TrackableModel $trackableModel,
-        Environment $twig,
+        TemplatingHelper $templating,
         EventDispatcherInterface $dispatcher,
         FieldModel $leadFieldModel,
-        ContactTracker $contactTracker,
+        ContactTracker $contactTracker
     ) {
         $this->formModel      = $formModel;
         $this->trackableModel = $trackableModel;
-        $this->twig           = $twig;
+        $this->templating     = $templating;
         $this->dispatcher     = $dispatcher;
         $this->leadFieldModel = $leadFieldModel;
         $this->contactTracker = $contactTracker;
@@ -97,13 +93,14 @@ class FocusModel extends FormModel
     /**
      * {@inheritdoc}
      *
-     * @param object      $entity
-     * @param string|null $action
-     * @param array       $options
+     * @param object                              $entity
+     * @param \Symfony\Component\Form\FormFactory $formFactory
+     * @param null                                $action
+     * @param array                               $options
      *
      * @throws NotFoundHttpException
      */
-    public function createForm($entity, FormFactoryInterface $formFactory, $action = null, $options = [])
+    public function createForm($entity, $formFactory, $action = null, $options = [])
     {
         if (!$entity instanceof Focus) {
             throw new MethodNotAllowedHttpException(['Focus']);
@@ -195,10 +192,10 @@ class FocusModel extends FormModel
                 );
             }
 
-            $javascript = $this->twig->render(
-                '@MauticFocus/Builder/generate.js.twig',
+            $javascript = $this->templating->getTemplating()->render(
+                'MauticFocusBundle:Builder:generate.js.php',
                 [
-                    'focus'    => $focus,
+                    'focus'    => $focusArray,
                     'preview'  => $isPreview,
                     'clickUrl' => $url,
                 ]
@@ -220,16 +217,15 @@ class FocusModel extends FormModel
         // Replace tokens to ensure clickthroughs, lead tokens etc are appropriate
         $lead       = $this->contactTracker->getContact();
         $tokenEvent = new TokenReplacementEvent($cached['focus'], $lead, ['focus_id' => $focus->getId()]);
-        $this->dispatcher->dispatch($tokenEvent, FocusEvents::TOKEN_REPLACEMENT);
+        $this->dispatcher->dispatch(FocusEvents::TOKEN_REPLACEMENT, $tokenEvent);
         $focusContent = $tokenEvent->getContent();
-
         $focusContent = str_replace('{focus_form}', $cached['form'], $focusContent, $formReplaced);
         if (!$formReplaced && !empty($cached['form'])) {
             // Form token missing so just append the form
             $focusContent .= $cached['form'];
         }
 
-        $focusContent = twig_escape_filter($this->twig, $focusContent, 'js');
+        $focusContent = $this->templating->getTemplating()->getEngine('MauticFocusBundle:Builder:content.html.php')->escape($focusContent, 'js');
 
         return str_replace('{focus_content}', $focusContent, $cached['js']);
     }
@@ -245,19 +241,15 @@ class FocusModel extends FormModel
         $form = (!empty($focus['form']) && 'form' === $focus['type']) ? $this->formModel->getEntity($focus['form']) : null;
 
         if (isset($focus['html_mode'])) {
-            $htmlMode = $focus['htmlMode'] = $focus['html_mode'];
+            $htmlMode = $focus['html_mode'];
         } elseif (isset($focus['htmlMode'])) {
             $htmlMode = $focus['htmlMode'];
         } else {
             $htmlMode = 'basic';
         }
 
-        if (isset($focus[$htmlMode])) {
-            $focus[$htmlMode] = htmlspecialchars_decode($focus[$htmlMode]);
-        }
-
-        $content = $this->twig->render(
-            '@MauticFocus/Builder/content.html.twig',
+        $content = $this->templating->getTemplating()->render(
+            'MauticFocusBundle:Builder:content.html.php',
             [
                 'focus'    => $focus,
                 'preview'  => $isPreview,
@@ -266,17 +258,11 @@ class FocusModel extends FormModel
             ]
         );
 
-        // Form has to be generated outside of the content or else the form src
-        // will be converted to clickables
+        // Form has to be generated outside of the content or else the form src will be converted to clickables
         $fields             = $form ? $form->getFields()->toArray() : [];
         [$pages, $lastPage] = $this->formModel->getPages($fields);
-        $displayManager     = $viewOnlyFields = null;
-        if ($form) {
-            $viewOnlyFields = $this->formModel->getCustomComponents()['viewOnlyFields'];
-            $displayManager = new DisplayManager($form, !empty($viewOnlyFields) ? $viewOnlyFields : []);
-        }
-        $formContent        = (!empty($form)) ? $this->twig->render(
-            '@MauticFocus/Builder/form.html.twig',
+        $formContent        = (!empty($form)) ? $this->templating->getTemplating()->render(
+            'MauticFocusBundle:Builder:form.html.php',
             [
                 'form'           => $form,
                 'pages'          => $pages,
@@ -286,8 +272,7 @@ class FocusModel extends FormModel
                 'preview'        => $isPreview,
                 'contactFields'  => $this->leadFieldModel->getFieldListWithProperties(),
                 'companyFields'  => $this->leadFieldModel->getFieldListWithProperties('company'),
-                'viewOnlyFields' => $viewOnlyFields,
-                'displayManager' => $displayManager,
+                'viewOnlyFields' => $this->formModel->getCustomComponents()['viewOnlyFields'],
             ]
         ) : '';
 
@@ -329,26 +314,28 @@ class FocusModel extends FormModel
     /**
      * Add a stat entry.
      *
-     * @param mixed                                         $type
-     * @param null                                          $data
-     * @param array<int|string|array<int|string>>|Lead|null $lead
+     * @param      $type
+     * @param null $data
+     * @param null $lead
+     *
+     * @return Stat
      */
-    public function addStat(Focus $focus, $type, $data = null, $lead = null): ?Stat
+    public function addStat(Focus $focus, $type, $data = null, $lead = null)
     {
         if (empty($lead)) {
-            return null;
+            return;
         }
 
         if ($lead instanceof Lead && !$lead->getId()) {
-            return null;
+            return;
         }
 
         if (is_array($lead)) {
             if (empty($lead['id'])) {
-                return null;
+                return;
             }
 
-            $lead = $this->em->getReference(Lead::class, $lead['id']);
+            $lead = $this->em->getReference('MauticLeadBundle:Lead', $lead['id']);
         }
 
         switch ($type) {
@@ -381,7 +368,7 @@ class FocusModel extends FormModel
     /**
      * {@inheritdoc}
      *
-     * @return Event|void|null
+     * @return bool|FocusEvent|void
      *
      * @throws \Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException
      */
@@ -414,7 +401,7 @@ class FocusModel extends FormModel
                 $event->setEntityManager($this->em);
             }
 
-            $this->dispatcher->dispatch($event, $name);
+            $this->dispatcher->dispatch($name, $event);
 
             return $event;
         } else {

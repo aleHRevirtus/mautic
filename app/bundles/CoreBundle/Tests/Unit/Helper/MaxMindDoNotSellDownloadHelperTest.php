@@ -14,7 +14,7 @@ final class MaxMindDoNotSellDownloadHelperTest extends \PHPUnit\Framework\TestCa
     /**
      * @const TEMP_TEST_FILE
      */
-    public const TEMP_TEST_FILE = './DoNotSellTest.json';
+    const TEMP_TEST_FILE = './DoNotSellTest.json';
 
     /**
      * @var \PHPUnit\Framework\MockObject\MockObject|LoggerInterface

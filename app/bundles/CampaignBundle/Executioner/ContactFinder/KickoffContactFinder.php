@@ -3,11 +3,9 @@
 namespace Mautic\CampaignBundle\Executioner\ContactFinder;
 
 use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
 use Mautic\CampaignBundle\Entity\CampaignRepository;
 use Mautic\CampaignBundle\Executioner\ContactFinder\Limiter\ContactLimiter;
 use Mautic\CampaignBundle\Executioner\Exception\NoContactsFoundException;
-use Mautic\LeadBundle\Entity\Lead;
 use Mautic\LeadBundle\Entity\LeadRepository;
 use Psr\Log\LoggerInterface;
 
@@ -85,11 +83,9 @@ class KickoffContactFinder
 
     /**
      * Clear Lead entities from memory.
-     *
-     * @param Collection<int, Lead> $contacts
      */
-    public function clear(Collection $contacts): void
+    public function clear()
     {
-        $this->leadRepository->detachEntities($contacts->toArray());
+        $this->leadRepository->clear();
     }
 }

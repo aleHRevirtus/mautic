@@ -8,7 +8,7 @@ use Mautic\AssetBundle\Entity\Download;
 use Mautic\CoreBundle\Event\DetermineWinnerEvent;
 use Mautic\EmailBundle\Entity\Email;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class DetermineWinnerSubscriber implements EventSubscriberInterface
 {
@@ -120,7 +120,7 @@ class DetermineWinnerSubscriber implements EventSubscriberInterface
                     'winners'         => $winners,
                     'support'         => $support,
                     'basedOn'         => 'asset.downloads',
-                    'supportTemplate' => '@MauticPage/SubscribedEvents\AbTest/bargraph.html.twig',
+                    'supportTemplate' => 'MauticPageBundle:SubscribedEvents\AbTest:bargraph.html.php',
                 ]);
 
                 return;

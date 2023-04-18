@@ -7,7 +7,6 @@ use Mautic\PluginBundle\Event\PluginIntegrationAuthRedirectEvent;
 use Mautic\PluginBundle\PluginEvents;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
-use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Class AuthController.
@@ -19,10 +18,10 @@ class AuthController extends FormController
      *
      * @return JsonResponse
      */
-    public function authCallbackAction(Request $request, $integration)
+    public function authCallbackAction($integration)
     {
-        $isAjax  = $request->isXmlHttpRequest();
-        $session = $request->getSession();
+        $isAjax  = $this->request->isXmlHttpRequest();
+        $session = $this->get('session');
 
         /** @var \Mautic\PluginBundle\Helper\IntegrationHelper $integrationHelper */
         $integrationHelper = $this->factory->getHelper('integration');
@@ -77,11 +76,11 @@ class AuthController extends FormController
      *
      * @return \Symfony\Component\HttpFoundation\Response
      */
-    public function authStatusAction(Request $request, $integration)
+    public function authStatusAction($integration)
     {
-        $postAuthTemplate = '@MauticPlugin/Auth/postauth.html.twig';
+        $postAuthTemplate = 'MauticPluginBundle:Auth:postauth.html.php';
 
-        $session     = $request->getSession();
+        $session     = $this->get('session');
         $postMessage = $session->get('mautic.integration.postauth.message');
         $userData    = [];
 
@@ -119,11 +118,11 @@ class AuthController extends FormController
 
         /** @var \Mautic\PluginBundle\Integration\AbstractIntegration $integrationObject */
         $event = $this->dispatcher->dispatch(
+            PluginEvents::PLUGIN_ON_INTEGRATION_AUTH_REDIRECT,
             new PluginIntegrationAuthRedirectEvent(
                 $integrationObject,
                 $integrationObject->getAuthLoginUrl()
-            ),
-            PluginEvents::PLUGIN_ON_INTEGRATION_AUTH_REDIRECT
+            )
         );
         $oauthUrl = $event->getAuthUrl();
 

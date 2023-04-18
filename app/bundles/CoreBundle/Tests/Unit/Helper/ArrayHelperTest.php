@@ -88,26 +88,4 @@ class ArrayHelperTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals('Custom first', key($flippedArray['group1']));
         $this->assertEquals('first', end($flippedArray['group1']));
     }
-
-    public function testFlatten(): void
-    {
-        $multidimensionalArray = [
-            'first' => 'Custom first',
-            [
-                'second' => 'Custom second',
-                [
-                    'third' => 'Custom third',
-                ],
-            ],
-        ];
-
-        Assert::assertSame(
-            [
-                'first'  => 'Custom first',
-                'second' => 'Custom second',
-                'third'  => 'Custom third',
-            ],
-            ArrayHelper::flatten($multidimensionalArray)
-        );
-    }
 }

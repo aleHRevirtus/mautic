@@ -7,13 +7,13 @@ namespace Mautic\IntegrationsBundle\Command;
 use Mautic\IntegrationsBundle\Exception\InvalidValueException;
 use Mautic\IntegrationsBundle\Sync\DAO\Sync\InputOptionsDAO;
 use Mautic\IntegrationsBundle\Sync\SyncService\SyncServiceInterface;
-use Symfony\Component\Console\Command\Command;
+use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
-class SyncCommand extends Command
+class SyncCommand extends ContainerAwareCommand
 {
     public const NAME = 'mautic:integrations:sync';
 
@@ -29,6 +29,9 @@ class SyncCommand extends Command
         $this->syncService = $syncService;
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function configure(): void
     {
         $this->setName(self::NAME)
@@ -86,18 +89,15 @@ class SyncCommand extends Command
                 null,
                 InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY,
                 'Provide option pass to InputOptions Example: --option="type:1" --option="channel_id:1"'
-            )
-            ->addOption(
-                '--disable-activity-push',
-                null,
-                InputOption::VALUE_NONE,
-                'Notate if the sync should disable the activities sync if the integration supports it'
             );
 
         parent::configure();
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    /**
+     * {@inheritdoc}
+     */
+    protected function execute(InputInterface $input, OutputInterface $output)
     {
         $io = new SymfonyStyle($input, $output);
 

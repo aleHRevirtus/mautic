@@ -1,105 +1,113 @@
 <?php
 
-declare(strict_types=1);
-
 namespace Mautic\CoreBundle\Helper;
 
-use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-use Symfony\Component\HttpFoundation\Cookie;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
-use Symfony\Component\HttpKernel\Event\ResponseEvent;
-use Symfony\Component\HttpKernel\KernelEvents;
 
-class CookieHelper implements EventSubscriberInterface
+class CookieHelper
 {
-    private ?string $path;
-    private ?string $domain;
-    private bool $secure;
-    private bool $httponly;
-    private RequestStack $requestStack;
-    private ?Request $request = null;
+    const SAME_SITE       = '; SameSite=';
+    const SAME_SITE_VALUE = 'None';
+    private $path;
+    private $domain;
+    private $secure       = true;
+    private $httponly     = false;
+    private $request;
 
     /**
-     * @var array<string, Cookie>
+     * @param $cookiePath
+     * @param $cookieDomain
+     * @param $cookieSecure
+     * @param $cookieHttp
      */
-    private array $cookies = [];
-
-    public function __construct(string $cookiePath, ?string $cookieDomain, bool $cookieSecure, bool $cookieHttp, RequestStack $requestStack)
+    public function __construct($cookiePath, $cookieDomain, $cookieSecure, $cookieHttp, RequestStack $requestStack)
     {
-        $this->path         = $cookiePath;
-        $this->domain       = $cookieDomain;
-        $this->secure       = $cookieSecure;
-        $this->httponly     = $cookieHttp;
-        $this->requestStack = $requestStack;
+        $this->path     = $cookiePath;
+        $this->domain   = $cookieDomain;
+        $this->secure   = $cookieSecure;
+        $this->httponly = $cookieHttp;
+
+        $this->request = $requestStack->getCurrentRequest();
+        if (('' === $this->secure || null === $this->secure) && $this->request) {
+            $this->secure = $requestStack->getCurrentRequest()->isSecure();
+        }
     }
 
     /**
-     * @param mixed $default
+     * @param string $key
+     * @param mixed  $default
      *
      * @return mixed
      */
-    public function getCookie(string $key, $default = null)
+    public function getCookie($key, $default = null)
     {
-        if (null === $this->getRequest()) {
+        if (null === $this->request) {
             return $default;
         }
 
-        return $this->getRequest()->cookies->get($key, $default);
+        return $this->request->cookies->get($key, $default);
     }
 
     /**
-     * @param int|string|float|bool|object|null $value
+     * @param      $name
+     * @param      $value
+     * @param int  $expire
+     * @param null $path
+     * @param null $domain
+     * @param null $secure
+     * @param bool $httponly
      */
-    public function setCookie(string $name, $value, ?int $expire = 1800, ?string $path = null, ?string $domain = null, ?bool $secure = null, ?bool $httponly = null): void
+    public function setCookie($name, $value, $expire = 1800, $path = null, $domain = null, $secure = null, $httponly = null)
     {
-        if (null !== $value) {
-            $value = (string) $value;
+        if (null == $this->request || (defined('MAUTIC_TEST_ENV') && MAUTIC_TEST_ENV)) {
+            return true;
         }
 
-        $cookie = Cookie::create(
-            $name,
-            $value,
-            null !== $expire ? time() + $expire : 0,
-            $path ?? $this->path,
-            $domain ?? $this->domain,
-            $secure ?? $this->secure,
-            $httponly ?? $this->httponly,
-            false,
-            ($secure ?? $this->secure) ? Cookie::SAMESITE_LAX : null
-        );
+        // If https, SameSite equals None
+        $sameSiteNoneText             = '';
+        $sameSiteNoneTextGreaterPhp73 = null;
+        if (true === $secure or (null === $secure and true === $this->secure)) {
+            $sameSiteNoneText             = self::SAME_SITE.self::SAME_SITE_VALUE;
+            $sameSiteNoneTextGreaterPhp73 = self::SAME_SITE_VALUE;
+        }
 
-        $this->cookies[$name] = $cookie;
+        if (version_compare(phpversion(), '7.3', '>=')) {
+            setcookie(
+                $name,
+                $value,
+                [
+                    'expires'  => ($expire) ? (int) (time() + $expire) : null,
+                    'path'     => ((null == $path) ? $this->path : $path),
+                    'domain'   => (null == $domain) ? $this->domain : $domain,
+                    'secure'   => (null == $secure) ? $this->secure : $secure,
+                    'httponly' => (null == $httponly) ? $this->httponly : $httponly,
+                    'samesite' => $sameSiteNoneTextGreaterPhp73,
+                ]
+            );
+        } else {
+            setcookie(
+                $name,
+                $value,
+                ($expire) ? (int) (time() + $expire) : null,
+                ((null == $path) ? $this->path : $path).$sameSiteNoneText,
+                (null == $domain) ? $this->domain : $domain,
+                (null == $secure) ? $this->secure : $secure,
+                (null == $httponly) ? $this->httponly : $httponly
+            );
+        }
     }
 
     /**
      * Deletes a cookie by expiring it.
+     *
+     * @param           $name
+     * @param null      $path
+     * @param null      $domain
+     * @param null      $secure
+     * @param bool|true $httponly
      */
-    public function deleteCookie(string $name, ?string $path = null, ?string $domain = null, ?bool $secure = null, ?bool $httponly = null): void
+    public function deleteCookie($name, $path = null, $domain = null, $secure = null, $httponly = null)
     {
         $this->setCookie($name, '', -86400, $path, $domain, $secure, $httponly);
-    }
-
-    public function onResponse(ResponseEvent $event): void
-    {
-        foreach ($this->cookies as $cookie) {
-            $event->getResponse()->headers->setCookie($cookie);
-        }
-    }
-
-    public static function getSubscribedEvents(): array
-    {
-        return [
-            KernelEvents::RESPONSE => 'onResponse',
-        ];
-    }
-
-    private function getRequest(): ?Request
-    {
-        if (null !== $this->request) {
-            return $this->request;
-        }
-
-        return $this->request = $this->requestStack->getMasterRequest();
     }
 }

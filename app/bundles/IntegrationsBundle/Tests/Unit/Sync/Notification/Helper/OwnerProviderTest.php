@@ -69,6 +69,7 @@ class OwnerProviderTest extends TestCase
         $this->dispatcher->expects($this->once())
             ->method('dispatch')
             ->with(
+                IntegrationEvents::INTEGRATION_FIND_OWNER_IDS,
                 $this->callback(function (InternalObjectOwnerEvent $event) use ($internalObject) {
                     $this->assertSame($internalObject, $event->getObject());
                     $this->assertSame([123], $event->getObjectIds());
@@ -77,8 +78,7 @@ class OwnerProviderTest extends TestCase
                     $event->setOwners([$event->getObjectIds()[0] => 456]);
 
                     return true;
-                }),
-                IntegrationEvents::INTEGRATION_FIND_OWNER_IDS
+                })
             );
 
         $this->assertSame([123 => 456], $this->ownerProvider->getOwnersForObjectIds(Contact::NAME, [123]));

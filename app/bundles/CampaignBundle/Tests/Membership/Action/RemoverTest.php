@@ -7,8 +7,8 @@ use Mautic\CampaignBundle\Entity\LeadEventLogRepository;
 use Mautic\CampaignBundle\Entity\LeadRepository;
 use Mautic\CampaignBundle\Membership\Action\Remover;
 use Mautic\CampaignBundle\Membership\Exception\ContactAlreadyRemovedFromCampaignException;
-use Mautic\CoreBundle\Twig\Helper\DateHelper;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Mautic\CoreBundle\Templating\Helper\DateHelper;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class RemoverTest extends \PHPUnit\Framework\TestCase
 {
@@ -70,14 +70,7 @@ class RemoverTest extends \PHPUnit\Framework\TestCase
     private function getRemover()
     {
         $translator     = $this->createMock(TranslatorInterface::class);
-        $dateTimeHelper = new DateHelper(
-            'Y-m-d H:i:s',
-            'Y-m-d H:i',
-            'Y-m-d',
-            'H:i',
-            $translator,
-            $this->createMock(\Mautic\CoreBundle\Helper\CoreParametersHelper::class)
-        );
+        $dateTimeHelper = $this->createMock(DateHelper::class);
 
         return new Remover($this->leadRepository, $this->leadEventLogRepository, $translator, $dateTimeHelper);
     }

@@ -61,11 +61,7 @@ class OwnerSubscriberTest extends \PHPUnit\Framework\TestCase
 
     public function testOnEmailBuild()
     {
-        $leadModel = $this->getMockFactory()->getModel('lead');
-        if (!$leadModel instanceof LeadModel) {
-            self::fail('The mock does not contain LeadModel.');
-        }
-        $subscriber = new OwnerSubscriber($leadModel, $this->getMockTranslator());
+        $subscriber = new OwnerSubscriber($this->getMockFactory()->getModel('lead'), $this->getMockTranslator());
         $event      = new EmailBuilderEvent($this->getMockTranslator());
         $subscriber->onEmailBuild($event);
 
@@ -77,36 +73,29 @@ class OwnerSubscriberTest extends \PHPUnit\Framework\TestCase
 
     public function testOnEmailGenerate()
     {
-        $leadModel = $this->getMockFactory()->getModel('lead');
-        if (!$leadModel instanceof LeadModel) {
-            self::fail('The mock does not contain LeadModel.');
-        }
-        $subscriber = new OwnerSubscriber($leadModel, $this->getMockTranslator());
+        $subscriber = new OwnerSubscriber($this->getMockFactory()->getModel('lead'), $this->getMockTranslator());
 
         $mailer = $this->getMockMailer($this->contacts[0]);
-        $event  = $this->getEmailSendEvent($mailer);
+        $event  = new EmailSendEvent($mailer);
         $subscriber->onEmailGenerate($event);
 
         $tokens = $event->getTokens();
 
-        $this->assertArrayNotHasKey('{ownerfield=email}', $tokens);
+        $this->assertArrayHasKey('{ownerfield=email}', $tokens);
         $this->assertArrayHasKey('{ownerfield=firstname}', $tokens);
         $this->assertArrayHasKey('{ownerfield=lastname}', $tokens);
 
+        $this->assertEquals('owner3@owner.com', $tokens['{ownerfield=email}']);
         $this->assertEquals('John', $tokens['{ownerfield=firstname}']);
         $this->assertEquals('S&#39;mith', $tokens['{ownerfield=lastname}']);
     }
 
     public function testOnEmailGenerateWithFakeOwner()
     {
-        $leadModel = $this->getMockFactory()->getModel('lead');
-        if (!$leadModel instanceof LeadModel) {
-            self::fail('The mock does not contain LeadModel.');
-        }
-        $subscriber = new OwnerSubscriber($leadModel, $this->getMockTranslator());
+        $subscriber = new OwnerSubscriber($this->getMockFactory()->getModel('lead'), $this->getMockTranslator());
 
         $mailer = $this->getMockMailer($this->contacts[1]);
-        $event  = $this->getEmailSendEvent($mailer);
+        $event  = new EmailSendEvent($mailer);
         $subscriber->onEmailGenerate($event);
 
         $tokens = $event->getTokens();
@@ -117,14 +106,10 @@ class OwnerSubscriberTest extends \PHPUnit\Framework\TestCase
 
     public function testOnEmailGenerateWithNoOwner()
     {
-        $leadModel = $this->getMockFactory()->getModel('lead');
-        if (!$leadModel instanceof LeadModel) {
-            self::fail('The mock does not contain LeadModel.');
-        }
-        $subscriber = new OwnerSubscriber($leadModel, $this->getMockTranslator());
+        $subscriber = new OwnerSubscriber($this->getMockFactory()->getModel('lead'), $this->getMockTranslator());
 
         $mailer = $this->getMockMailer($this->contacts[4]);
-        $event  = $this->getEmailSendEvent($mailer);
+        $event  = new EmailSendEvent($mailer);
         $subscriber->onEmailGenerate($event);
 
         $tokens = $event->getTokens();
@@ -139,32 +124,24 @@ class OwnerSubscriberTest extends \PHPUnit\Framework\TestCase
 
     public function testOnEmailDisplay()
     {
-        $leadModel = $this->getMockFactory()->getModel('lead');
-        if (!$leadModel instanceof LeadModel) {
-            self::fail('The mock does not contain LeadModel.');
-        }
-        $subscriber = new OwnerSubscriber($leadModel, $this->getMockTranslator());
+        $subscriber = new OwnerSubscriber($this->getMockFactory()->getModel('lead'), $this->getMockTranslator());
 
         $mailer = $this->getMockMailer($this->contacts[0]);
-        $event  = $this->getEmailSendEvent($mailer);
+        $event  = new EmailSendEvent($mailer);
         $subscriber->onEmailDisplay($event);
 
         $tokens = $event->getTokens();
-        $this->assertArrayNotHasKey('{ownerfield=email}', $tokens);
+        $this->assertArrayHasKey('{ownerfield=email}', $tokens);
         $this->assertArrayHasKey('{ownerfield=firstname}', $tokens);
         $this->assertArrayHasKey('{ownerfield=lastname}', $tokens);
     }
 
     public function testOnEmailDisplayWithFakeOwner()
     {
-        $leadModel = $this->getMockFactory()->getModel('lead');
-        if (!$leadModel instanceof LeadModel) {
-            self::fail('The mock does not contain LeadModel.');
-        }
-        $subscriber = new OwnerSubscriber($leadModel, $this->getMockTranslator());
+        $subscriber = new OwnerSubscriber($this->getMockFactory()->getModel('lead'), $this->getMockTranslator());
 
         $mailer = $this->getMockMailer($this->contacts[1]);
-        $event  = $this->getEmailSendEvent($mailer);
+        $event  = new EmailSendEvent($mailer);
         $subscriber->onEmailDisplay($event);
 
         $tokens = $event->getTokens();
@@ -175,14 +152,10 @@ class OwnerSubscriberTest extends \PHPUnit\Framework\TestCase
 
     public function testOnEmailDisplayWithNoOwner()
     {
-        $leadModel = $this->getMockFactory()->getModel('lead');
-        if (!$leadModel instanceof LeadModel) {
-            self::fail('The mock does not contain LeadModel.');
-        }
-        $subscriber = new OwnerSubscriber($leadModel, $this->getMockTranslator());
+        $subscriber = new OwnerSubscriber($this->getMockFactory()->getModel('lead'), $this->getMockTranslator());
 
         $mailer = $this->getMockMailer($this->contacts[4]);
-        $event  = $this->getEmailSendEvent($mailer);
+        $event  = new EmailSendEvent($mailer);
         $subscriber->onEmailDisplay($event);
 
         $tokens = $event->getTokens();
@@ -306,13 +279,5 @@ class OwnerSubscriberTest extends \PHPUnit\Framework\TestCase
             ->will($this->returnValue(false));
 
         return $translator;
-    }
-
-    protected function getEmailSendEvent(MailHelper $mailer): EmailSendEvent
-    {
-        $event = new EmailSendEvent($mailer);
-        $event->setContent('<html><body>{ownerfield=firstname} {ownerfield=lastname}</body></html>');
-
-        return $event;
     }
 }

@@ -4,7 +4,6 @@ namespace Mautic\LeadBundle\Report;
 
 use Mautic\LeadBundle\Entity\LeadField;
 use Mautic\LeadBundle\Model\FieldModel;
-use Mautic\LeadBundle\Model\LeadModel;
 use Mautic\LeadBundle\Model\ListModel;
 use Mautic\UserBundle\Model\UserModel;
 
@@ -25,17 +24,11 @@ class FieldsBuilder
      */
     private $userModel;
 
-    /**
-     * @var LeadModel
-     */
-    private $leadModel;
-
-    public function __construct(FieldModel $fieldModel, ListModel $listModel, UserModel $userModel, LeadModel $leadModel)
+    public function __construct(FieldModel $fieldModel, ListModel $listModel, UserModel $userModel)
     {
         $this->fieldModel = $fieldModel;
         $this->listModel  = $listModel;
         $this->userModel  = $userModel;
-        $this->leadModel  = $leadModel;
     }
 
     /**
@@ -81,24 +74,6 @@ class FieldsBuilder
             'list'      => $list,
             'operators' => [
                 'eq' => 'mautic.core.operator.equals',
-            ],
-        ];
-
-        $aTags     = [];
-        $aTagsList = $this->leadModel->getTagList();
-        foreach ($aTagsList as $aTemp) {
-            $aTags[$aTemp['value']] = $aTemp['label'];
-        }
-
-        $filters['tag'] = [
-            'label'     => 'mautic.core.filter.tags',
-            'type'      => 'multiselect',
-            'list'      => $aTags,
-            'operators' => [
-                'in'       => 'mautic.core.operator.in',
-                'notIn'    => 'mautic.core.operator.notin',
-                'empty'    => 'mautic.core.operator.isempty',
-                'notEmpty' => 'mautic.core.operator.isnotempty',
             ],
         ];
 
@@ -158,6 +133,7 @@ class FieldsBuilder
             'l.owner_id' => [
                 'label' => 'mautic.lead.report.owner_id',
                 'type'  => 'int',
+                'link'  => 'mautic_user_action',
             ],
             'u.first_name' => [
                 'label' => 'mautic.lead.report.owner_firstname',

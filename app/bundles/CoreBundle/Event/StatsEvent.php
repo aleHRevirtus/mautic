@@ -2,9 +2,10 @@
 
 namespace Mautic\CoreBundle\Event;
 
+use Doctrine\ORM\EntityRepository;
 use Mautic\CoreBundle\Entity\CommonRepository;
 use Mautic\UserBundle\Entity\User;
-use Symfony\Contracts\EventDispatcher\Event;
+use Symfony\Component\EventDispatcher\Event;
 
 /**
  * Class StatsEvent.
@@ -83,7 +84,7 @@ class StatsEvent extends Event
     /**
      * Source repository to fetch the results from.
      *
-     * @var CommonRepository<object>
+     * @var CommonRepository
      */
     protected $repository;
 
@@ -112,8 +113,8 @@ class StatsEvent extends Event
     /**
      * Returns if event is for this table.
      *
-     * @param                               $table
-     * @param CommonRepository<object>|null $repository
+     * @param                       $table
+     * @param EntityRepository|null $repository
      *
      * @return bool
      */
@@ -129,8 +130,6 @@ class StatsEvent extends Event
 
     /**
      * Set the source repository to fetch the results from.
-     *
-     * @param CommonRepository<object> $repository
      *
      * @return string
      */

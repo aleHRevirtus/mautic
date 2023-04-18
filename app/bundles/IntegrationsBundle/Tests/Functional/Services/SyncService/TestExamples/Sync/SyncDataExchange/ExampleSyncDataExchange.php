@@ -17,12 +17,12 @@ use Mautic\IntegrationsBundle\Tests\Functional\Services\SyncService\TestExamples
 
 class ExampleSyncDataExchange implements SyncDataExchangeInterface
 {
-    public const OBJECT_LEAD = 'integration_lead';
+    const OBJECT_LEAD = 'integration_lead';
 
     /**
      * @var array
      */
-    public const FIELDS = [
+    const FIELDS = [
         'id'            => [
             'label' => 'ID',
             'type'  => NormalizedValueDAO::INT_TYPE,

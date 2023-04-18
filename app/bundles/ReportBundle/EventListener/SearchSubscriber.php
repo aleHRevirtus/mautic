@@ -4,11 +4,11 @@ namespace Mautic\ReportBundle\EventListener;
 
 use Mautic\CoreBundle\CoreEvents;
 use Mautic\CoreBundle\Event as MauticEvents;
+use Mautic\CoreBundle\Helper\TemplatingHelper;
 use Mautic\CoreBundle\Helper\UserHelper;
 use Mautic\CoreBundle\Security\Permissions\CorePermissions;
 use Mautic\ReportBundle\Model\ReportModel;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-use Twig\Environment;
 
 class SearchSubscriber implements EventSubscriberInterface
 {
@@ -28,20 +28,20 @@ class SearchSubscriber implements EventSubscriberInterface
     private $security;
 
     /**
-     * @var Environment
+     * @var TemplatingHelper
      */
-    private $twig;
+    private $templating;
 
     public function __construct(
         UserHelper $userHelper,
         ReportModel $reportModel,
         CorePermissions $security,
-        Environment $twig
+        TemplatingHelper $templating
     ) {
         $this->userHelper  = $userHelper;
         $this->reportModel = $reportModel;
         $this->security    = $security;
-        $this->twig        = $twig;
+        $this->templating  = $templating;
     }
 
     /**
@@ -88,20 +88,20 @@ class SearchSubscriber implements EventSubscriberInterface
                 $results = [];
 
                 foreach ($items as $item) {
-                    $results[] = $this->twig->render(
-                        '@MauticReport/SubscribedEvents\Search/global.html.twig',
+                    $results[] = $this->templating->getTemplating()->renderResponse(
+                        'MauticReportBundle:SubscribedEvents\Search:global.html.php',
                         ['item' => $item]
-                    );
+                    )->getContent();
                 }
                 if ($count > 5) {
-                    $results[] = $this->twig->render(
-                        '@MauticReport/SubscribedEvents\Search/global.html.twig',
+                    $results[] = $this->templating->getTemplating()->renderResponse(
+                        'MauticReportBundle:SubscribedEvents\Search:global.html.php',
                         [
                             'showMore'     => true,
                             'searchString' => $str,
                             'remaining'    => ($count - 5),
                         ]
-                    );
+                    )->getContent();
                 }
                 $results['count'] = $count;
                 $event->addResults('mautic.report.reports', $results);

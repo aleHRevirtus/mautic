@@ -25,7 +25,7 @@ class ConfigSubscriber implements EventSubscriberInterface
             'bundle'     => 'SmsBundle',
             'formAlias'  => 'smsconfig',
             'formType'   => ConfigType::class,
-            'formTheme'  => '@MauticSms/FormTheme/Config/_config_smsconfig_widget.html.twig',
+            'formTheme'  => 'MauticSmsBundle:FormTheme\Config',
             'parameters' => $event->getParametersFromConfig('MauticSmsBundle'),
         ]);
     }

@@ -419,24 +419,6 @@ class ContactSegmentFilterTest extends TestCase
         self::assertEquals($doesColumnSupportEmptyValue, $filter->doesColumnSupportEmptyValue());
     }
 
-    public function testBatchLimitersAreSetCorrectly(): void
-    {
-        $filter = new ContactSegmentFilter(
-            $this->contactSegmentFilterCrate,
-            $this->filterDecorator,
-            $this->tableSchemaColumnCache,
-            $this->filterQueryBuilder,
-            [
-                'minId' => 1,
-                'maxId' => 1,
-            ]
-        );
-        self::assertSame([
-            'minId' => 1,
-            'maxId' => 1,
-        ], $filter->getBatchLimiters());
-    }
-
     /**
      * @return iterable<array<bool|string>>
      */

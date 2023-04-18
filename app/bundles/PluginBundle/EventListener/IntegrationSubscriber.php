@@ -5,7 +5,7 @@ namespace Mautic\PluginBundle\EventListener;
 use DOMDocument;
 use Mautic\PluginBundle\Event\PluginIntegrationRequestEvent;
 use Mautic\PluginBundle\PluginEvents;
-use Psr\Log\LoggerInterface;
+use Monolog\Logger;
 use Symfony\Component\Console\Output\ConsoleOutput;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
@@ -16,11 +16,11 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 class IntegrationSubscriber implements EventSubscriberInterface
 {
     /**
-     * @var LoggerInterface
+     * @var Logger
      */
     private $logger;
 
-    public function __construct(LoggerInterface $logger)
+    public function __construct(Logger $logger)
     {
         $this->logger = $logger;
     }

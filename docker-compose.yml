@@ -1,0 +1,26 @@
+version: '3'
+services:
+  db:
+    image: mysql:5.7
+    volumes:
+      - db_data:/var/lib/mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root1324
+      MYSQL_DATABASE: mauticdb
+      MYSQL_USER: mautic_user
+      MYSQL_PASSWORD: mautic1324
+  mautic:
+    depends_on:
+      - db
+    image: mautic/mautic:latest
+    ports:
+      - "8080:80"
+    restart: always
+    environment:
+      MAUTIC_DB_HOST: db:3306
+      MAUTIC_DB_USER: mautic_user
+      MAUTIC_DB_PASSWORD: mautic1324
+      MAUTIC_DB_NAME: mauticdb
+volumes:
+  db_data:

@@ -4,33 +4,30 @@ namespace Mautic\SmsBundle\Controller\Api;
 
 use Mautic\ApiBundle\Controller\CommonApiController;
 use Mautic\LeadBundle\Controller\LeadAccessTrait;
-use Mautic\SmsBundle\Entity\Sms;
 use Mautic\SmsBundle\Model\SmsModel;
-use Mautic\SmsBundle\Sms\TransportChain;
-use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Event\ControllerEvent;
+use Symfony\Component\HttpKernel\Event\FilterControllerEvent;
 
 /**
- * @extends CommonApiController<Sms>
+ * Class SmsApiController.
  */
 class SmsApiController extends CommonApiController
 {
     use LeadAccessTrait;
 
     /**
-     * @var SmsModel|null
+     * @var SmsModel
      */
-    protected $model = null;
+    protected $model;
 
-    public function initialize(ControllerEvent $event)
+    /**
+     * {@inheritdoc}
+     */
+    public function initialize(FilterControllerEvent $event)
     {
-        $smsModel = $this->getModel('sms');
-        \assert($smsModel instanceof SmsModel);
-
-        $this->model           = $smsModel;
-        $this->entityClass     = Sms::class;
+        $this->model           = $this->getModel('sms');
+        $this->entityClass     = 'Mautic\SmsBundle\Entity\Sms';
         $this->entityNameOne   = 'sms';
         $this->entityNameMulti = 'smses';
 
@@ -43,9 +40,9 @@ class SmsApiController extends CommonApiController
      *
      * @return JsonResponse|Response
      */
-    public function sendAction(TransportChain $transportChain, LoggerInterface $mauticLogger, $id, $contactId)
+    public function sendAction($id, $contactId)
     {
-        if (!$transportChain->getEnabledTransports()) {
+        if (!$this->get('mautic.sms.transport_chain')->getEnabledTransports()) {
             return new JsonResponse(json_encode(['error' => ['message' => 'SMS transport is disabled.', 'code' => Response::HTTP_EXPECTATION_FAILED]]));
         }
 
@@ -61,12 +58,13 @@ class SmsApiController extends CommonApiController
             return $this->accessDenied();
         }
 
-        $mauticLogger->debug("Sending SMS #{$id} to contact #{$contactId}", ['originator' => 'api']);
+        $this->get('monolog.logger.mautic')
+             ->addDebug("Sending SMS #{$id} to contact #{$contactId}", ['originator' => 'api']);
 
         try {
             $response = $this->model->sendSms($message, $contact, ['channel' => 'api'])[$contact->getId()];
         } catch (\Exception $e) {
-            $mauticLogger->error($e->getMessage(), ['error' => (array) $e]);
+            $this->get('monolog.logger.mautic')->addError($e->getMessage(), ['error' => (array) $e]);
 
             return new Response('Interval server error', Response::HTTP_INTERNAL_SERVER_ERROR);
         }
@@ -74,13 +72,13 @@ class SmsApiController extends CommonApiController
         $success = !empty($response['sent']);
 
         if (!$success) {
-            $mauticLogger->error('Failed to send SMS.', ['error' => $response['status']]);
+            $this->get('monolog.logger.mautic')->addError('Failed to send SMS.', ['error' => $response['status']]);
         }
 
         $view = $this->view(
             [
                 'success' => $success,
-                'status'  => $this->translator->trans($response['status']),
+                'status'  => $this->get('translator')->trans($response['status']),
                 'result'  => $response,
                 'errors'  => $success ? [] : [['message' => $response['status']]],
             ],

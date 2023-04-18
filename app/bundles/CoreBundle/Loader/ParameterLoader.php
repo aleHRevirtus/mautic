@@ -2,8 +2,6 @@
 
 namespace Mautic\CoreBundle\Loader;
 
-use Mautic\MessengerBundle\Loader\EnvVars\MessengerEnvLoader;
-use Symfony\Component\Dotenv\Dotenv;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\HttpFoundation\ParameterBag;
 
@@ -74,15 +72,9 @@ class ParameterLoader
         EnvVars\SessionEnvVars::load($this->parameterBag, $defaultParameters, $envVariables);
         EnvVars\SiteUrlEnvVars::load($this->parameterBag, $defaultParameters, $envVariables);
         EnvVars\TwigEnvVars::load($this->parameterBag, $defaultParameters, $envVariables);
-        MessengerEnvLoader::load($this->parameterBag, $defaultParameters, $envVariables);
 
         // Load the values into the environment for cache use
-        $dotenv = new Dotenv(false);
-        foreach ($envVariables->all() as $key => $value) {
-            if (null === $value) {
-                $envVariables->set($key, '');
-            }
-        }
+        $dotenv = new \Symfony\Component\Dotenv\Dotenv();
         $dotenv->populate($envVariables->all());
     }
 
@@ -101,7 +93,7 @@ class ParameterLoader
             return $root.'/config/local.php';
         }
 
-        $paths['local_config'] = str_replace('%kernel.project_dir%', $root.'/..', $paths['local_config']);
+        $paths['local_config'] = str_replace('%kernel.root_dir%', $root, $paths['local_config']);
 
         if ($updateDefaultParameters) {
             self::$defaultParameters['local_config_path'] = $paths['local_config'];

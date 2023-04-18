@@ -4,9 +4,11 @@ namespace Mautic\CampaignBundle\Event;
 
 use Mautic\CampaignBundle\Entity\LeadEventLog;
 use Mautic\LeadBundle\Entity\Lead;
-use Symfony\Contracts\EventDispatcher\Event;
+use Symfony\Component\EventDispatcher\Event;
 
 /**
+ * Class CampaignExecutionEvent.
+ *
  * @deprecated 2.13.0; to be removed in 3.0
  */
 class CampaignExecutionEvent extends Event

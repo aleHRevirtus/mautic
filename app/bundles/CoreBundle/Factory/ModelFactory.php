@@ -3,12 +3,8 @@
 namespace Mautic\CoreBundle\Factory;
 
 use Mautic\CoreBundle\Model\AbstractCommonModel;
-use Mautic\CoreBundle\Model\MauticModelInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
-/**
- * @template M of object
- */
 class ModelFactory
 {
     private $container;
@@ -19,9 +15,11 @@ class ModelFactory
     }
 
     /**
-     * @return AbstractCommonModel<M>
+     * @param $modelNameKey
+     *
+     * @return AbstractCommonModel
      */
-    public function getModel(string $modelNameKey): MauticModelInterface
+    public function getModel($modelNameKey)
     {
         // Shortcut for models with the same name as the bundle
         if (false === strpos($modelNameKey, '.')) {

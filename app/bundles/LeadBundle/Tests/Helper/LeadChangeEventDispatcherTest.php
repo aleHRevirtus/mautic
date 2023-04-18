@@ -29,8 +29,8 @@ class LeadChangeEventDispatcherTest extends \PHPUnit\Framework\TestCase
         $dispatcher->expects($this->once())
             ->method('dispatch')
             ->with(
-                $event,
-                LeadEvents::LEAD_IDENTIFIED
+                LeadEvents::LEAD_IDENTIFIED,
+                $event
             );
 
         $leadEventDispatcher = new LeadChangeEventDispatcher($dispatcher);
@@ -53,8 +53,8 @@ class LeadChangeEventDispatcherTest extends \PHPUnit\Framework\TestCase
         $dispatcher->expects($this->once())
             ->method('dispatch')
             ->with(
-                $pointsEvent,
-                LeadEvents::LEAD_POINTS_CHANGE
+                LeadEvents::LEAD_POINTS_CHANGE,
+                $pointsEvent
             );
 
         $leadEventDispatcher = new LeadChangeEventDispatcher($dispatcher);
@@ -119,8 +119,8 @@ class LeadChangeEventDispatcherTest extends \PHPUnit\Framework\TestCase
         $dispatcher->expects($this->once())
             ->method('dispatch')
             ->with(
-                $pointsEvent,
-                LeadEvents::LEAD_POINTS_CHANGE
+                LeadEvents::LEAD_POINTS_CHANGE,
+                $pointsEvent
             );
 
         $leadEventDispatcher = new LeadChangeEventDispatcher($dispatcher);
@@ -163,8 +163,8 @@ class LeadChangeEventDispatcherTest extends \PHPUnit\Framework\TestCase
         $dispatcher->expects($this->once())
             ->method('dispatch')
             ->with(
-                $utmTagsEvent,
-                LeadEvents::LEAD_UTMTAGS_ADD
+                LeadEvents::LEAD_UTMTAGS_ADD,
+                $utmTagsEvent
             );
 
         $leadEventDispatcher = new LeadChangeEventDispatcher($dispatcher);
@@ -189,8 +189,8 @@ class LeadChangeEventDispatcherTest extends \PHPUnit\Framework\TestCase
         $dispatcher->expects($this->once())
             ->method('dispatch')
             ->with(
-                $dncEvent,
-                LeadEvents::CHANNEL_SUBSCRIPTION_CHANGED
+                LeadEvents::CHANNEL_SUBSCRIPTION_CHANGED,
+                $dncEvent
             );
 
         $leadEventDispatcher = new LeadChangeEventDispatcher($dispatcher);

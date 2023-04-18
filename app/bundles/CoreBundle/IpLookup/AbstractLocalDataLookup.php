@@ -15,12 +15,12 @@ abstract class AbstractLocalDataLookup extends AbstractLookup implements IpLooku
     /**
      * @const TAR_CACHE_FOLDER
      */
-    public const TAR_CACHE_FOLDER = 'unpack';
+    const TAR_CACHE_FOLDER = 'unpack';
 
     /**
      * @const TAR_TEMP_FILE
      */
-    public const TAR_TEMP_FILE = 'temp.tar.gz';
+    const TAR_TEMP_FILE = 'temp.tar.gz';
 
     /**
      * Path to the local data store.

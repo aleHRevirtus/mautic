@@ -9,7 +9,7 @@ use Mautic\EmailBundle\Entity\Email;
 use Mautic\EmailBundle\Entity\Stat;
 use Mautic\PageBundle\Entity\Hit;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class DetermineWinnerSubscriber implements EventSubscriberInterface
 {
@@ -120,7 +120,7 @@ class DetermineWinnerSubscriber implements EventSubscriberInterface
                     'winners'         => $winners,
                     'support'         => $support,
                     'basedOn'         => 'email.openrate',
-                    'supportTemplate' => '@MauticPage/SubscribedEvents\AbTest/bargraph.html.twig',
+                    'supportTemplate' => 'MauticPageBundle:SubscribedEvents\AbTest:bargraph.html.php',
                 ]);
 
                 return;
@@ -221,7 +221,7 @@ class DetermineWinnerSubscriber implements EventSubscriberInterface
                     'winners'         => $winners,
                     'support'         => $support,
                     'basedOn'         => 'email.clickthrough',
-                    'supportTemplate' => '@MauticPage/SubscribedEvents\AbTest/bargraph.html.twig',
+                    'supportTemplate' => 'MauticPageBundle:SubscribedEvents\AbTest:bargraph.html.php',
                 ]);
 
                 return;

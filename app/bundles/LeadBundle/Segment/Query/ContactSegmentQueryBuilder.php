@@ -22,8 +22,6 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
  */
 class ContactSegmentQueryBuilder
 {
-    use LeadBatchLimiterTrait;
-
     /** @var EntityManager */
     private $entityManager;
 
@@ -141,11 +139,13 @@ class ContactSegmentQueryBuilder
     /**
      * Restrict the query to NEW members of segment.
      *
-     * @param array<string, mixed> $batchLimiters
+     * @param int $segmentId
+     *
+     * @return QueryBuilder
      *
      * @throws QueryException
      */
-    public function addNewContactsRestrictions(QueryBuilder $queryBuilder, int $segmentId, array $batchLimiters = []): QueryBuilder
+    public function addNewContactsRestrictions(QueryBuilder $queryBuilder, $segmentId)
     {
         $leadsTableAlias    = $queryBuilder->getTableAlias(MAUTIC_TABLE_PREFIX.'leads');
         $expr               = $queryBuilder->expr();
@@ -158,20 +158,22 @@ class ContactSegmentQueryBuilder
             ->andWhere($expr->eq($tableAlias.'.leadlist_id', $segmentIdParameter));
 
         $queryBuilder->setParameter($segmentIdParameter, $segmentId);
-
-        $this->addLeadAndMinMaxLimiters($segmentQueryBuilder, $batchLimiters, 'lead_lists_leads');
-
         $queryBuilder->andWhere($expr->notIn($leadsTableAlias.'.id', $segmentQueryBuilder->getSQL()));
 
         return $queryBuilder;
     }
 
-    public function addManuallySubscribedQuery(QueryBuilder $queryBuilder, int $leadListId): QueryBuilder
+    /**
+     * @param int $leadListId
+     *
+     * @return QueryBuilder
+     */
+    public function addManuallySubscribedQuery(QueryBuilder $queryBuilder, $leadListId)
     {
         $leadsTableAlias = $queryBuilder->getTableAlias(MAUTIC_TABLE_PREFIX.'leads');
         $tableAlias      = $this->generateRandomParameterName();
 
-        $existsQueryBuilder = $queryBuilder->createQueryBuilder($queryBuilder->getConnection());
+        $existsQueryBuilder = $queryBuilder->getConnection()->createQueryBuilder();
 
         $existsQueryBuilder
             ->select('null')
@@ -196,9 +198,13 @@ class ContactSegmentQueryBuilder
     }
 
     /**
+     * @param int $leadListId
+     *
+     * @return QueryBuilder
+     *
      * @throws QueryException
      */
-    public function addManuallyUnsubscribedQuery(QueryBuilder $queryBuilder, int $leadListId): QueryBuilder
+    public function addManuallyUnsubscribedQuery(QueryBuilder $queryBuilder, $leadListId)
     {
         $leadsTableAlias = $queryBuilder->getTableAlias(MAUTIC_TABLE_PREFIX.'leads');
         $tableAlias      = $this->generateRandomParameterName();
@@ -221,7 +227,7 @@ class ContactSegmentQueryBuilder
         }
 
         $event = new LeadListQueryBuilderGeneratedEvent($segment, $queryBuilder);
-        $this->dispatcher->dispatch($event, LeadEvents::LIST_FILTERS_QUERYBUILDER_GENERATED);
+        $this->dispatcher->dispatch(LeadEvents::LIST_FILTERS_QUERYBUILDER_GENERATED, $event);
     }
 
     /**
@@ -245,7 +251,7 @@ class ContactSegmentQueryBuilder
 
             $alias = $this->generateRandomParameterName();
             $event = new LeadListFilteringEvent($filterCrate, null, $alias, $filterCrate['operator'], $queryBuilder, $this->entityManager);
-            $this->dispatcher->dispatch($event, LeadEvents::LIST_FILTERS_ON_FILTERING);
+            $this->dispatcher->dispatch(LeadEvents::LIST_FILTERS_ON_FILTERING, $event);
             if ($event->isFilteringDone()) {
                 $queryBuilder->addLogic($event->getSubQuery(), $filter->getGlue());
 

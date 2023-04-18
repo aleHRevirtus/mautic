@@ -59,14 +59,9 @@ class DoNotContactFilterQueryBuilderTest extends TestCase
         };
     }
 
-    /**
-     * @dataProvider dataApplyQueryWithBatchLimitersMinMaxBoth
-     *
-     *  @param array<string, mixed> $batchLimiters
-     */
-    private function createFilter(string $operator, string $parameterValue, array $batchLimiters = []): ContactSegmentFilter
+    private function createFilter(string $operator, string $parameterValue): ContactSegmentFilter
     {
-        return new class($operator, $parameterValue, $batchLimiters) extends ContactSegmentFilter {
+        return new class($operator, $parameterValue) extends ContactSegmentFilter {
             /**
              * @var string
              */
@@ -77,17 +72,11 @@ class DoNotContactFilterQueryBuilderTest extends TestCase
              */
             private $parameterValue;
 
-            /**
-             * @var array<string, mixed>
-             */
-            private $batchLimiters;
-
             /** @noinspection PhpMissingParentConstructorInspection */
-            public function __construct(string $operator, string $parameterValue, array $batchLimiters)
+            public function __construct(string $operator, string $parameterValue)
             {
                 $this->operator       = $operator;
                 $this->parameterValue = $parameterValue;
-                $this->batchLimiters  = $batchLimiters;
             }
 
             public function getDoNotContactParts()
@@ -108,11 +97,6 @@ class DoNotContactFilterQueryBuilderTest extends TestCase
             public function getGlue()
             {
                 return 'and';
-            }
-
-            public function getBatchLimiters(): array
-            {
-                return $this->batchLimiters;
             }
         };
     }

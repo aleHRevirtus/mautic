@@ -10,12 +10,12 @@ use PHPUnit\Framework\MockObject\MockObject;
 class IteratorExportDataModelTest extends \PHPUnit\Framework\TestCase
 {
     /**
-     * @var MockObject|AbstractCommonModel<object>
+     * @var MockObject|AbstractCommonModel
      */
     private $commonModel;
 
     /**
-     * @var MockObject|CommonRepository<object>
+     * @var MockObject|CommonRepository
      */
     private $commonRepository;
 
@@ -42,7 +42,7 @@ class IteratorExportDataModelTest extends \PHPUnit\Framework\TestCase
     {
         $this->commonModel->expects($this->once())
             ->method('getEntities')
-            ->with(['limit' => 1000, 'start' => 0, 'skipOrdering' => false])
+            ->with(['limit' => 1000, 'start' => 0])
             ->willReturn(['results' => [['a'], ['b']]]);
 
         $this->commonModel->method('getRepository')->willReturn($this->commonRepository);
@@ -57,7 +57,7 @@ class IteratorExportDataModelTest extends \PHPUnit\Framework\TestCase
     {
         $this->commonModel->expects($this->once())
             ->method('getEntities')
-            ->with(['limit' => 1000, 'start' => 0, 'skipOrdering' => false])
+            ->with(['limit' => 1000, 'start' => 0])
             ->willReturn(['results' => []]);
 
         $this->commonModel->method('getRepository')->willReturn($this->commonRepository);

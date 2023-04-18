@@ -4,14 +4,11 @@ namespace Mautic\CoreBundle\Controller\Api;
 
 use Mautic\ApiBundle\Controller\CommonApiController;
 use Mautic\CoreBundle\Helper\InputHelper;
-use Mautic\CoreBundle\Helper\PathsHelper;
-use Psr\Log\LoggerInterface;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Event\ControllerEvent;
+use Symfony\Component\HttpKernel\Event\FilterControllerEvent;
 
 /**
- * @extends CommonApiController<object>
+ * Class FileApiController.
  */
 class FileApiController extends CommonApiController
 {
@@ -22,11 +19,11 @@ class FileApiController extends CommonApiController
      */
     protected $allowedExtensions = [];
 
-    public function initialize(ControllerEvent $event)
+    public function initialize(FilterControllerEvent $event)
     {
         $this->entityNameOne     = 'file';
         $this->entityNameMulti   = 'files';
-        $this->allowedExtensions = $this->coreParametersHelper->get('allowed_extensions');
+        $this->allowedExtensions = $this->get('mautic.helper.core_parameters')->get('allowed_extensions');
 
         parent::initialize($event);
     }
@@ -34,26 +31,26 @@ class FileApiController extends CommonApiController
     /**
      * Uploads a file.
      *
-     * @return \Symfony\Component\HttpFoundation\Response
+     * @return \Symfony\Component\HttpFoundation\JsonResponse
      */
-    public function createAction(Request $request, PathsHelper $pathsHelper, LoggerInterface $mauticLogger, $dir)
+    public function createAction($dir)
     {
         try {
-            $path = $this->getAbsolutePath($request, $pathsHelper, $mauticLogger, $dir, true);
+            $path = $this->getAbsolutePath($dir, true);
         } catch (\Exception $e) {
             return $this->returnError($e->getMessage(), Response::HTTP_NOT_ACCEPTABLE);
         }
 
         $response = [$this->entityNameOne => []];
-        if ($request->files) {
-            foreach ($request->files as $file) {
+        if ($this->request->files) {
+            foreach ($this->request->files as $file) {
                 $extension = $file->guessExtension() ? $file->guessExtension() : $file->getClientOriginalExtension();
                 if (in_array($extension, $this->allowedExtensions)) {
                     $fileName = md5(uniqid()).'.'.$extension;
                     $moved    = $file->move($path, $fileName);
 
                     if ('images' === substr($dir, 0, 6)) {
-                        $response[$this->entityNameOne]['link'] = $this->getMediaUrl($request).'/'.$fileName;
+                        $response[$this->entityNameOne]['link'] = $this->getMediaUrl().'/'.$fileName;
                     }
 
                     $response[$this->entityNameOne]['name'] = $fileName;
@@ -73,12 +70,12 @@ class FileApiController extends CommonApiController
     /**
      * List the files in /media directory.
      *
-     * @return \Symfony\Component\HttpFoundation\Response
+     * @return \Symfony\Component\HttpFoundation\JsonResponse
      */
-    public function listAction(Request $request, PathsHelper $pathsHelper, LoggerInterface $mauticLogger, $dir)
+    public function listAction($dir)
     {
         try {
-            $filePath = $this->getAbsolutePath($request, $pathsHelper, $mauticLogger, $dir);
+            $filePath = $this->getAbsolutePath($dir);
         } catch (\Exception $e) {
             return $this->returnError($e->getMessage(), Response::HTTP_NOT_ACCEPTABLE);
         }
@@ -104,14 +101,14 @@ class FileApiController extends CommonApiController
     /**
      * Delete a file from /media directory.
      *
-     * @return \Symfony\Component\HttpFoundation\Response
+     * @return \Symfony\Component\HttpFoundation\JsonResponse
      */
-    public function deleteAction(Request $request, PathsHelper $pathsHelper, LoggerInterface $mauticLogger, $dir, $file)
+    public function deleteAction($dir, $file)
     {
         $response = ['success' => false];
 
         try {
-            $filePath = $this->getAbsolutePath($request, $pathsHelper, $mauticLogger, $dir).'/'.basename($file);
+            $filePath = $this->getAbsolutePath($dir).'/'.basename($file);
         } catch (\Exception $e) {
             return $this->returnError($e->getMessage(), Response::HTTP_NOT_ACCEPTABLE);
         }
@@ -138,12 +135,12 @@ class FileApiController extends CommonApiController
      *
      * @return string
      */
-    protected function getAbsolutePath(Request $request, PathsHelper $pathsHelper, LoggerInterface $mauticLogger, $dir, $createDir = false)
+    protected function getAbsolutePath($dir, $createDir = false)
     {
         try {
             $possibleDirs = ['assets', 'images'];
             $dir          = InputHelper::alphanum($dir, true, false, ['_', '.']);
-            $subdir       = trim(InputHelper::alphanum($request->get('subdir', ''), true, false, ['/']));
+            $subdir       = trim(InputHelper::alphanum($this->request->get('subdir', ''), true, false, ['/']));
 
             // Dots in the dir name are slashes
             if (false !== strpos($dir, '.') && !$subdir) {
@@ -158,9 +155,9 @@ class FileApiController extends CommonApiController
             }
 
             if ('images' === $dir) {
-                $absoluteDir = realpath($pathsHelper->getSystemPath($dir, true));
+                $absoluteDir = realpath($this->get('mautic.helper.paths')->getSystemPath($dir, true));
             } elseif ('assets' === $dir) {
-                $absoluteDir = realpath($this->coreParametersHelper->get('upload_dir'));
+                $absoluteDir = realpath($this->get('mautic.helper.core_parameters')->get('upload_dir'));
             }
 
             if (false === $absoluteDir) {
@@ -185,7 +182,7 @@ class FileApiController extends CommonApiController
 
             return $path;
         } catch (\Exception $e) {
-            $mauticLogger->error($e->getMessage(), ['exception' => $e]);
+            $this->get('monolog.logger.mautic')->error($e->getMessage(), ['exception' => $e]);
 
             throw $e;
         }
@@ -196,12 +193,12 @@ class FileApiController extends CommonApiController
      *
      * @return string
      */
-    protected function getMediaUrl(Request $request)
+    protected function getMediaUrl()
     {
-        return $request->getScheme().'://'
-            .$request->getHttpHost()
-            .':'.$request->getPort()
-            .$request->getBasePath().'/'
-            .$this->coreParametersHelper->get('image_path');
+        return $this->request->getScheme().'://'
+            .$this->request->getHttpHost()
+            .':'.$this->request->getPort()
+            .$this->request->getBasePath().'/'
+            .$this->get('mautic.helper.core_parameters')->get('image_path');
     }
 }

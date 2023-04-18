@@ -7,14 +7,11 @@ use Mautic\CoreBundle\Factory\ModelFactory;
 trait ChannelTrait
 {
     /**
-     * @var ModelFactory<object>
+     * @var ModelFactory
      */
     protected $modelFactory;
 
-    /**
-     * @param ModelFactory<object> $modelFactory
-     */
-    public function setModelFactory(ModelFactory $modelFactory): void
+    public function setModelFactory(ModelFactory $modelFactory)
     {
         $this->modelFactory = $modelFactory;
     }

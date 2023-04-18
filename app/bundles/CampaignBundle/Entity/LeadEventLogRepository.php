@@ -11,9 +11,6 @@ use Mautic\CoreBundle\Entity\CommonRepository;
 use Mautic\CoreBundle\Helper\Chart\ChartQuery;
 use Mautic\LeadBundle\Entity\TimelineTrait;
 
-/**
- * @extends CommonRepository<LeadEventLog>
- */
 class LeadEventLogRepository extends CommonRepository
 {
     use TimelineTrait;

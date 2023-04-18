@@ -11,8 +11,6 @@ use Mautic\LeadBundle\Entity\Lead;
 use Mautic\LeadBundle\Entity\LeadField;
 use Mautic\LeadBundle\Entity\LeadFieldRepository;
 use Mautic\LeadBundle\Entity\LeadRepository;
-use Mautic\LeadBundle\Event\LeadFieldEvent;
-use Mautic\LeadBundle\Exception\NoListenerException;
 use Mautic\LeadBundle\Field\CustomFieldColumn;
 use Mautic\LeadBundle\Field\Dispatcher\FieldSaveDispatcher;
 use Mautic\LeadBundle\Field\Exception\AbortColumnCreateException;
@@ -23,15 +21,9 @@ use Mautic\LeadBundle\Field\LeadFieldSaver;
 use Mautic\LeadBundle\Field\SchemaDefinition;
 use Mautic\LeadBundle\Form\Type\FieldType;
 use Mautic\LeadBundle\Helper\FormFieldHelper;
-use Mautic\LeadBundle\LeadEvents;
-use RuntimeException;
-use Symfony\Component\Form\FormFactoryInterface;
+use Symfony\Component\EventDispatcher\Event;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
-use Symfony\Contracts\EventDispatcher\Event;
 
-/**
- * @extends FormModel<LeadField>
- */
 class FieldModel extends FormModel
 {
     public static $coreFields = [
@@ -485,7 +477,10 @@ class FieldModel extends FormModel
         $this->leadFieldSaver             = $leadFieldSaver;
     }
 
-    public function getRepository(): LeadFieldRepository
+    /**
+     * @return LeadFieldRepository
+     */
+    public function getRepository()
     {
         return $this->leadFieldRepository;
     }
@@ -778,6 +773,7 @@ class FieldModel extends FormModel
      * {@inheritdoc}
      *
      * @param       $entity
+     * @param       $formFactory
      * @param null  $action
      * @param array $options
      *
@@ -785,7 +781,7 @@ class FieldModel extends FormModel
      *
      * @throws MethodNotAllowedHttpException
      */
-    public function createForm($entity, FormFactoryInterface $formFactory, $action = null, $options = [])
+    public function createForm($entity, $formFactory, $action = null, $options = [])
     {
         if (!$entity instanceof LeadField) {
             throw new MethodNotAllowedHttpException(['LeadField']);
@@ -801,7 +797,7 @@ class FieldModel extends FormModel
     /**
      * @param $properties
      *
-     * @return string|true
+     * @return bool
      */
     public function setFieldProperties(LeadField $entity, array $properties)
     {
@@ -835,34 +831,11 @@ class FieldModel extends FormModel
      */
     protected function dispatchEvent($action, &$entity, $isNew = false, Event $event = null)
     {
-        switch ($action) {
-            case 'pre_save':
-                $action = LeadEvents::FIELD_PRE_SAVE;
-                break;
-            case 'post_save':
-                $action = LeadEvents::FIELD_POST_SAVE;
-                break;
-            case 'pre_delete':
-                $action = LeadEvents::FIELD_PRE_DELETE;
-                break;
-            case 'post_delete':
-                $action = LeadEvents::FIELD_POST_DELETE;
-                break;
-        }
-
         if (!$entity instanceof LeadField) {
             throw new MethodNotAllowedHttpException(['LeadField']);
         }
 
-        if (null !== $event && !$event instanceof LeadFieldEvent) {
-            throw new RuntimeException('Event should be LeadFieldEvent|null.');
-        }
-
-        try {
-            return $this->fieldSaveDispatcher->dispatchEvent($action, $entity, $isNew, $event);
-        } catch (NoListenerException $exception) {
-            return $event;
-        }
+        return $this->fieldSaveDispatcher->dispatchEventBc($action, $entity, $isNew, $event);
     }
 
     /**

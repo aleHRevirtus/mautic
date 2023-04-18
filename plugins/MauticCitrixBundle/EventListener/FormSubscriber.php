@@ -4,6 +4,7 @@ namespace MauticPlugin\MauticCitrixBundle\EventListener;
 
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\EntityManager;
+use Mautic\CoreBundle\Helper\TemplatingHelper;
 use Mautic\FormBundle\Entity\Action;
 use Mautic\FormBundle\Entity\Field;
 use Mautic\FormBundle\Entity\Form;
@@ -26,8 +27,7 @@ use MauticPlugin\MauticCitrixBundle\Model\CitrixModel;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Process\Exception\InvalidArgumentException;
-use Symfony\Contracts\Translation\TranslatorInterface;
-use Twig\Environment;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class FormSubscriber implements EventSubscriberInterface
 {
@@ -62,9 +62,9 @@ class FormSubscriber implements EventSubscriberInterface
     /**
      * ヽ(ಠ_ಠ)ノ Used in the CitrixStartTrait.
      *
-     * @var Environment
+     * @var TemplatingHelper
      */
-    private $twig;
+    private $templating;
 
     public function __construct(
         CitrixModel $citrixModel,
@@ -72,14 +72,14 @@ class FormSubscriber implements EventSubscriberInterface
         SubmissionModel $submissionModel,
         TranslatorInterface $translator,
         EntityManager $entityManager,
-        Environment $twig
+        TemplatingHelper $templating
     ) {
         $this->citrixModel     = $citrixModel;
         $this->formModel       = $formModel;
         $this->submissionModel = $submissionModel;
         $this->translator      = $translator;
         $this->entityManager   = $entityManager;
-        $this->twig            = $twig;
+        $this->templating      = $templating;
     }
 
     public static function getSubscribedEvents()
@@ -416,8 +416,8 @@ class FormSubscriber implements EventSubscriberInterface
                     // get lead fields
                     $currentLeadFields = [];
                     foreach ($fields as $field) {
-                        $leadField = $field->getMappedField();
-                        if ('' !== $leadField && 'lead' === $field->getMappedObject()) {
+                        $leadField = $field->getLeadField();
+                        if ('' !== $leadField) {
                             $currentLeadFields[$leadField] = $field->getIsRequired();
                         }
                     }
@@ -506,7 +506,7 @@ class FormSubscriber implements EventSubscriberInterface
             $event->addFormField('plugin.citrix.select.'.$product, [
                 'label'    => 'plugin.citrix.'.$product.'.listfield',
                 'formType' => CitrixListType::class,
-                'template' => '@MauticCitrix/Field/citrixlist.html.twig',
+                'template' => 'MauticCitrixBundle:Field:citrixlist.html.php',
                 'listType' => $product,
             ]);
 
@@ -528,7 +528,7 @@ class FormSubscriber implements EventSubscriberInterface
                                 'data-product-action' => 'register',
                             ],
                         ],
-                        'template'  => '@MauticForm/Action/_generic.html.twig',
+                        'template'  => 'MauticFormBundle:Action:generic.html.php',
                         'eventName' => CitrixEvents::ON_WEBINAR_REGISTER_ACTION,
                     ]);
                     break;
@@ -538,7 +538,7 @@ class FormSubscriber implements EventSubscriberInterface
                         'description'     => 'plugin.citrix.form.header.meeting',
                         'label'           => 'plugin.citrix.action.start.meeting',
                         'formType'        => CitrixActionType::class,
-                        'template'        => '@MauticForm/Action/_generic.html.twig',
+                        'template'        => 'MauticFormBundle:Action:generic.html.php',
                         'eventName'       => CitrixEvents::ON_MEETING_START_ACTION,
                         'formTypeOptions' => [
                             'attr' => [
@@ -554,7 +554,7 @@ class FormSubscriber implements EventSubscriberInterface
                         'description'     => 'plugin.citrix.form.header.training',
                         'label'           => 'plugin.citrix.action.register.training',
                         'formType'        => CitrixActionType::class,
-                        'template'        => '@MauticForm/Action/_generic.html.twig',
+                        'template'        => 'MauticFormBundle:Action:generic.html.php',
                         'eventName'       => CitrixEvents::ON_TRAINING_REGISTER_ACTION,
                         'formTypeOptions' => [
                             'attr' => [
@@ -569,7 +569,7 @@ class FormSubscriber implements EventSubscriberInterface
                         'description'     => 'plugin.citrix.form.header.start.training',
                         'label'           => 'plugin.citrix.action.start.training',
                         'formType'        => CitrixActionType::class,
-                        'template'        => '@MauticForm/Action/_generic.html.twig',
+                        'template'        => 'MauticFormBundle:Action:generic.html.php',
                         'eventName'       => CitrixEvents::ON_TRAINING_START_ACTION,
                         'formTypeOptions' => [
                             'attr' => [
@@ -585,7 +585,7 @@ class FormSubscriber implements EventSubscriberInterface
                         'description'     => 'plugin.citrix.form.header.assist',
                         'label'           => 'plugin.citrix.action.screensharing.assist',
                         'formType'        => CitrixActionType::class,
-                        'template'        => '@MauticForm/Action/_generic.html.twig',
+                        'template'        => 'MauticFormBundle:Action:generic.html.php',
                         'eventName'       => CitrixEvents::ON_ASSIST_REMOTE_ACTION,
                         'formTypeOptions' => [
                             'attr' => [

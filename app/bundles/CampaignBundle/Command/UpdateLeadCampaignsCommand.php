@@ -7,33 +7,65 @@ use Mautic\CampaignBundle\Entity\CampaignRepository;
 use Mautic\CampaignBundle\Executioner\ContactFinder\Limiter\ContactLimiter;
 use Mautic\CampaignBundle\Membership\MembershipBuilder;
 use Mautic\CoreBundle\Command\ModeratedCommand;
-use Mautic\CoreBundle\Helper\PathsHelper;
-use Mautic\CoreBundle\Twig\Helper\FormatterHelper;
+use Mautic\CoreBundle\Templating\Helper\FormatterHelper;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class UpdateLeadCampaignsCommand extends ModeratedCommand
 {
-    private CampaignRepository $campaignRepository;
-    private TranslatorInterface $translator;
-    private MembershipBuilder $membershipBuilder;
-    private LoggerInterface $logger;
-    private FormatterHelper $formatterHelper;
-    private int $runLimit = 0;
-    private ContactLimiter $contactLimiter;
-    private bool $quiet = false;
+    /**
+     * @var CampaignRepository
+     */
+    private $campaignRepository;
 
+    /**
+     * @var TranslatorInterface
+     */
+    private $translator;
+
+    /**
+     * @var MembershipBuilder
+     */
+    private $membershipBuilder;
+
+    /**
+     * @var LoggerInterface
+     */
+    private $logger;
+
+    /**
+     * @var FormatterHelper
+     */
+    private $formatterHelper;
+
+    /**
+     * @var int
+     */
+    private $runLimit;
+
+    /**
+     * @var ContactLimiter
+     */
+    private $contactLimiter;
+
+    /**
+     * @var bool
+     */
+    private $quiet;
+
+    /**
+     * UpdateLeadCampaignsCommand constructor.
+     */
     public function __construct(
         CampaignRepository $campaignRepository,
         TranslatorInterface $translator,
         MembershipBuilder $membershipBuilder,
         LoggerInterface $logger,
-        FormatterHelper $formatterHelper,
-        PathsHelper $pathsHelper
+        FormatterHelper $formatterHelper
     ) {
         $this->campaignRepository = $campaignRepository;
         $this->translator         = $translator;
@@ -41,7 +73,7 @@ class UpdateLeadCampaignsCommand extends ModeratedCommand
         $this->logger             = $logger;
         $this->formatterHelper    = $formatterHelper;
 
-        parent::__construct($pathsHelper);
+        parent::__construct();
     }
 
     protected function configure()
@@ -108,7 +140,7 @@ class UpdateLeadCampaignsCommand extends ModeratedCommand
         parent::configure();
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    protected function execute(InputInterface $input, OutputInterface $output)
     {
         $id             = $input->getOption('campaign-id');
         $batchLimit     = $input->getOption('batch-limit');
@@ -119,7 +151,7 @@ class UpdateLeadCampaignsCommand extends ModeratedCommand
         $threadId       = $input->getOption('thread-id');
         $maxThreads     = $input->getOption('max-threads');
         $this->runLimit = $input->getOption('max-contacts');
-        $this->quiet    = (bool) $input->getOption('quiet');
+        $this->quiet    = $input->getOption('quiet');
         $this->output   = ($this->quiet) ? new NullOutput() : $output;
 
         if ($threadId && $maxThreads && (int) $threadId > (int) $maxThreads) {
@@ -139,7 +171,7 @@ class UpdateLeadCampaignsCommand extends ModeratedCommand
             if (null === $campaign) {
                 $output->writeln('<error>'.$this->translator->trans('mautic.campaign.rebuild.not_found', ['%id%' => $id]).'</error>');
 
-                return 1;
+                return 0;
             }
 
             $this->updateCampaign($campaign);

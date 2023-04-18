@@ -4,7 +4,6 @@ namespace MauticPlugin\MauticSocialBundle\Helper;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Mautic\CoreBundle\Helper\CoreParametersHelper;
-use Mautic\CoreBundle\Translation\Translator;
 use Mautic\LeadBundle\Entity\Lead;
 use Mautic\LeadBundle\Model\FieldModel;
 use Mautic\LeadBundle\Model\LeadModel;
@@ -13,6 +12,7 @@ use MauticPlugin\MauticSocialBundle\Exception\ExitMonitorException;
 use MauticPlugin\MauticSocialBundle\Model\MonitoringModel;
 use MauticPlugin\MauticSocialBundle\Model\PostCountModel;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class TwitterCommandHelper
 {
@@ -37,7 +37,7 @@ class TwitterCommandHelper
     private $postCountModel;
 
     /**
-     * @var Translator
+     * @var TranslatorInterface
      */
     private $translator;
 
@@ -79,7 +79,7 @@ class TwitterCommandHelper
         FieldModel $fieldModel,
         MonitoringModel $monitoringModel,
         PostCountModel $postCountModel,
-        Translator $translator,
+        TranslatorInterface $translator,
         EntityManagerInterface $em,
         CoreParametersHelper $coreParametersHelper
     ) {

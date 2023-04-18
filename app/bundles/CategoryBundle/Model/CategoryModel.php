@@ -4,17 +4,16 @@ namespace Mautic\CategoryBundle\Model;
 
 use Mautic\CategoryBundle\CategoryEvents;
 use Mautic\CategoryBundle\Entity\Category;
-use Mautic\CategoryBundle\Entity\CategoryRepository;
 use Mautic\CategoryBundle\Event\CategoryEvent;
 use Mautic\CategoryBundle\Form\Type\CategoryType;
 use Mautic\CoreBundle\Model\FormModel;
-use Symfony\Component\Form\FormFactoryInterface;
+use Symfony\Component\EventDispatcher\Event;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
-use Symfony\Contracts\EventDispatcher\Event;
 
 /**
- * @extends FormModel<Category>
+ * Class CategoryModel
+ * {@inheritdoc}
  */
 class CategoryModel extends FormModel
 {
@@ -31,12 +30,9 @@ class CategoryModel extends FormModel
         $this->requestStack = $requestStack;
     }
 
-    public function getRepository(): CategoryRepository
+    public function getRepository()
     {
-        $result = $this->em->getRepository(Category::class);
-        \assert($result instanceof CategoryRepository);
-
-        return $result;
+        return $this->em->getRepository('MauticCategoryBundle:Category');
     }
 
     public function getNameGetter()
@@ -96,15 +92,16 @@ class CategoryModel extends FormModel
     /**
      * {@inheritdoc}
      *
-     * @param             $entity
-     * @param string|null $action
-     * @param array       $options
+     * @param       $entity
+     * @param       $formFactory
+     * @param null  $action
+     * @param array $options
      *
      * @return mixed
      *
      * @throws \Symfony\Component\HttpKernel\Exception\NotFoundHttpException
      */
-    public function createForm($entity, FormFactoryInterface $formFactory, $action = null, $options = [])
+    public function createForm($entity, $formFactory, $action = null, $options = [])
     {
         if (!$entity instanceof Category) {
             throw new MethodNotAllowedHttpException(['Category']);
@@ -121,7 +118,7 @@ class CategoryModel extends FormModel
      *
      * @param $id
      *
-     * @return Category|null
+     * @return Category
      */
     public function getEntity($id = null)
     {
@@ -171,7 +168,7 @@ class CategoryModel extends FormModel
                 $event->setEntityManager($this->em);
             }
 
-            $this->dispatcher->dispatch($event, $name);
+            $this->dispatcher->dispatch($name, $event);
 
             return $event;
         } else {

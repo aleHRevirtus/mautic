@@ -2,7 +2,6 @@
 
 namespace Mautic\CampaignBundle\Executioner\Event;
 
-use function assert;
 use Doctrine\Common\Collections\ArrayCollection;
 use Mautic\CampaignBundle\Entity\Event;
 use Mautic\CampaignBundle\Entity\LeadEventLog;
@@ -17,7 +16,7 @@ use Mautic\LeadBundle\Entity\Lead;
 
 class DecisionExecutioner implements EventInterface
 {
-    public const TYPE = 'decision';
+    const TYPE = 'decision';
 
     /**
      * @var EventLogger
@@ -72,7 +71,6 @@ class DecisionExecutioner implements EventInterface
      */
     public function execute(AbstractEventAccessor $config, ArrayCollection $logs)
     {
-        assert($config instanceof DecisionAccessor);
         $evaluatedContacts = new EvaluatedContacts();
         $failedLogs        = [];
 
@@ -108,11 +106,13 @@ class DecisionExecutioner implements EventInterface
     }
 
     /**
+     * @param mixed $passthrough
+     *
      * @throws DecisionNotApplicableException
      */
-    private function dispatchEvent(DecisionAccessor $config, LeadEventLog $log)
+    private function dispatchEvent(DecisionAccessor $config, LeadEventLog $log, $passthrough = null)
     {
-        $decisionEvent = $this->dispatcher->dispatchEvaluationEvent($config, $log);
+        $decisionEvent = $this->dispatcher->dispatchEvaluationEvent($config, $log, $passthrough);
 
         if (!$decisionEvent->wasDecisionApplicable()) {
             throw new DecisionNotApplicableException('evaluation failed');

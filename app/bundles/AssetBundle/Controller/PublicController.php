@@ -3,9 +3,7 @@
 namespace Mautic\AssetBundle\Controller;
 
 use Mautic\CoreBundle\Controller\FormController as CommonFormController;
-use Mautic\CoreBundle\Helper\CoreParametersHelper;
 use Symfony\Component\HttpFoundation\RedirectResponse;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class PublicController extends CommonFormController
@@ -15,9 +13,11 @@ class PublicController extends CommonFormController
      *
      * @return Response
      */
-    public function downloadAction(Request $request, CoreParametersHelper $parametersHelper, $slug)
+    public function downloadAction($slug)
     {
         //find the asset
+        $security = $this->get('mautic.security');
+
         /** @var \Mautic\AssetBundle\Model\AssetModel $model */
         $model = $this->getModel('asset');
 
@@ -28,17 +28,17 @@ class PublicController extends CommonFormController
             $published = $entity->isPublished();
 
             //make sure the asset is published or deny access if not
-            if ((!$published) && (!$this->security->hasEntityAccess('asset:assets:viewown', 'asset:assets:viewother', $entity->getCreatedBy()))) {
-                $model->trackDownload($entity, $request, 401);
+            if ((!$published) && (!$security->hasEntityAccess('asset:assets:viewown', 'asset:assets:viewother', $entity->getCreatedBy()))) {
+                $model->trackDownload($entity, $this->request, 401);
 
                 return $this->accessDenied();
             }
 
             //make sure URLs match up
             $url        = $model->generateUrl($entity, false);
-            $requestUri = $request->getRequestUri();
+            $requestUri = $this->request->getRequestUri();
             //remove query
-            $query = $request->getQueryString();
+            $query = $this->request->getQueryString();
 
             if (!empty($query)) {
                 $requestUri = str_replace("?{$query}", '', $url);
@@ -46,24 +46,24 @@ class PublicController extends CommonFormController
 
             //redirect if they don't match
             if ($requestUri != $url) {
-                $model->trackDownload($entity, $request, 301);
+                $model->trackDownload($entity, $this->request, 301);
 
                 return $this->redirect($url, 301);
             }
 
             if ($entity->isRemote()) {
-                $model->trackDownload($entity, $request, 200);
+                $model->trackDownload($entity, $this->request, 200);
 
                 // Redirect to remote URL
                 $response = new RedirectResponse($entity->getRemotePath());
             } else {
                 try {
                     //set the uploadDir
-                    $entity->setUploadDir($parametersHelper->get('upload_dir'));
+                    $entity->setUploadDir($this->get('mautic.helper.core_parameters')->get('upload_dir'));
                     $contents = $entity->getFileContents();
-                    $model->trackDownload($entity, $request, 200);
+                    $model->trackDownload($entity, $this->request, 200);
                 } catch (\Exception $e) {
-                    $model->trackDownload($entity, $request, 404);
+                    $model->trackDownload($entity, $this->request, 404);
 
                     return $this->notFound();
                 }
@@ -76,8 +76,7 @@ class PublicController extends CommonFormController
 
                 $response->headers->set('Content-Type', $entity->getFileMimeType());
 
-                // Display the file directly in the browser by default
-                $stream = $request->get('stream', '1');
+                $stream = $this->request->get('stream', 0);
                 if (!$stream) {
                     $response->headers->set('Content-Disposition', 'attachment;filename="'.$entity->getOriginalFileName());
                 }
@@ -87,7 +86,7 @@ class PublicController extends CommonFormController
             return $response;
         }
 
-        $model->trackDownload($entity, $request, 404);
+        $model->trackDownload($entity, $this->request, 404);
 
         return $this->notFound();
     }

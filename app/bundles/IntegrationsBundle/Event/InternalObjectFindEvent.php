@@ -6,7 +6,7 @@ namespace Mautic\IntegrationsBundle\Event;
 
 use Mautic\IntegrationsBundle\Sync\DAO\DateRange;
 use Mautic\IntegrationsBundle\Sync\SyncDataExchange\Internal\Object\ObjectInterface;
-use Symfony\Contracts\EventDispatcher\Event;
+use Symfony\Component\EventDispatcher\Event;
 
 class InternalObjectFindEvent extends Event
 {

@@ -21,12 +21,7 @@ use Symfony\Component\Form\ResolvedFormTypeInterface;
 
 trait RequestTrait
 {
-    /**
-     * @param array<mixed> $params
-     * @param array<mixed> $masks
-     * @param array<mixed> $fields
-     */
-    protected function prepareParametersFromRequest(Form $form, array &$params, object $entity = null, array $masks = [], array $fields = []): void
+    protected function prepareParametersFromRequest(Form $form, array &$params, $entity = null, $masks = [], $fields = [])
     {
         // ungroup fields if need it
         foreach ($fields as $key=>$field) {
@@ -160,10 +155,10 @@ trait RequestTrait
     }
 
     /**
-     * @param array<mixed> $fieldData
-     * @param array<mixed> $leadField
+     * @param $fieldData
+     * @param $leadField
      */
-    public function cleanFields(array &$fieldData, array $leadField): void
+    public function cleanFields(&$fieldData, $leadField)
     {
         // This will catch null values or non-existent values to prevent null from converting to false/0
         if (!isset($fieldData[$leadField['alias']])) {
