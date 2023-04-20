@@ -23,7 +23,7 @@ class PushTransifexCommandFunctionalTest extends MauticMysqlTestCase
 
     public function testPullCommand(): void
     {
-        $handlerStack = self::$container->get('mautic.http.client.mock_handler');
+        $handlerStack = self::$container->get(MockHandler::class);
         \assert($handlerStack instanceof MockHandler);
 
         // One resource is going to be found in the Transifex project:

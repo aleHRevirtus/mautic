@@ -5,9 +5,13 @@ on:
     branches:
       - '[0-9].*'
   pull_request:
+  merge_group:
   schedule:
     # Run every day at 10:45 AM UTC to discover potential issues with dependencies like PHP updates etc.
     - cron: '45 10 * * *'
+
+permissions:
+  contents: read # to fetch code (actions/checkout)
 
 jobs:
   phpunit:
@@ -17,7 +21,7 @@ jobs:
 
     strategy:
       matrix:
-        php-versions: ['7.4', '8.0']
+        php-versions: ['8.0']
         db-types: ['mysql', 'mariadb']
   
     name: PHPUnit ${{ matrix.php-versions }} ${{ matrix.db-types }}
@@ -40,7 +44,7 @@ jobs:
           --health-retries=3
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       # Codecov needs access to previous commits, so we add fetch-depth: 0
       with:
         fetch-depth: 0
@@ -79,7 +83,8 @@ jobs:
       run: |
         composer validate
         composer install --prefer-dist --no-progress --no-suggest
-
+        rm -rf var/cache
+        
     - name: Run tests - database = ${{ matrix.db-types }}
       run: |
         export DB_PORT="${{ job.services.database.ports[3306] }}"
@@ -92,7 +97,7 @@ jobs:
 
     - name: Upload coverage report
       if: ${{ matrix.php-versions == '8.0' && matrix.db-types == 'mariadb' && github.repository == 'mautic/mautic' }}
-      uses: codecov/codecov-action@v2
+      uses: codecov/codecov-action@v3
       with:
         files: ./coverage.xml
         fail_ci_if_error: true
@@ -106,7 +111,7 @@ jobs:
 
     - name: Store log artifacts
       if: ${{ always() }}
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: logs-${{ matrix.php-versions }}-${{ matrix.db-types }}
         path: ./var/logs/*
@@ -119,13 +124,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        commands: ['PHPSTAN', 'CS Fixer', 'Rector', 'scaffolded files mismatch', 'PHPStan baseline changes', 'composer install']
-        php-versions: ['7.4', '8.0']
+        commands: ['PHPSTAN', 'CS Fixer', 'Rector', 'Twig Lint', 'scaffolded files mismatch', 'PHPStan baseline changes', 'composer install']
+        php-versions: ['8.0']
 
     name: ${{ matrix.commands }} - ${{ matrix.php-versions }}
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         fetch-depth: 0
 
@@ -134,24 +139,24 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ./var/cache/rector
-        key: ${{ runner.os }}-rector-${{ matrix.php-versions }}-${{ hashFiles('**/composer.lock') }}-${{ github.run_id }}
+        key: ${{ runner.os }}-rector-${{ hashFiles('**/composer.lock') }}-${{ github.run_id }}
         restore-keys: |
-          ${{ runner.os }}-rector-${{ matrix.php-versions }}-${{ hashFiles('**/composer.lock') }}
-          ${{ runner.os }}-rector-${{ matrix.php-versions }}-
+          ${{ runner.os }}-rector-${{ hashFiles('**/composer.lock') }}
+          ${{ runner.os }}-rector-
 
     - name: PHPStan Cache
       if: ${{matrix.commands == 'PHPSTAN'}}
       uses: actions/cache@v3
       with:
         path: ./var/cache/phpstan
-        key: ${{ runner.os }}-phpstan-${{ matrix.php-versions }}-${{ hashFiles('**/composer.lock') }}-${{ github.run_id }}
+        key: ${{ runner.os }}-phpstan-${{ hashFiles('**/composer.lock') }}-${{ github.run_id }}
         restore-keys: |
-          ${{ runner.os }}-phpstan-${{ matrix.php-versions }}-${{ hashFiles('**/composer.lock') }}
-          ${{ runner.os }}-phpstan-${{ matrix.php-versions }}-
+          ${{ runner.os }}-phpstan-${{ hashFiles('**/composer.lock') }}
+          ${{ runner.os }}-phpstan-
 
     - name: Get changed files
       id: changed-files
-      uses: tj-actions/changed-files@v18.7
+      uses: tj-actions/changed-files@v35
 
     - name: Setup PHP, with composer and extensions
       uses: shivammathur/setup-php@v2
@@ -169,7 +174,11 @@ jobs:
         if [[ "${{ matrix.commands }}" == "PHPSTAN" ]]; then
           composer phpstan
         elif [[ "${{ matrix.commands }}" == "Rector" ]]; then
+          export SYMFONY_ENV=test
+          bin/console cache:warmup
           composer rector -- --dry-run --no-progress-bar
+        elif [[ "${{ matrix.commands }}" == "Twig Lint" ]]; then
+          bin/console lint:twig app plugins
         elif [[ "${{ matrix.commands }}" == "CS Fixer" ]]; then
           for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
             if [[ $file == *.php ]]; then
@@ -182,10 +191,10 @@ jobs:
         elif [[ "${{ matrix.commands }}" == "scaffolded files mismatch" ]]; then
           wget -q -O /tmp/jq https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64 && chmod 755 /tmp/jq
           /tmp/jq -r '.extra["mautic-scaffold"]["file-mapping"] | to_entries[] | "diff -q \(.key | sub("\\[(project|web)-root\\]";".")) app/\(.value)"' app/composer.json > diff_commands.sh
-          bash diff_commands.sh | tee /tmp/diff_command_output.txt
+          bash diff_commands.sh 2>&1 | tee /tmp/diff_command_output.txt
           rm diff_commands.sh
           if [[ $(wc -l </tmp/diff_command_output.txt) -ge 1 ]]; then
-            echo "some scaffolded files were not updated"
+            echo "some scaffolded files were not updated or deleted"
             echo "Please apply the same changes in the files mentioned above"
             exit 1
           fi

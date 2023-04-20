@@ -6,9 +6,9 @@ namespace Mautic\LeadBundle\Tests\Segment;
 
 use Doctrine\Common\DataFixtures\ReferenceRepository;
 use Mautic\CoreBundle\Test\MauticMysqlTestCase;
+use Mautic\InstallBundle\InstallFixtures\ORM\LeadFieldData;
 use Mautic\LeadBundle\DataFixtures\ORM\LoadCompanyData;
 use Mautic\LeadBundle\DataFixtures\ORM\LoadLeadData;
-use Mautic\LeadBundle\DataFixtures\ORM\LoadLeadFieldData;
 use Mautic\LeadBundle\DataFixtures\ORM\LoadLeadListData;
 use Mautic\LeadBundle\Entity\LeadList;
 use Mautic\LeadBundle\Segment\ContactSegmentService;
@@ -46,7 +46,7 @@ class ContactSegmentServiceFunctionalTest extends MauticMysqlTestCase
                 LoadCompanyData::class,
                 LoadLeadListData::class,
                 LoadLeadData::class,
-                LoadLeadFieldData::class,
+                LeadFieldData::class,
                 LoadPageHitData::class,
                 LoadSegmentsData::class,
                 LoadPageCategoryData::class,
@@ -149,7 +149,7 @@ class ContactSegmentServiceFunctionalTest extends MauticMysqlTestCase
         );
 
         // Remove the title from all contacts, rebuild the list, and check that list is updated
-        $this->em->getConnection()->query(sprintf('UPDATE %sleads SET title = NULL;', MAUTIC_TABLE_PREFIX));
+        $this->em->getConnection()->executeQuery(sprintf('UPDATE %sleads SET title = NULL;', MAUTIC_TABLE_PREFIX));
 
         $this->runCommand(
             'mautic:segments:update',
@@ -196,7 +196,7 @@ class ContactSegmentServiceFunctionalTest extends MauticMysqlTestCase
         );
 
         // Change the url from page_hits with the right tracking_id, rebuild the list, and check that list is updated
-        $this->em->getConnection()->query(sprintf(
+        $this->em->getConnection()->executeQuery(sprintf(
             "UPDATE %spage_hits SET url = '%s' WHERE tracking_id = '%s';",
             MAUTIC_TABLE_PREFIX,
             'https://test/regex-segment-other.com',

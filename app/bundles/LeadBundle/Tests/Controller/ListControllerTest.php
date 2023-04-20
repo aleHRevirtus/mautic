@@ -133,16 +133,18 @@ class ListControllerTest extends MauticMysqlTestCase
     private function addContactsToSegment(array $contacts, string $segmentName): LeadList
     {
         $filters = [
-            'glue'       => 'and',
-            'field'      => 'company',
-            'object'     => 'lead',
-            'type'       => 'text',
-            'operator'   => 'contains',
-            'properties' => [
-                    'filter' => 'Acquia',
-                ],
-            'filter'  => 'Acquia',
-            'display' => null,
+            [
+                'glue'       => 'and',
+                'field'      => 'company',
+                'object'     => 'lead',
+                'type'       => 'text',
+                'operator'   => 'contains',
+                'properties' => [
+                        'filter' => 'Acquia',
+                    ],
+                'filter'  => 'Acquia',
+                'display' => null,
+            ],
         ];
 
         $segment = new LeadList();
@@ -169,5 +171,23 @@ class ListControllerTest extends MauticMysqlTestCase
         $this->em->flush();
 
         return $segment;
+    }
+
+    public function testCloneSegmentPage(): void
+    {
+        $list = $this->createList('clone');
+        $list->setDateAdded(new \DateTime('2020-02-07 20:29:02'));
+        $list->setDateModified(new \DateTime('2020-03-21 20:29:02'));
+        $list->setCreatedByUser('Test User');
+
+        $this->em->persist($list);
+        $this->em->flush();
+        $this->em->clear();
+
+        $this->client->request('GET', sprintf('/s/segments/clone/%d', $list->getId()));
+
+        $clientResponse = $this->client->getResponse();
+        $this->assertSame(Response::HTTP_OK, $clientResponse->getStatusCode(), 'Return code must be 200.');
+        self::assertStringContainsString('Segment clone', $clientResponse->getContent());
     }
 }

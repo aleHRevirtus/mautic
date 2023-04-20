@@ -37,10 +37,10 @@ class UrlHelper
             if (200 === $response->getStatusCode()) {
                 return rtrim($response->getBody());
             } else {
-                $this->logger->addWarning("Url shortner failed with code {$response->getStatusCode()}: {$response->getBody()}");
+                $this->logger->warning("Url shortner failed with code {$response->getStatusCode()}: {$response->getBody()}");
             }
         } catch (\Exception $exception) {
-            $this->logger->addError(
+            $this->logger->error(
                 $exception->getMessage(),
                 ['exception' => $exception]
             );
@@ -139,7 +139,8 @@ class UrlHelper
         }
         /* replace '//' or '/./' or '/foo/../' with '/' */
         $re = ['#(/\.?/)#', '#/(?!\.\.)[^/]+/\.\./#'];
-        for ($n = 1; $n > 0; $abs = preg_replace($re, '/', $abs, -1, $n)) {
+        for ($n = 1; $n > 0;) {
+            $abs = preg_replace($re, '/', $abs, -1, $n);
         }
 
         /* absolute URL is ready! */
@@ -221,6 +222,12 @@ class UrlHelper
         $isRelative = 0 === strpos($url, '//');
 
         if ($isRelative) {
+            return $url;
+        }
+
+        $isMailto = 0 === strpos($url, 'mailto:');
+
+        if ($isMailto) {
             return $url;
         }
 

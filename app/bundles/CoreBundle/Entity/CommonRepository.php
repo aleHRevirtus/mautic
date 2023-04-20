@@ -2,25 +2,39 @@
 
 namespace Mautic\CoreBundle\Entity;
 
+use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\ExpressionBuilder;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Query\Expression\CompositeExpression;
 use Doctrine\DBAL\Query\QueryBuilder as DbalQueryBuilder;
 use Doctrine\DBAL\Types\Types;
-use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\Mapping\ClassMetadataInfo;
 use Doctrine\ORM\Query;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\ORM\Tools\Pagination\Paginator;
+use Doctrine\Persistence\ManagerRegistry;
+use Mautic\CoreBundle\Doctrine\Paginator\SimplePaginator;
 use Mautic\CoreBundle\Helper\DateTimeHelper;
 use Mautic\CoreBundle\Helper\InputHelper;
 use Mautic\CoreBundle\Helper\SearchStringHelper;
 use Mautic\UserBundle\Entity\User;
-use Symfony\Component\Translation\TranslatorInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
-class CommonRepository extends EntityRepository
+/**
+ * @template T
+ * @extends ServiceEntityRepository<T>
+ */
+class CommonRepository extends ServiceEntityRepository
 {
+    /**
+     * @phpstan-param class-string<T>|null $entityFQCN
+     */
+    public function __construct(ManagerRegistry $registry, string $entityFQCN = null)
+    {
+        parent::__construct($registry, $entityFQCN ?? str_replace('Repository', '', get_class($this)));
+    }
+
     /**
      * Stores the parsed columns and their negate status for addAdvancedSearchWhereClause().
      *
@@ -29,7 +43,7 @@ class CommonRepository extends EntityRepository
     protected $advancedFilterCommands = [];
 
     /**
-     * @var User
+     * @var User|null
      */
     protected $currentUser;
 
@@ -101,7 +115,7 @@ class CommonRepository extends EntityRepository
                 foreach ($args['order'] as &$o) {
                     $alias = '';
                     if (false !== strpos($o, '.')) {
-                        list($alias, $o) = explode('.', $o);
+                        [$alias, $o] = explode('.', $o);
                     }
 
                     if (in_array($o, $properties)) {
@@ -312,7 +326,9 @@ class CommonRepository extends EntityRepository
     /**
      * Get a list of entities.
      *
-     * @return array|\Doctrine\ORM\Internal\Hydration\IterableResult|Paginator
+     * @param array<string,mixed> $args
+     *
+     * @return object[]|array<int,mixed>|\Doctrine\ORM\Internal\Hydration\IterableResult<object>|Paginator<object>|SimplePaginator<mixed>
      */
     public function getEntities(array $args = [])
     {
@@ -345,8 +361,13 @@ class CommonRepository extends EntityRepository
             // Hydrate one by one
             return $query->iterate(null, $hydrationMode);
         } elseif (empty($args['ignore_paginator'])) {
-            // Paginator
-            return new Paginator($query, false);
+            if (!empty($args['use_simple_paginator'])) {
+                // FAST paginator that can handle only simple queries using no joins or ManyToOne joins.
+                return new SimplePaginator($query);
+            } else {
+                // SLOW paginator that can handle complex queries using oneToMany/ManyToMany joins.
+                return new Paginator($query, false);
+            }
         } else {
             // All results
             return $query->getResult($hydrationMode);
@@ -391,14 +412,14 @@ class CommonRepository extends EntityRepository
     }
 
     /**
-     * @param      $filter
-     * @param null $parameterName
+     * @param QueryBuilder|DbalQueryBuilder $q
+     * @param array<mixed>                  $filter
      *
      * @return array
      */
-    public function getFilterExpr(&$q, $filter, $parameterName = null)
+    public function getFilterExpr($q, array $filter, ?string $unique = null)
     {
-        $unique    = ($parameterName) ? $parameterName : $this->generateRandomParameterName();
+        $unique    = ($unique) ?: $this->generateRandomParameterName();
         $parameter = [];
 
         if (isset($filter['group'])) {
@@ -406,7 +427,7 @@ class CommonRepository extends EntityRepository
             foreach ($filter['group'] as $orGroup) {
                 $groupExpr = $q->expr()->andX();
                 foreach ($orGroup as $subFilter) {
-                    list($subExpr, $subParameters) = $this->getFilterExpr($q, $subFilter);
+                    [$subExpr, $subParameters] = $this->getFilterExpr($q, $subFilter);
 
                     $groupExpr->add($subExpr);
                     if (!empty($subParameters)) {
@@ -423,7 +444,7 @@ class CommonRepository extends EntityRepository
                 $subFilter           = $filter;
                 $subFilter['column'] = trim($c);
 
-                list($subExpr, $parameterUsed) = $this->getFilterExpr($q, $subFilter, $unique);
+                [$subExpr, $parameterUsed] = $this->getFilterExpr($q, $subFilter, $unique);
 
                 if ($parameterUsed) {
                     $setParameter = true;
@@ -472,11 +493,11 @@ class CommonRepository extends EntityRepository
      * Returns a andX Expr() that takes into account isPublished, publishUp and publishDown dates
      * The Expr() sets a :now and :true parameter that must be set in the calling function.
      *
-     * @param      $q
-     * @param null $alias
-     * @param bool $setNowParameter
-     * @param bool $setTrueParameter
-     * @param bool $allowNullForPublishedUp Allow entities without a published up date
+     * @param             $q
+     * @param string|null $alias
+     * @param bool        $setNowParameter
+     * @param bool        $setTrueParameter
+     * @param bool        $allowNullForPublishedUp Allow entities without a published up date
      *
      * @return mixed
      */
@@ -567,7 +588,7 @@ class CommonRepository extends EntityRepository
 
         $this->buildWhereClauseFromArray($q, $where);
 
-        $count = $q->execute()->fetchColumn();
+        $count = $q->execute()->fetchOne();
 
         if ($select) {
             foreach ($select as &$column) {
@@ -587,7 +608,7 @@ class CommonRepository extends EntityRepository
 
         $this->buildOrderByClauseFromArray($q, $order);
 
-        $results = $q->execute()->fetchAll();
+        $results = $q->execute()->fetchAllAssociative();
 
         return [
             'total'   => $count,
@@ -611,7 +632,7 @@ class CommonRepository extends EntityRepository
             ->where($this->getTableAlias().'.id = :id')
             ->setParameter('id', $id);
 
-        $result = $q->execute()->fetch();
+        $result = $q->execute()->fetchAssociative();
 
         if (isset($result[$column])) {
             return $result[$column];
@@ -689,7 +710,7 @@ class CommonRepository extends EntityRepository
             $q->setMaxResults((int) $limit);
         }
 
-        return $q->execute()->fetchAll();
+        return $q->execute()->fetchAllAssociative();
     }
 
     /**
@@ -1278,7 +1299,7 @@ class CommonRepository extends EntityRepository
     {
         if (!empty($args['index_by'])) {
             if (is_array($args['index_by'])) {
-                list($indexAlias, $indexBy) = $args['index_by'];
+                [$indexAlias, $indexBy] = $args['index_by'];
             } else {
                 $indexAlias = $this->getTableAlias();
                 $indexBy    = $args['index_by'];
@@ -1291,11 +1312,9 @@ class CommonRepository extends EntityRepository
     }
 
     /**
-     * @param \Doctrine\ORM\QueryBuilder $q
-     *
-     * @return bool
+     * @param QueryBuilder|DbalQueryBuilder $q
      */
-    protected function buildLimiterClauses(&$q, array $args)
+    protected function buildLimiterClauses($q, array $args): void
     {
         $start = array_key_exists('start', $args) ? $args['start'] : 0;
         $limit = array_key_exists('limit', $args) ? $args['limit'] : 0;
@@ -1307,9 +1326,9 @@ class CommonRepository extends EntityRepository
     }
 
     /**
-     * @param \Doctrine\ORM\QueryBuilder $q
+     * @param QueryBuilder|DbalQueryBuilder $q
      */
-    protected function buildOrderByClause($q, array $args)
+    protected function buildOrderByClause($q, array $args): void
     {
         $orderBy = array_key_exists('orderBy', $args) ? $args['orderBy'] : '';
 
@@ -1338,8 +1357,8 @@ class CommonRepository extends EntityRepository
     /**
      * Build order by from an array.
      *
-     * @param QueryBuilder $query
-     * @param array        $clauses [['col' => 'column_a', 'dir' => 'ASC']]
+     * @param QueryBuilder|DbalQueryBuilder $query
+     * @param array                         $clauses [['col' => 'column_a', 'dir' => 'ASC']]
      *
      * @return array
      */
@@ -1370,7 +1389,7 @@ class CommonRepository extends EntityRepository
             $selects = [];
             foreach ($args['select'] as $select) {
                 if (false !== strpos($select, '.')) {
-                    list($alias, $select) = explode('.', $select);
+                    [$alias, $select] = explode('.', $select);
                 } else {
                     $alias = $this->getTableAlias();
                 }
@@ -1429,7 +1448,7 @@ class CommonRepository extends EntityRepository
     }
 
     /**
-     * @param \Doctrine\ORM\QueryBuilder $q
+     * @param QueryBuilder|DbalQueryBuilder $q
      */
     protected function buildWhereClause($q, array $args)
     {
@@ -1445,21 +1464,22 @@ class CommonRepository extends EntityRepository
         $queryExpression              = $q->expr()->andX();
 
         if (isset($args['ids'])) {
-            $ids = array_map('intval', $args['ids']);
+            $ids   = array_map('intval', $args['ids']);
+            $param = $this->generateRandomParameterName();
             if ($q instanceof QueryBuilder) {
-                $param = $this->generateRandomParameterName();
                 $queryExpression->add(
                     $q->expr()->in($this->getTableAlias().'.id', ':'.$param)
                 );
                 $queryParameters[$param] = $ids;
             } else {
                 $queryExpression->add(
-                    $q->expr()->in($this->getTableAlias().'.id', $ids)
+                    $q->expr()->in($this->getTableAlias().'.id', ':'.$param)
                 );
+                $q->setParameter($param, $ids, Connection::PARAM_INT_ARRAY);
             }
         } elseif (!empty($args['ownedBy'])) {
             $queryExpression->add(
-                $q->expr()->in($this->getTableAlias().'.'.$args['ownedBy'][0], (int) $args['ownedBy'][1])
+                $q->expr()->in($this->getTableAlias().'.'.$args['ownedBy'][0], (string) $args['ownedBy'][1])
             );
         }
 
@@ -1481,7 +1501,7 @@ class CommonRepository extends EntityRepository
                                     unset($criterion->parameters);
                                 }
                             } elseif (is_array($criterion)) {
-                                list($expr, $parameters) = $this->getFilterExpr($q, $criterion);
+                                [$expr, $parameters] = $this->getFilterExpr($q, $criterion);
                                 $queryExpression->add($expr);
                                 if (is_array($parameters)) {
                                     $queryParameters = array_merge($queryParameters, $parameters);
@@ -1513,7 +1533,7 @@ class CommonRepository extends EntityRepository
                 }
                 $this->advancedFilterCommands = $advancedFilters->commands;
 
-                list($expr, $parameters) = $this->addAdvancedSearchWhereClause($q, $advancedFilters);
+                [$expr, $parameters] = $this->addAdvancedSearchWhereClause($q, $advancedFilters);
                 $this->appendExpression($queryExpression, $expr);
 
                 if (is_array($parameters)) {
@@ -1730,20 +1750,20 @@ class CommonRepository extends EntityRepository
     {
         foreach ($parseFilters as $f) {
             if (isset($f->children)) {
-                list($expr, $params) = $this->addAdvancedSearchWhereClause($qb, $f);
+                [$expr, $params] = $this->addAdvancedSearchWhereClause($qb, $f);
             } else {
                 if (!empty($f->command)) {
                     if ($this->isSupportedSearchCommand($f->command, $f->string)) {
-                        list($expr, $params) = $this->addSearchCommandWhereClause($qb, $f);
+                        [$expr, $params] = $this->addSearchCommandWhereClause($qb, $f);
                     } else {
                         //treat the command:string as if its a single word
-                        $f->string           = $f->command.':'.$f->string;
-                        $f->not              = false;
-                        $f->strict           = true;
-                        list($expr, $params) = $this->addCatchAllWhereClause($qb, $f);
+                        $f->string       = $f->command.':'.$f->string;
+                        $f->not          = false;
+                        $f->strict       = true;
+                        [$expr, $params] = $this->addCatchAllWhereClause($qb, $f);
                     }
                 } else {
-                    list($expr, $params) = $this->addCatchAllWhereClause($qb, $f);
+                    [$expr, $params] = $this->addCatchAllWhereClause($qb, $f);
                 }
             }
             if (!empty($params)) {
@@ -1774,7 +1794,7 @@ class CommonRepository extends EntityRepository
             $col   = $f[$key];
             $alias = '';
             if (false !== strpos($col, '.')) {
-                list($alias, $col) = explode('.', $col);
+                [$alias, $col] = explode('.', $col);
             }
 
             if (in_array($col, $properties)) {
